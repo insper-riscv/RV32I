@@ -1,21 +1,10 @@
 {
-    "example": {
-        "toplevel": "my_design",
+    "example_and_gate": {
+        "toplevel": "and_gate",
         "sources": [
-            "src/example.vhd"
+            "src/examples/and_gate.vhd"
         ],
-        "test_module": "tests.example"
-    },
-    "ula": {
-        "toplevel": "ULA32bits",
-        "sources": [
-            "src/muxGenerico2x1_1bit.vhd",
-            "src/muxGenerico4x1_1bit.vhd",
-            "src/somadorGenerico1bit.vhd",
-            "src/ULA1bit.vhd",
-            "src/ULA32bits.vhd"
-        ],
-        "test_module": "tests.test_ula"
+        "test_module": "tests.examples.and_gate"
     },
     "mux_2x1": {
         "toplevel": "muxgenerico2x1",

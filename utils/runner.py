@@ -69,13 +69,13 @@ if __name__ == "__main__":
                 print(f"{'-'*20} TESTE {name.upper()} FINALIZADO COM SUCESSO {'-'*20}")
             except Exception as e:
                 print(f"[ERRO] O teste '{name}' falhou: {e}")
-        print("\n✅ Todos os testes foram executados.")
+        print("\nTodos os testes foram executados.")
 
     elif args.test_name in TEST_CONFIGS:
         print(f"🚀 Executando teste específico: {args.test_name}")
         config = TEST_CONFIGS[args.test_name]
         run_cocotb_test(**config)
-        print(f"\n✅ Teste {args.test_name} finalizado.")
+        print(f"\nTeste {args.test_name} finalizado.")
     else:
         print(f"Erro: Teste '{args.test_name}' não encontrado em tests.json.")
         print(f"Opções disponíveis: {list(TEST_CONFIGS.keys()) + ['all']}")

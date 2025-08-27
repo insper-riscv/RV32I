@@ -1,4 +1,4 @@
-# Processador RISC-V (RV32I) em VHDL
+# Processador RISC-V (RV32I) em HDL
 
 **Autores:** [Ilana Finger](https://github.com/ilacftemp), [Leonardo Paloschi](), [Lucas Lima](https://github.com/lucasouzamil) e [Pedro Ventura](https://github.com/pedropcventura).
 
