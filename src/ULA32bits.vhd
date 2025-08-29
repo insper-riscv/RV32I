@@ -6,7 +6,7 @@ entity ULA32bits is
     generic ( larguraDados : natural := 1 );
     port (
       entradaA, entradaB: in STD_LOGIC_VECTOR(31 downto 0);
-      op_ULA: in STD_LOGIC_VECTOR(3 downto 0);
+      op_ULA: in STD_LOGIC_VECTOR(2 downto 0);
 		flagZero: out std_logic;
       resultado: out STD_LOGIC_VECTOR(31 downto 0)
     );
