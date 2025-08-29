@@ -39,7 +39,7 @@
 
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CGXFC7C7F23C8
-set_global_assignment -name TOP_LEVEL_ENTITY singlecycle_v0
+set_global_assignment -name TOP_LEVEL_ENTITY riscv
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 20.1.0
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "13:57:00  AUGUST 21, 2025"
 set_global_assignment -name LAST_QUARTUS_VERSION "20.1.0 Lite Edition"
