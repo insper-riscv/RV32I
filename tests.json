@@ -6,32 +6,9 @@
         ],
         "test_module": "tests.examples.and_gate"
     },
-    "mux_2x1": {
-        "toplevel": "muxgenerico2x1",
-        "sources": [
-            "src/muxGenerico2x1.vhd"
-        ],
-        "test_module": "tests.mux_2x1"
-    },
-    "mux_4x1": {
-        "toplevel": "muxgenerico4x1",
-        "sources": [
-            "src/muxGenerico4x1.vhd"
-        ],
-        "test_module": "tests.mux_4x1"
-    },
-    "estendeSinalGenerico": {
-        "toplevel": "estendesinalgenerico",
-        "sources": [
-            "src/estendeSinalGenerico.vhd"
-        ],
-        "test_module": "tests.estendeSinalGenerico"
-    },
-    "somadorGenerico": {
-        "toplevel": "somadorgenerico",
-        "sources": [
-            "src/somadorGenerico.vhd"
-        ],
-        "test_module": "tests.somadorGenerico"
+    "bancoRegistradores": {
+        "toplevel": "bancoregistradores",
+        "sources": ["src/genericRegister.vhd","src/bancoReg.vhd"],
+        "test_module": "tests.bancoRegistradores"
     }
 }

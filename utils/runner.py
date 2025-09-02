@@ -28,7 +28,8 @@ def run_cocotb_test(toplevel: str, sources: list, test_module: str):
 
     runner.test(
         hdl_toplevel=toplevel,
-        test_module=test_module
+        test_module=test_module,
+        
     )
 
 # ====================================================================================
