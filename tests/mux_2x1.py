@@ -2,46 +2,136 @@ import cocotb
 from cocotb.triggers import Timer
 import random
 
+# --------- Helpers de formatação/log ----------
+def _fmt_header():
+    return f"{'Step':<5} | {'Sel':<3} | {'A':<12} | {'B':<12} | {'Saída':<12} | {'Esperado':<12}"
+
+def _fmt_row(step, sel, a, b, y, exp):
+    return f"{step:<5} | {sel:<3} | {a:<12} | {b:<12} | {y:<12} | {exp:<12}"
+
+def _has_xz(val):
+    try:
+        s = val.binstr
+    except Exception:
+        return False
+    return ('x' in s.lower()) or ('z' in s.lower())
+
+def _sel_to_exp(sel, a, b):
+    return b if sel else a
+
+def _patterns(width):
+    maxv = (1 << width) - 1
+    bits = ''.join(('01' for _ in range((width + 1)//2)))[:width]
+    p55 = int(bits[::-1], 2)
+    pAA = p55 ^ maxv
+    return maxv, p55 & maxv, pAA & maxv
+
+# ============================================================
+# 1) TESTE DETERMINÍSTICO
+# ============================================================
 @cocotb.test()
-async def test_mux_2x1_0(dut):
-    """Testa o MUX 2x1 com seletor 0."""
+async def deterministico(dut):
+    """Casos determinísticos para MUX 2x1: 0x00.., 0xFF.., padrões alternados, combinações extremas."""
+    largura = len(dut.entradaA_MUX)
+    maxv, p55, pAA = _patterns(largura)
 
-    # O MUX foi definido com largura de 8 bits por padrão
-    largura_dados = len(dut.entradaA_MUX)
-    dut._log.info(f"Iniciando teste para MUX de {largura_dados} bits.")
+    dut._log.info(f"Iniciando testes determinísticos para MUX 2x1 de {largura} bits.")
+    dut._log.info(_fmt_header())
 
-    # Gera valores aleatórios para as entradas A e B
-    valor_a = random.randint(0, 2**largura_dados - 1)
-    valor_b = random.randint(0, 2**largura_dados - 1)
-    
-    dut.entradaA_MUX.value = valor_a
-    dut.entradaB_MUX.value = valor_b
+    casos = [
+        (0,     0),
+        (maxv,  maxv),
+        (0,     maxv),
+        (maxv,  0),
+        (p55,   pAA),
+        (pAA,   p55),
+    ]
 
-    # --- Caso de Teste 1: Seletor = 0 ---
-    dut.seletor_MUX.value = 0
-    await Timer(1, units="ns")  # Espera a propagação do sinal
+    step = 0
+    for a, b in casos:
+        for sel in (0, 1):
+            dut.entradaA_MUX.value = a
+            dut.entradaB_MUX.value = b
+            dut.seletor_MUX.value  = sel
+            await Timer(1, units="ns")
 
-    dut._log.info(f"Teste com seletor = 0. EntradaA={valor_a}, Saida={int(dut.saida_MUX.value)}")
-    assert dut.saida_MUX.value == valor_a, f"Erro: com seletor=0, a saída deveria ser {valor_a}, mas foi {int(dut.saida_MUX.value)}"
+            if _has_xz(dut.saida_MUX.value):
+                raise AssertionError(f"Saída com X/Z para sel={sel} A={a} B={b}")
 
+            y   = int(dut.saida_MUX.value)
+            exp = _sel_to_exp(sel, a, b)
+            dut._log.info(_fmt_row(step, sel, a, b, y, exp))
+            assert y == exp, f"(determinístico) sel={sel} A={a} B={b} -> esperado {exp}, obtido {y}"
+            step += 1
+
+# ============================================================
+# 2) TESTE: COMUTAÇÃO APENAS DO SELETOR
+# ============================================================
 @cocotb.test()
-async def test_mux_2x1_1(dut):
-    """Testa o MUX 2x1 com seletor 1."""
+async def toggle_seletor(dut):
+    """Comuta somente o seletor com A/B fixos: saída deve alternar exatamente conforme o sel."""
+    largura = len(dut.entradaA_MUX)
+    maxv = (1 << largura) - 1
+    random.seed(42)
 
-    # O MUX foi definido com largura de 8 bits por padrão
-    largura_dados = len(dut.entradaA_MUX)
-    dut._log.info(f"Iniciando teste para MUX de {largura_dados} bits.")
+    a = random.randint(0, maxv)
+    b = random.randint(0, maxv)
 
-    # Gera valores aleatórios para as entradas A e B
-    valor_a = random.randint(0, 2**largura_dados - 1)
-    valor_b = random.randint(0, 2**largura_dados - 1)
-    
-    dut.entradaA_MUX.value = valor_a
-    dut.entradaB_MUX.value = valor_b
+    dut.entradaA_MUX.value = a
+    dut.entradaB_MUX.value = b
 
-    # --- Caso de Teste 2: Seletor = 1 ---
-    dut.seletor_MUX.value = 1
-    await Timer(1, units="ns")  # Espera a propagação do sinal
+    dut._log.info(f"Iniciando teste de comutação do seletor (entradas fixas) para MUX 2x1 de {largura} bits.")
+    dut._log.info(_fmt_header())
 
-    dut._log.info(f"Teste com seletor = 1. EntradaB={valor_b}, Saida={int(dut.saida_MUX.value)}")
-    assert dut.saida_MUX.value == valor_b, f"Erro: com seletor=1, a saída deveria ser {valor_b}, mas foi {int(dut.saida_MUX.value)}"
+    sequencia_sel = [0, 1, 1, 0, 0, 1, 0]
+
+    step = 0
+    for sel in sequencia_sel:
+        dut.seletor_MUX.value = sel
+        await Timer(1, units="ns")
+
+        if _has_xz(dut.saida_MUX.value):
+            raise AssertionError(f"Saída com X/Z para sel={sel} (A={a} B={b})")
+
+        y   = int(dut.saida_MUX.value)
+        exp = _sel_to_exp(sel, a, b)
+        dut._log.info(_fmt_row(step, sel, a, b, y, exp))
+        assert y == exp, f"(toggle seletor) sel={sel} A={a} B={b} -> esperado {exp}, obtido {y}"
+        step += 1
+
+# ============================================================
+# 3) TESTE: TROCA SIMULTÂNEA
+# ============================================================
+@cocotb.test()
+async def troca_simultanea(dut):
+    """Troca simultânea de A/B e seletor (foco em stress de combinacional)."""
+    largura = len(dut.entradaA_MUX)
+    maxv = (1 << largura) - 1
+    random.seed(123)
+
+    dut._log.info(f"Iniciando teste de troca simultânea para MUX 2x1 de {largura} bits.")
+    dut._log.info(_fmt_header())
+
+    step = 0
+    for _ in range(50):
+        a   = random.randint(0, maxv)
+        b   = random.randint(0, maxv)
+        sel = random.randint(0, 1)
+
+        dut.entradaA_MUX.value = a
+        dut.entradaB_MUX.value = b
+        dut.seletor_MUX.value  = sel
+
+        await Timer(1, units="ns")
+
+        if _has_xz(dut.saida_MUX.value):
+            raise AssertionError(f"Saída com X/Z para sel={sel} A={a} B={b}")
+
+        y   = int(dut.saida_MUX.value)
+        exp = _sel_to_exp(sel, a, b)
+
+        if step % 10 == 0:
+            dut._log.info(_fmt_row(step, sel, a, b, y, exp))
+
+        assert y == exp, f"(simultâneo) sel={sel} A={a} B={b} -> esperado {exp}, obtido {y}"
+        step += 1
