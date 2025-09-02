@@ -1,0 +1,44 @@
+name: sim
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+# Cancel older in-flight runs on the same branch/PR
+concurrency:
+  group: sim-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cocotb-ghdl:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Build the same image you use locally (from .devcontainer/Dockerfile)
+      - name: Build sim image
+        run: |
+          docker build -f .devcontainer/Dockerfile -t riscv-sim .
+
+      # Run tests exactly like you do locally
+      - name: Run tests
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/work" \
+            -w /work \
+            -u root \
+            riscv-sim \
+            make test
+
+      # Always try to upload waveforms if they were produced
+      - name: Upload waveforms
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: waveforms
+          path: "**/*.vcd"
+          if-no-files-found: ignore
