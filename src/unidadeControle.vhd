@@ -1,116 +1,161 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use work.rv32i_ctrl_pkg.all;
 
 entity unidadeControle is
   port (
     opcode  : in  std_logic_vector(6 downto 0);
     funct3  : in  std_logic_vector(2 downto 0);
     funct7  : in  std_logic_vector(6 downto 0);
-    saida   : out std_logic_vector(13 downto 0)
+    ctrl    : out ctrl_t
   );
 end entity;
 
 architecture comportamento of unidadeControle is
-  -- opcodes
-  constant LUI      : std_logic_vector(6 downto 0) := "0110111";
-  constant AUIPC    : std_logic_vector(6 downto 0) := "0010111";
-  constant JAL      : std_logic_vector(6 downto 0) := "1101111";
-  constant JALR     : std_logic_vector(6 downto 0) := "1100111";
-  constant B_type   : std_logic_vector(6 downto 0) := "1100011";
-  constant L_type   : std_logic_vector(6 downto 0) := "0000011";
-  constant S_type   : std_logic_vector(6 downto 0) := "0100011";
-  constant I_type   : std_logic_vector(6 downto 0) := "0010011";
-  constant R_type   : std_logic_vector(6 downto 0) := "0110011";
 
-  -- sinais de saida
-  signal RegWrite   : std_logic;
-  signal ResultSrc  : std_logic_vector(1 downto 0);
-  signal MemWrite   : std_logic;
-  signal ALUControl : std_logic_vector(3 downto 0);
-  signal ALUSrc     : std_logic;
-  signal ImmSrc     : std_logic_vector(2 downto 0);
-  signal Branch     : std_logic;
-  signal Jump       : std_logic;
-  signal ALUOp      : std_logic_vector(1 downto 0);
-
+	signal c : ctrl_t;
+	
 begin
 
-	process(opcode)
-	begin
-		case opcode is
-			when L_type =>
-			  RegWrite   <= '1';  ResultSrc <= "01"; MemWrite <= '0';
-			  ALUSrc     <= '1';  ImmSrc    <= "000"; Branch   <= '0'; Jump <= '0';
-			  ALUOp      <= "00";
-
-			when S_type =>
-			  RegWrite   <= '0';  ResultSrc <= "00"; MemWrite <= '1';
-			  ALUSrc     <= '1';  ImmSrc    <= "001"; Branch   <= '0'; Jump <= '0';
-			  ALUOp      <= "00";
-
-			when B_type =>
-			  RegWrite   <= '0';  ResultSrc <= "00"; MemWrite <= '0';
-			  ALUSrc     <= '0';  ImmSrc    <= "010"; Branch   <= '1'; Jump <= '0';
-			  ALUOp      <= "01";
-
-			when I_type =>
-			  RegWrite   <= '1';  ResultSrc <= "00"; MemWrite <= '0';
-			  ALUSrc     <= '1';  ImmSrc    <= "000"; Branch   <= '0'; Jump <= '0';
-			  ALUOp      <= "10";
-
-			when R_type =>
-			  RegWrite   <= '1';  ResultSrc <= "00"; MemWrite <= '0';
-			  ALUSrc     <= '0';  ImmSrc    <= "000"; Branch   <= '0'; Jump <= '0';
-			  ALUOp      <= "10";
-
-			when LUI | AUIPC =>
-			  RegWrite   <= '1';  ResultSrc <= "00"; MemWrite <= '0';
-			  ALUSrc     <= '1';  ImmSrc    <= "011"; Branch   <= '0'; Jump <= '0';
-			  ALUOp      <= "00";
-
-			when JAL | JALR =>
-			  RegWrite   <= '1';  ResultSrc <= "10"; MemWrite <= '0';
-			  ALUSrc     <= '1';  ImmSrc    <= "100"; Branch   <= '0'; Jump <= '1';
-			  ALUOp      <= "00";
-
-			when others =>
-			  RegWrite   <= '0';  ResultSrc <= "00"; MemWrite <= '0';
-			  ALUSrc     <= '0';  ImmSrc    <= "000"; Branch   <= '0'; Jump <= '0';
-			  ALUOp      <= "00";
-		 end case;
-	end process;
-
-	process(ALUOp, funct3, funct7)
+	process(all)
+		variable v : ctrl_t;
+		
 		begin
-			case ALUOp is
-				when "00" => ALUControl <= "0000"; -- ADD (nao tipoR)
-				when "01" => ALUControl <= "0001"; -- SUB tipo B
-				when "10" =>
+			-- valores default:
+			v.RegWrite    := '0';
+			v.MemWrite    := '0';
+			v.ResultSrc   := RES_ALU;
+			v.SrcA        := SRC_A_RS1;
+			v.SrcB        := '0';
+			v.ImmSrc      := IMM_I;
+			v.Branch      := '0';
+			v.BranchOp    := BR_NONE;
+			v.MemSize     := MS_W;
+			v.MemUnsigned := '0';
+			v.ALUCtrl     := "0000";
+			v.JumpType    := JT_NONE;
+			v.JalrMask    := '0';
+			
+			case opcode is
+				when OP_L =>
+					v.RegWrite := '1';
+					v.ResultSrc:= RES_MEM;
+					v.SrcB     := '1';
+					v.ImmSrc   := IMM_I;
+					v.SrcA     := SRC_A_RS1;
+					v.ALUCtrl  := "0000";
 					case funct3 is
-						when "000" =>
-							if funct7(5) = '1' then
-								ALUControl <= "0001"; -- SUB
-							else
-								ALUControl <= "0000"; -- ADD
-							end if;
-						when "111" => ALUControl <= "0010"; -- AND/ANDI
-						when "110" => ALUControl <= "0011"; -- OR/ORI
-						when "100" => ALUControl <= "0100"; -- XOR/XORI
-						when "010" => ALUControl <= "0101"; -- SLT/SLTI
-						when "011" => ALUControl <= "0110"; -- SLTU/SLTIU
-						when "001" => ALUControl <= "1000"; -- SLL/SLLI
-						when "101" =>                       -- SRL/SRA / SRLI/SRAI
-							if funct7(5)='1' then 
-								ALUControl <="1010"; -- SRA/SRAI
-							else 
-								ALUControl <="1001"; -- SRL/SRLI
-							end if;
-						when others => ALUControl <= "0000";
+						when "000" => v.MemSize:=MS_B; v.MemUnsigned:='0';
+						when "001" => v.MemSize:=MS_H; v.MemUnsigned:='0';
+						when "010" => v.MemSize:=MS_W; v.MemUnsigned:='0';
+						when "100" => v.MemSize:=MS_B; v.MemUnsigned:='1';
+						when "101" => v.MemSize:=MS_H; v.MemUnsigned:='1';
+						when others => null;
 					end case;
-				when others => ALUControl <= "0000";
-			end case;
-	end process;
+					
+				when OP_S =>
+					v.MemWrite := '1';
+					v.SrcB     := '1';
+					v.ImmSrc   := IMM_S;
+					v.SrcA     := SRC_A_RS1;
+					v.ALUCtrl  := "0000";
+					case funct3 is
+						when "000" => v.MemSize:=MS_B;
+						when "001" => v.MemSize:=MS_H;
+						when "010" => v.MemSize:=MS_W;
+						when others => null;
+					end case;
+					
+				when OP_B =>
+					v.Branch  := '1';
+					v.SrcB    := '0';
+					v.ImmSrc  := IMM_B;
+					v.SrcA    := SRC_A_RS1;
+					v.ALUCtrl := "0001";
+					case funct3 is
+						when "000" => v.BranchOp := BR_EQ;
+						when "001" => v.BranchOp := BR_NE;
+						when "100" => v.BranchOp := BR_LT;
+						when "101" => v.BranchOp := BR_GE;
+						when "110" => v.BranchOp := BR_LTU;
+						when "111" => v.BranchOp := BR_GEU;
+						when others=> v.BranchOp := BR_NONE;
+					end case;
 
-   saida <= RegWrite & ResultSrc & MemWrite & ALUControl & ALUSrc & ImmSrc & Branch & Jump;
+				when OP_I =>
+					v.RegWrite := '1';
+					v.SrcB     := '1';
+					v.ImmSrc   := IMM_I;
+					case funct3 is -- de I para baixo, funct3 define realmente a operacao da ULA, nao eh fixada como acima (tipos L, S e B)
+						when "000" => v.ALUCtrl := "0000";
+						when "111" => v.ALUCtrl := "0010";
+						when "110" => v.ALUCtrl := "0011";
+						when "100" => v.ALUCtrl := "0100";
+						when "010" => v.ALUCtrl := "0101";
+						when "011" => v.ALUCtrl := "0110";
+						when "001" => v.ALUCtrl := "1000";
+						when "101" => if funct7(5)='1' then v.ALUCtrl:="1010"; else v.ALUCtrl:="1001"; end if;
+						when others=> v.ALUCtrl := "0000";
+					end case;
+				
+				when OP_R =>
+					v.RegWrite := '1';
+					v.SrcB     := '0';
+					case funct3 is
+						when "000" => if funct7(5)='1' then v.ALUCtrl:="0001"; else v.ALUCtrl:="0000"; end if;
+						when "111" => v.ALUCtrl := "0010";
+						when "110" => v.ALUCtrl := "0011";
+						when "100" => v.ALUCtrl := "0100";
+						when "010" => v.ALUCtrl := "0101";
+						when "011" => v.ALUCtrl := "0110";
+						when "001" => v.ALUCtrl := "1000";
+						when "101" => if funct7(5)='1' then v.ALUCtrl:="1010"; else v.ALUCtrl:="1001"; end if;
+						when others=> v.ALUCtrl := "0000";
+					end case;			
+		
+				when OP_LUI =>
+					v.RegWrite := '1';
+					v.SrcB     := '1';
+					v.ImmSrc   := IMM_U;
+					v.SrcA     := SRC_A_ZERO;
+					v.ALUCtrl  := "0000";
+
+				when OP_AUIPC =>
+					v.RegWrite := '1';
+					v.SrcB     := '1';
+					v.ImmSrc   := IMM_U;
+					v.SrcA     := SRC_A_PC;
+					v.ALUCtrl  := "0000";
+
+				when OP_JAL =>
+					v.RegWrite := '1';
+					v.ResultSrc:= RES_PC4;
+					v.SrcB     := '1';
+					v.ImmSrc   := IMM_J;
+					v.SrcA     := SRC_A_PC;
+					v.ALUCtrl  := "0000";
+					v.JumpType := JT_JAL;
+
+				when OP_JALR =>
+					v.RegWrite := '1';
+					v.ResultSrc:= RES_PC4;
+					v.SrcB     := '1';
+					v.ImmSrc   := IMM_I;
+					v.SrcA     := SRC_A_RS1;
+					v.ALUCtrl  := "0000";
+					v.JumpType := JT_JALR;
+					v.JalrMask := '1';
+
+				when others =>
+					null;
+					
+			end case;
+			
+			c <= v;
+			
+		end process;
+
+  ctrl <= c;
 
 end architecture;
