@@ -26,5 +26,12 @@
             "src/estendeSinalGenerico.vhd"
         ],
         "test_module": "tests.estendeSinalGenerico"
+    },
+    "somadorGenerico": {
+        "toplevel": "somadorgenerico",
+        "sources": [
+            "src/somadorGenerico.vhd"
+        ],
+        "test_module": "tests.somadorGenerico"
     }
 }
