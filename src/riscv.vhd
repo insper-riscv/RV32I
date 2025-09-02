@@ -1,8 +1,9 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.rv32i_ctrl_pkg.all;
 
-entity mips is
+entity riscv is
   generic   (
     DATA_WIDTH  : natural :=  32;
     ADDR_WIDTH  : natural :=  32
@@ -15,7 +16,7 @@ entity mips is
 end entity;
 
 
-architecture arch_name of mips is
+architecture arch_name of riscv is
 		
 	signal proxPC         : std_logic_vector(31 downto 0);
 	signal Endereco       : std_logic_vector(31 downto 0);
@@ -25,40 +26,31 @@ architecture arch_name of mips is
 	signal entradaPC   	 : std_logic_vector(31 downto 0);
 	signal ImmExt     	 : std_logic_vector(31 downto 0);
 	signal saida_MUX_ResultSrc : std_logic_vector(31 downto 0);
-	signal entradaA_ULA   : std_logic_vector(31 downto 0);
-	signal saidaB_bancoReg   : std_logic_vector(31 downto 0);
+	signal saidaA_bancoReg: std_logic_vector(31 downto 0);
+	signal saidaB_bancoReg: std_logic_vector(31 downto 0);
+	signal saida_MUX_SrcA : std_logic_vector(31 downto 0);
 	signal saida_MUX_SrcB : std_logic_vector(31 downto 0);
-	signal ALUControl : std_logic_vector(3 downto 0);
+	signal ALUControl 	 : std_logic_vector( 3 downto 0);
 	signal flagZero       : std_logic;
 	signal saida_ULA      : std_logic_vector(31 downto 0);
 	signal dadoLeituraRAM : std_logic_vector(31 downto 0);
 	signal saida_MUX_ResultSrc : std_logic_vector(31 downto 0);
 	
-	alias opcode 			 : std_logic_vector(6 downto 0) is Instrucao(6 downto 0);
+	alias opcode 			 : std_logic_vector(6 downto 0) is Instrucao( 6 downto 0);
 	alias rd     			 : std_logic_vector(4 downto 0) is Instrucao(11 downto 7);
 	alias funct3 			 : std_logic_vector(2 downto 0) is Instrucao(14 downto 12);
 	alias rs1    			 : std_logic_vector(4 downto 0) is Instrucao(19 downto 15);
 	alias rs2    			 : std_logic_vector(4 downto 0) is Instrucao(24 downto 20);
 	alias funct7 			 : std_logic_vector(6 downto 0) is Instrucao(31 downto 25);
-	
-	signal sinaisControle : std_logic_vector(11 downto 0);
-	signal RegWrite   	 : std_logic;
-	signal ResultSrc  		 : std_logic;
-	signal MemWrite  		 : std_logic;
-	signal ALUControl    : std_logic;
-	signal ALUSrc : std_logic;
-	signal ImmSrc : std_logic;
-	signal PCSrc  : std_logic;
+		
+	signal sinaisControle : ctrl_t;
 
 begin
 
 -- MUX_PCSrc:				 
-entradaPC <= PCTarget when (PCSrc = '1') else proxPC;
-
-entradaPC <= proxPC when (PCSrc = "00") else 
-					  saida_ULA when (PCSrc = "01") else
-					  PCTarget when (PCSrc = "10") else
-					  entradaD_MUX;
+entradaPC <= saida_ULA when (PCSrc = "01") else
+			    PCTarget when (PCSrc = "10") else
+				 proxPC; -- se PCSrc for igual a "00" ou "11"
 
 PC : entity work.registradorGenerico   generic map (larguraDados => 32)
 			port map( DIN => entradaPC, 
@@ -84,18 +76,23 @@ bancoReg : entity work.bancoReg
 						 enderecoC => rd, 
 						 dadoEscritaC => saida_MUX_ResultSrc, 
 						 escreveC => RegWrite, 
-						 saidaA => entradaA_ULA, 
+						 saidaA => saidaA_bancoReg, 
 						 saidaB => saidaB_bancoReg);
 						 
 ULA_32bits : entity work.ULA32bits
-			port map( entradaA => entradaA_ULA,
+			port map( entradaA => saida_MUX_SrcA,
 						 entradaB => saida_MUX_SrcB,
 						 op_ULA => ALUControl,
 						 flagZero => flagZero,
 						 resultado => saida_ULA);
 						 
--- MUX_ALUSrc:					 
-saida_MUX_SrcB <= ImmExt when (ALUSrc = '1') else saidaB_bancoReg;
+-- MUX_ALUSrcA:					 
+saida_MUX_SrcA <= saidaA_bancoReg when SRC_A_RS1,
+                  Endereco        when SRC_A_PC,
+                  (others => '0') when SRC_A_ZERO;
+						 
+-- MUX_ALUSrcB:					 
+saida_MUX_SrcB <= ImmExt when (SrcB = '1') else saidaB_bancoReg;
 		  
 RAM : entity work.RAMMIPS
 			port map( clk => clk,
@@ -107,35 +104,83 @@ RAM : entity work.RAMMIPS
 						 habilita => habMEM);
 						 
 -- MUX_ResultSrc:
-saida_MUX_ResultSrc <= dadoLeituraRAM when (ResultSrc = '1') else saida_ULA;
+saida_MUX_ResultSrc <= saida_ULA when (ResultSrc = "01") else
+							  proxPC when (ResultSrc = "10") else
+							  dadoLeituraRAM; -- se ResultSrc for igual a "00" ou "11"
+
+entradaPC <= saida_ULA when (PCSrc = "01") else
+			    PCTarget when (PCSrc = "10") else
+				 proxPC; -- se PCSrc for igual a "00" ou "11"
 						 
 extensor : entity work.immediateGen
 			port map( instru => Instrucao(31 downto 7),
 						 ImmSrc => ImmSrc(1 downto 0),
-						 ImmExt => ImmExt(31 downto 0));
+						 ImmExt => ImmExt);
 			 
 UC : entity work.unidadeControle
 			port map( opcode => Instrucao(6 downto 0),
 						 funct3 => funct3,
 						 funct7 => funct7,
-						 saida => sinaisControle);
+						 ctrl => sinaisControle);
 
+PCSrc <= (Branch and flagZero) or Jump;
 
-RegWrite 	<= sinaisControle(12);
-ResultSrc 	<= sinaisControle(11 downto 10);
-MemWrite 	<= sinaisControle(9);
-ALUControl 	<= sinaisControle(8 downto 5);
-ALUSrc 		<= sinaisControle(4);
-ImmSrc 		<= sinaisControle(3 downto 2);
-Branch 		<= sinaisControle(1);
-Jump 			<= sinaisControle(0);
-
-PCSrc <= (Branch and Zero) or Jump;
+end architecture;
 			 
 
--- ainda nao alterado:			 
+-- ainda nao alterado:
 
-			 
-dataOUT <= saida_ULA;
+-- HEX e LED
+						 
+-- MUXHEXeLED:
+EntradaHEXeLED <= dados when (sel = "01") else
+					   dados when (sel = "10") else
+						dados when (sel = "11") else
+					   Endereco;
+					  
+SETE_SEG_0 :  entity work.conversorHex7Seg
+        port map(dadoHex => EntradaHEXeLED(3 downto 0),
+                 apaga =>  '0',
+                 negativo => '0',
+                 overFlow =>  '0',
+                 saida7seg => HEX0);
+					  
+SETE_SEG_1 :  entity work.conversorHex7Seg
+        port map(dadoHex => EntradaHEXeLED(7 downto 4),
+                 apaga =>  '0',
+                 negativo => '0',
+                 overFlow =>  '0',
+                 saida7seg => HEX1);
+					  
+SETE_SEG_2 :  entity work.conversorHex7Seg
+        port map(dadoHex => EntradaHEXeLED(11 downto 8),
+                 apaga =>  '0',
+                 negativo => '0',
+                 overFlow =>  '0',
+                 saida7seg => HEX2);	
+					  
+SETE_SEG_3 :  entity work.conversorHex7Seg
+        port map(dadoHex => EntradaHEXeLED(15 downto 12),
+                 apaga =>  '0',
+                 negativo => '0',
+                 overFlow =>  '0',
+                 saida7seg => HEX3);
+					  
+SETE_SEG_4 :  entity work.conversorHex7Seg
+        port map(dadoHex => EntradaHEXeLED(19 downto 16),
+                 apaga =>  '0',
+                 negativo => '0',
+                 overFlow =>  '0',
+                 saida7seg => HEX4);
+					  
+SETE_SEG_5 :  entity work.conversorHex7Seg
+        port map(dadoHex => EntradaHEXeLED(23 downto 20),
+                 apaga =>  '0',
+                 negativo => '0',
+                 overFlow =>  '0',
+                 saida7seg => HEX5);
+					  
+LEDR(4 downto 0) <= EntradaHEXeLED(28  downto 24);
+LEDR(7 downto 5) <= EntradaHEXeLED(31  downto 29);
 
 end architecture;
