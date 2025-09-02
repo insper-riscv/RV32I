@@ -19,5 +19,12 @@
             "src/muxGenerico4x1.vhd"
         ],
         "test_module": "tests.mux_4x1"
+    },
+    "extendeSinalGenerico": {
+        "toplevel": "extendesinalgenerico",
+        "sources": [
+            "src/extendeSinalGenerico.vhd"
+        ],
+        "test_module": "tests.extendeSinalGenerico"
     }
 }

@@ -32,7 +32,7 @@ def _patterns(width):
 # 1) TESTE DETERMINÍSTICO (bordas e padrões)
 # ============================================================
 @cocotb.test()
-async def test_mux_4x1_deterministico(dut):
+async def deterministico(dut):
     """Casos determinísticos para MUX 4x1: 0x00.., 0xFF.., padrões alternados, combinações extremas."""
     largura = len(dut.entradaA_MUX)
     maxv, p55, pAA = _patterns(largura)
@@ -73,7 +73,7 @@ async def test_mux_4x1_deterministico(dut):
 # 2) TESTE: COMUTAÇÃO APENAS DO SELETOR (entradas fixas)
 # ============================================================
 @cocotb.test()
-async def test_mux_4x1_toggle_seletor(dut):
+async def toggle_seletor(dut):
     """Comuta somente o seletor com A/B/C/D fixos: saída deve alternar exatamente conforme o sel."""
     largura = len(dut.entradaA_MUX)
     maxv = (1 << largura) - 1
@@ -114,7 +114,7 @@ async def test_mux_4x1_toggle_seletor(dut):
 # 3) TESTE: TROCA SIMULTÂNEA (entradas e seletor mudam juntos)
 # ============================================================
 @cocotb.test()
-async def test_mux_4x1_troca_simultanea(dut):
+async def troca_simultanea(dut):
     """Troca simultânea de A/B/C/D e seletor (foco em stress de combinacional)."""
     largura = len(dut.entradaA_MUX)
     maxv = (1 << largura) - 1

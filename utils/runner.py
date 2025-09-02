@@ -61,7 +61,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.test_name == "all":
-        print("🚀 Executando TODOS os testes definidos em tests.json...")
+        print("Executando TODOS os testes definidos em tests.json...")
         for name, config in TEST_CONFIGS.items():
             print(f"\n{'='*20} INICIANDO TESTE: {name.upper()} {'='*20}")
             try:
