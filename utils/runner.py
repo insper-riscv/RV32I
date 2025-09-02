@@ -72,7 +72,7 @@ if __name__ == "__main__":
         print("\nTodos os testes foram executados.")
 
     elif args.test_name in TEST_CONFIGS:
-        print(f"🚀 Executando teste específico: {args.test_name}")
+        print(f"Executando teste específico: {args.test_name}")
         config = TEST_CONFIGS[args.test_name]
         run_cocotb_test(**config)
         print(f"\nTeste {args.test_name} finalizado.")

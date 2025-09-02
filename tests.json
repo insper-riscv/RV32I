@@ -20,11 +20,11 @@
         ],
         "test_module": "tests.mux_4x1"
     },
-    "extendeSinalGenerico": {
-        "toplevel": "extendesinalgenerico",
+    "estendeSinalGenerico": {
+        "toplevel": "estendesinalgenerico",
         "sources": [
-            "src/extendeSinalGenerico.vhd"
+            "src/estendeSinalGenerico.vhd"
         ],
-        "test_module": "tests.extendeSinalGenerico"
+        "test_module": "tests.estendeSinalGenerico"
     }
 }

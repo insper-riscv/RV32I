@@ -1,7 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity extendeSinalGenerico is
+entity estendeSinalGenerico is
     generic
     (
         larguraDadoEntrada : natural  :=    16;
@@ -16,7 +16,7 @@ entity extendeSinalGenerico is
     );
 end entity;
 
-architecture comportamento of extendeSinalGenerico is
+architecture comportamento of estendeSinalGenerico is
 begin
 
     estendeSinal_OUT <= (larguraDadoSaida-1 downto larguraDadoEntrada => estendeSinal_IN(larguraDadoEntrada-1) ) & estendeSinal_IN;
