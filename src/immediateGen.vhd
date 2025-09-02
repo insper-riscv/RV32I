@@ -16,6 +16,8 @@ begin
 extensorSinal_tipoI : entity work.extendeSinalGenerico   generic map (larguraDadoEntrada => 16, larguraDadoSaida => 32)
 			port map( estendeSinal_IN => instru(31 downto 20), 
 						 estendeSinal_OUT => sinalExtendidoI);
+						 
+sinalExtendidoI <= (larguraDadoSaida-1 downto larguraDadoEntrada => estendeSinal_IN(larguraDadoEntrada-1) ) & estendeSinal_IN;
 							 
 extensorSinal_tipoS : entity work.extendeSinalGenerico   generic map (larguraDadoEntrada => 16, larguraDadoSaida => 32)
 			port map( estendeSinal_IN => (instru(31 downto 25) & instru(11 downto 7)), 
