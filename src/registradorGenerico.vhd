@@ -1,37 +1,46 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
+library WORK;
+
 entity registradorGenerico is
+
     generic (
-        larguraDados : natural := 8
+        DATA_WIDTH : natural := 8
     );
-    port (DIN : in std_logic_vector(larguraDados-1 downto 0);
-       DOUT : out std_logic_vector(larguraDados-1 downto 0);
-       ENABLE : in std_logic;
-       CLK,RST : in std_logic
-        );
+
+    port (
+        clock       : in  std_logic;
+        clear       : in  std_logic := '1';
+        enable      : in  std_logic := 'X';
+        --! Vetor de dados para escrita
+        source      : in  std_logic_vector((DATA_WIDTH - 1) downto 0) := (others => 'X');
+        --! Vetor de dados regisrados
+        destination : out std_logic_vector((DATA_WIDTH - 1) downto 0) := (others => '0')
+    );
+
 end entity;
 
-architecture comportamento of registradorGenerico is
+architecture RTL of registradorGenerico is
+
+    -- No signals
+
 begin
-    -- In Altera devices, register signals have a set priority.
-    -- The HDL design should reflect this priority.
-    process(RST, CLK)
+
+    --! Durante a borda de subida de `clock`, caso `enable` esteja habilitado,
+    --! atribui `source` a `destination` se `clear` nãoestiver habilitado, caso
+    --! contrário atribui vetor booleano baixo a `destination`.
+    UPDATE : process(clock)
     begin
-        -- The asynchronous reset signal has the highest priority
-        if (RST = '1') then
-            DOUT <= (others => '0');    -- Código reconfigurável.
-        else
-            -- At a clock edge, if asynchronous signals have not taken priority,
-            -- respond to the appropriate synchronous signal.
-            -- Check for synchronous reset, then synchronous load.
-            -- If none of these takes precedence, update the register output
-            -- to be the register input.
-            if (rising_edge(CLK)) then
-                if (ENABLE = '1') then
-                        DOUT <= DIN;
+        if (rising_edge(clock)) then
+            if (enable = '1') then
+                if (clear = '1') then
+                    destination <= (others => '0');
+                else
+                    destination <= source;
                 end if;
             end if;
         end if;
     end process;
+
 end architecture;
