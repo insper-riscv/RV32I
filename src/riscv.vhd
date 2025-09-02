@@ -30,11 +30,9 @@ architecture arch_name of riscv is
 	signal saidaB_bancoReg: std_logic_vector(31 downto 0);
 	signal saida_MUX_SrcA : std_logic_vector(31 downto 0);
 	signal saida_MUX_SrcB : std_logic_vector(31 downto 0);
-	signal ALUControl 	 : std_logic_vector( 3 downto 0);
 	signal flagZero       : std_logic;
 	signal saida_ULA      : std_logic_vector(31 downto 0);
 	signal dadoLeituraRAM : std_logic_vector(31 downto 0);
-	signal saida_MUX_ResultSrc : std_logic_vector(31 downto 0);
 	
 	alias opcode 			 : std_logic_vector(6 downto 0) is Instrucao( 6 downto 0);
 	alias rd     			 : std_logic_vector(4 downto 0) is Instrucao(11 downto 7);
@@ -47,7 +45,7 @@ architecture arch_name of riscv is
 
 begin
 
--- MUX_PCSrc:				 
+-- MUX_PCSrc:			 
 entradaPC <= saida_ULA when (PCSrc = "01") else
 			    PCTarget when (PCSrc = "10") else
 				 proxPC; -- se PCSrc for igual a "00" ou "11"
@@ -75,38 +73,38 @@ bancoReg : entity work.bancoReg
 						 enderecoB => rs2, 
 						 enderecoC => rd, 
 						 dadoEscritaC => saida_MUX_ResultSrc, 
-						 escreveC => RegWrite, 
+						 escreveC => sinaisControle.RegWrite, 
 						 saidaA => saidaA_bancoReg, 
 						 saidaB => saidaB_bancoReg);
 						 
-ULA_32bits : entity work.ULA32bits
+ULA32bits : entity work.ULA32bits
 			port map( entradaA => saida_MUX_SrcA,
 						 entradaB => saida_MUX_SrcB,
-						 op_ULA => ALUControl,
+						 op_ULA => sinaisControle.ALUCtrl,
 						 flagZero => flagZero,
 						 resultado => saida_ULA);
 						 
--- MUX_ALUSrcA:					 
-saida_MUX_SrcA <= saidaA_bancoReg when SRC_A_RS1,
-                  Endereco        when SRC_A_PC,
-                  (others => '0') when SRC_A_ZERO;
+-- MUX_ALUSrcA:
+with sinaisControle.SrcA select				 
+	saida_MUX_SrcA <= saidaA_bancoReg when SRC_A_RS1,
+							Endereco        when SRC_A_PC,
+							(others => '0') when SRC_A_ZERO;
 						 
 -- MUX_ALUSrcB:					 
-saida_MUX_SrcB <= ImmExt when (SrcB = '1') else saidaB_bancoReg;
+saida_MUX_SrcB <= ImmExt when (sinaisControle.SrcB = '1') else saidaB_bancoReg;
 		  
 RAM : entity work.RAMMIPS
 			port map( clk => clk,
 						 Endereco => saida_ULA,
 						 Dado_in => saidaB_bancoReg,
 						 Dado_out => dadoLeituraRAM, 
-						 we => MemWrite, 
-						 re => habLeituraMEM, 
-						 habilita => habMEM);
+						 we => sinaisControle.MemWrite);
 						 
 -- MUX_ResultSrc:
-saida_MUX_ResultSrc <= saida_ULA when (ResultSrc = "01") else
-							  proxPC when (ResultSrc = "10") else
-							  dadoLeituraRAM; -- se ResultSrc for igual a "00" ou "11"
+with sinaisControle.ResultSrc select
+	saida_MUX_ResultSrc <= saida_ULA 		when RES_ALU,
+								  dadoLeituraRAM  when RES_MEM,
+								  proxPC 			when RES_PC4;
 
 entradaPC <= saida_ULA when (PCSrc = "01") else
 			    PCTarget when (PCSrc = "10") else
@@ -114,7 +112,7 @@ entradaPC <= saida_ULA when (PCSrc = "01") else
 						 
 extensor : entity work.immediateGen
 			port map( instru => Instrucao(31 downto 7),
-						 ImmSrc => ImmSrc(1 downto 0),
+						 ImmSrc => sinaisControle.ImmSrc,
 						 ImmExt => ImmExt);
 			 
 UC : entity work.unidadeControle
@@ -122,8 +120,15 @@ UC : entity work.unidadeControle
 						 funct3 => funct3,
 						 funct7 => funct7,
 						 ctrl => sinaisControle);
-
-PCSrc <= (Branch and flagZero) or Jump;
+						 
+taken <= '1' when ( -- quando for 1, significa que o pulo do branch sera feito
+          (sinaisControle.BranchOp = BR_EQ  and (saidaA_bancoReg =  saidaB_bancoReg)) or
+          (sinaisControle.BranchOp = BR_NE  and (saidaA_bancoReg /= saidaB_bancoReg)) or
+          (sinaisControle.BranchOp = BR_LT  and (signed(saidaA_bancoReg)  <  signed(saidaB_bancoReg))) or
+          (sinaisControle.BranchOp = BR_GE  and (signed(saidaA_bancoReg)  >= signed(saidaB_bancoReg))) or
+          (sinaisControle.BranchOp = BR_LTU and (unsigned(saidaA_bancoReg) <  unsigned(saidaB_bancoReg))) or
+          (sinaisControle.BranchOp = BR_GEU and (unsigned(saidaA_bancoReg) >= unsigned(saidaB_bancoReg)))
+        ) else '0';
 
 end architecture;
 			 

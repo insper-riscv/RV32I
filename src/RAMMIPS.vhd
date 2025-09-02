@@ -11,7 +11,7 @@ entity RAMMIPS IS
           Endereco : IN  STD_LOGIC_VECTOR (addrWidth-1 DOWNTO 0);
           Dado_in  : in std_logic_vector(dataWidth-1 downto 0);
           Dado_out : out std_logic_vector(dataWidth-1 downto 0);
-          we, re, habilita : in std_logic
+          we		 : in std_logic
         );
 end entity;
 

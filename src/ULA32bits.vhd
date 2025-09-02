@@ -5,7 +5,7 @@ use IEEE.NUMERIC_STD.ALL;
 library WORK;
 use WORK.GENERICS.ALL;
 
-entity RV32I_ALU is
+entity ULA32bits is
 
     generic (
         DATA_WIDTH : natural := WORK.RV32I.XLEN
@@ -21,7 +21,7 @@ entity RV32I_ALU is
 
 end entity;
 
-architecture RTL of RV32I_ALU is
+architecture RTL of ULA32bits is
 
     signal flag_subtract     : std_logic;
     signal source_2_auxiliar : std_logic_vector((DATA_WIDTH - 1) downto 0);
@@ -36,6 +36,8 @@ architecture RTL of RV32I_ALU is
     signal destination_1     : std_logic_vector((DATA_WIDTH - 1) downto 0);
     signal destination_2     : std_logic_vector((DATA_WIDTH - 1) downto 0);
     signal add_overflow      : std_logic;
+	 
+	 signal carry : std_logic_vector(8 downto 0);
 
 begin
 
@@ -54,28 +56,19 @@ begin
 
     slt <=  (0 => add_overflow XOR full_add(DATA_WIDTH - 1), others => '0');
     sltu <= (0 => NOT(carry_out(DATA_WIDTH - 1)),            others => '0');
+		  
+	 source_2_auxiliar <= (source_2 AND NOT(flag_subtract)) OR (NOT(source_2) AND flag_subtract);
+		  
+    -- carry lookahead
+		  
+	 carry(0)  <= flag_subtract;
+    carry_out <= carry(8 downto 1);
 
-    MUX_SOURCE_2 : entity WORK.GENERIC_MUX_2X1
-        generic map (
-            DATA_WIDTH => DATA_WIDTH
-        )
-        port map (
-            selector    => flag_subtract,
-            source_1    => source_2,
-            source_2    => NOT(source_2),
-            destination => source_2_auxiliar
-        );
-
-    CARRY_LOOKAHEAD : entity WORK.GENERIC_CARRY_LOOKAHEAD
-        generic map (
-            DATA_WIDTH => DATA_WIDTH
-        )
-        port map(
-            carry_in        => flag_subtract,
-            carry_generate  => source_and,
-            carry_propagate => half_add,
-            carry_out       => carry_out
-        );
+    BIT_TO_BIT : for i in 0 to (8 - 1) generate
+        carry(i + 1) <= (carry(i) AND half_add(i)) OR source_and(i);
+    end generate;
+	 
+	 --
 
     SHIFTER : entity WORK.RV32I_ALU_SHIFTER
         generic map (
@@ -87,42 +80,23 @@ begin
             source          => source_1,
             destination     => shift
         );
-
-    MUX_DESTINATION_1 : entity WORK.GENERIC_MUX_4X1
-        generic map (
-            DATA_WIDTH => DATA_WIDTH
-        )
-        port map (
-            selector    => select_function(1 downto 0),
-            source_1    => full_add,
-            source_2    => shift,
-            source_3    => slt,
-            source_4    => sltu,
-            destination => destination_1
-        );
-
-    MUX_DESTINATION_2 : entity WORK.GENERIC_MUX_4X1
-        generic map (
-            DATA_WIDTH => DATA_WIDTH
-        )
-        port map (
-            selector    => select_function(1 downto 0),
-            source_1    => half_add,
-            source_2    => shift,
-            source_3    => source_or,
-            source_4    => source_and,
-            destination => destination_2
-        );
-
-    MUX_DESTINATION_3 : entity WORK.GENERIC_MUX_2X1
-        generic map (
-            DATA_WIDTH => DATA_WIDTH
-        )
-        port map (
-            selector    => select_function(2),
-            source_1    => destination_1,
-            source_2    => destination_2,
-            destination => destination
-        );
+		  
+	 destination_1 <=  (
+                        (full_add AND (NOT(select_function(0)) AND NOT(select_function(1)))) OR
+                        (shift AND (select_function(0) AND NOT(select_function(1))))
+                    ) OR (
+                        (slt AND (NOT(select_function(0)) AND select_function(1))) OR
+                        (sltu AND (select_function(0) AND select_function(1)))
+                    );
+		  
+	 destination_2 <=  (
+								(half_add AND (NOT(select_function(0)) AND NOT(select_function(1)))) OR
+								(shift AND (select_function(0) AND NOT(select_function(1))))
+						  ) OR (
+								(source_or AND (NOT(select_function(0)) AND select_function(1))) OR
+								(source_and AND (select_function(0) AND select_function(1)))
+						  );
+		  
+	 destination <= (destination_1 AND NOT(select_function(2))) OR (destination_2 AND select_function(2));
 
 end architecture;
