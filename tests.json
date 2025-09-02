@@ -12,5 +12,12 @@
             "src/muxGenerico2x1.vhd"
         ],
         "test_module": "tests.mux_2x1"
+    },
+    "mux_4x1": {
+        "toplevel": "muxgenerico4x1",
+        "sources": [
+            "src/muxGenerico4x1.vhd"
+        ],
+        "test_module": "tests.mux_4x1"
     }
 }
