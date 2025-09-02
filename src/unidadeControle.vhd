@@ -2,34 +2,34 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 entity unidadeControle is
-  port ( opcode : in std_logic_vector(5 downto 0);
+  port ( opcode : in std_logic_vector(6 downto 0);
 			saida : out std_logic_vector(11 downto 0)
   );
 end entity;
 
 architecture comportamento of unidadeControle is
-
-  constant R  : std_logic_vector(5 downto 0) := "000000";
-  constant LW : std_logic_vector(5 downto 0) := "100011";
-  constant SW : std_logic_vector(5 downto 0) := "101011";
-  constant BEQ : std_logic_vector(5 downto 0) := "000100";
-  constant JMP : std_logic_vector(5 downto 0) := "000010";
-  constant addi : std_logic_vector(5 downto 0) := "001000";
-  constant andi : std_logic_vector(5 downto 0) := "001100";
-  constant ori : std_logic_vector(5 downto 0) := "001101";
-  constant slti : std_logic_vector(5 downto 0) := "001010";
-  constant BNE : std_logic_vector(5 downto 0) := "000101";
-  constant jal : std_logic_vector(5 downto 0) := "000011";
+  
+  constant LUI : std_logic_vector(6 downto 0) := "0110111";
+  constant AUIPC : std_logic_vector(6 downto 0) := "0010111";
+  constant JAL : std_logic_vector(6 downto 0) := "1101111";
+  constant JALR : std_logic_vector(6 downto 0) := "1100111";
+  constant B_type : std_logic_vector(6 downto 0) := "1100011";
+  constant L_type : std_logic_vector(6 downto 0) := "0000011";
+  constant S_type : std_logic_vector(6 downto 0) := "0100011";
+  constant I_type : std_logic_vector(6 downto 0) := "0010011";
+  constant R_type : std_logic_vector(6 downto 0) := "0110011";
+  constant ECALL_EBREAK : std_logic_vector(6 downto 0) := "1110011";
 
 begin
-saida <= "000110100000" when (opcode = R) else
-			"000011001010" when (opcode = LW) else
-			"000001000001" when (opcode = SW) else
-			"000000000100" when (opcode = BEQ) else
-			"010000000000" when (opcode = JMP) else
-			"000111100000" when (opcode = (addi OR andi OR ori OR slti)) else
-			"100000000000" when (opcode = BNE) else
-			"011010010000" when (opcode = jal) else
+saida <= "100000111100" when (opcode = LUI) else
+			"100000100001" when (opcode = AUIPC) else
+			"100001000010" when (opcode = JAL) else
+			"100001100010" when (opcode = JALR) else
+			"000010000100" when (opcode = B_type) else
+			"111000100000" when (opcode = L_type) else
+			"000100100000" when (opcode = S_type) else
+			"100000101000" when (opcode = I_type) else
+			"100000001000" when (opcode = R_type) else
          "000000000000";  -- NOP para os opcodes Indefinidos
 
 end architecture;

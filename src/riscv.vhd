@@ -61,10 +61,10 @@ architecture arch_name of mips is
 
 begin
 
-MUX_entradaPC :  entity work.muxGenerico2x1 generic map (larguraDados => 32)
+MUX_PCSrc :  entity work.muxGenerico2x1 generic map (larguraDados => 32)
 			port map( entradaA_MUX => proxPC,
 						 entradaB_MUX => PCTarget,
-						 seletor_MUX => sel_MUX_entradaPC,
+						 seletor_MUX => PCSrc,
 						 saida_MUX => entradaPC);
 
 PC : entity work.registradorGenerico   generic map (larguraDados => 32)
@@ -84,7 +84,7 @@ incrementaPC :  entity work.somaConstante  generic map (larguraDados => 32, cons
 		  
 somador_PCTarget :  entity work.somadorGenerico  generic map (larguraDados => 32)
 			port map( entradaA => Endereco, 
-						 entradaB => sinalExtendido, 
+						 entradaB => ImmExt, 
 						 saida => PCTarget);
 						 
 bancoReg : entity work.bancoReg
@@ -93,21 +93,21 @@ bancoReg : entity work.bancoReg
 						 enderecoB => rs2, 
 						 enderecoC => rd, 
 						 dadoEscritaC => saida_MUX_ULA_MEM, 
-						 escreveC => hab_escritaC, 
+						 escreveC => RegWrite, 
 						 saidaA => entradaA_ULA, 
 						 saidaB => saidaB_bancoReg);
 						 
 ULA_32bits : entity work.ULA32bits
 			port map( entradaA => entradaA_ULA,
 						 entradaB => saida_MUX_SrcB,
-						 op_ULA => op_ULA,
+						 op_ULA => ALUControl,
 						 flagZero => flagZero,
 						 resultado => saida_ULA);
 						 
-MUX_SrcB :  entity work.muxGenerico2x1 generic map (larguraDados => 32)
+MUX_ALUSrc :  entity work.muxGenerico2x1 generic map (larguraDados => 32)
 			port map( entradaA_MUX => saidaB_bancoReg,
-						 entradaB_MUX =>  sinalExtendido,
-						 seletor_MUX => sel_MUX_SrcB,
+						 entradaB_MUX =>  ImmExt,
+						 seletor_MUX => ALUSrc,
 						 saida_MUX => saida_MUX_SrcB);
 		  
 RAM : entity work.RAMMIPS
@@ -115,41 +115,36 @@ RAM : entity work.RAMMIPS
 						 Endereco => saida_ULA,
 						 Dado_in => saidaB_bancoReg,
 						 Dado_out => dadoLeituraRAM, 
-						 we => habEscritaMEM, 
+						 we => MemWrite, 
 						 re => habLeituraMEM, 
 						 habilita => habMEM);
 						 
-MUX_ULA_MEM :  entity work.muxGenerico4x1 generic map (larguraDados => 32)
+MUX_ResultSrc :  entity work.muxGenerico4x1 generic map (larguraDados => 32)
 			port map( entradaA_MUX => saida_ULA,
 						 entradaB_MUX => dadoLeituraRAM,
---						 entradaC_MUX => entradaMUX_BEQ,
---						 entradaD_MUX => "00000000000000000000000000000000",
-						 seletor_MUX => sel_MUX_ULA_MEM,
+						 seletor_MUX => ResultSrc,
 						 saida_MUX => saida_MUX_ULA_MEM);
 						 
-extensorSinal : entity work.estendeSinalGenerico   generic map (larguraDadoEntrada => 16, larguraDadoSaida => 32)
-			port map( estendeSinal_IN => Instrucao(31 downto 7), 
-						 estendeSinal_OUT => sinalExtendido);
+extensor : entity work.immediateGen
+			port map( instru => Instrucao(31 downto 7),
+						 ImmSrc => ImmSrc(1 downto 0),
+						 ImmExt => ImmExt(31 downto 0));
 			 
 UC : entity work.unidadeControle
-			port map( opcode => Instrucao(31 downto 7),
+			port map( opcode => Instrucao(6 downto 0),
 						 saida => sinaisControle);
+
+RegWrite 	<= sinaisControle(11);
+ResultSrc 	<= sinaisControle(10 downto 9);
+MemWrite 	<= sinaisControle(8);
+ALUControl 	<= sinaisControle(7 downto 5);
+ALUSrc 		<= sinaisControle(4);
+ImmSrc 		<= sinaisControle(3 downto 2);
+PCSrc 		<= sinaisControle(1);
+NOP 			<= sinaisControle(0);
 			 
 
-			 
-			 
-			 
-			 
-			 
-			 
-			 
-			 
-MUX_BEQ :  entity work.muxGenerico2x1 generic map (larguraDados => 32)
-			port map( entradaA_MUX => proxPC,
-						 entradaB_MUX =>  entradaMUX_BEQ,
-						 seletor_MUX => sel_MUX_BEQ,
-						 saida_MUX => entradaA_MUX_proxInstru);
-					  
+-- ainda nao alterado:			 
 
 					  
 decoderULA : entity work.decoderULA
@@ -162,16 +157,7 @@ sel_MUX_BEQ <= (flagZero AND BEQ) OR (not(flagZero) AND BNE);
 saidaShift2 <= sinalExtendido(29 downto 0) & "00";
 entradaB_MUX_proxInstru <= proxPC(31 downto 28) & Instrucao(25 downto 0) & "00";
 
-BNE <= sinaisControle(11);
-sel_MUX_PC_JMPeBEQ <= sinaisControle(10);
-sel_MUX_Rt_Rd <= sinaisControle(9 downto 8);
-hab_escritaC <= sinaisControle(7);
-sel_MUX_Rt_Imed <= sinaisControle(6);
-tipo_R <= sinaisControle(5);
-sel_MUX_ULA_MEM <= sinaisControle(4 downto 3);
-BEQ <= sinaisControle(2);
-habLeituraMEM <= sinaisControle(1);		 
-habEscritaMEM <= sinaisControle(0);
+
 			 
 dataOUT <= saida_ULA;
 
