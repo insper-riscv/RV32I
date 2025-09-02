@@ -16,7 +16,7 @@ entity extendeSinalGenerico is
     );
 end entity;
 
-architecture comportamento of estendeSinalGenerico is
+architecture comportamento of extendeSinalGenerico is
 begin
 
     estendeSinal_OUT <= (larguraDadoSaida-1 downto larguraDadoEntrada => estendeSinal_IN(larguraDadoEntrada-1) ) & estendeSinal_IN;
