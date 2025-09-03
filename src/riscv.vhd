@@ -50,12 +50,12 @@ entradaPC <= saida_ULA when (PCSrc = "01") else
 			    PCTarget when (PCSrc = "10") else
 				 proxPC; -- se PCSrc for igual a "00" ou "11"
 
-PC : entity work.registradorGenerico   generic map (larguraDados => 32)
-			port map( DIN => entradaPC, 
-						 DOUT => Endereco, 
-						 ENABLE => '1', 
-						 CLK => clk, 
-						 RST => '0');
+PC : entity work.genericRegister   generic map (larguraDados => 32)
+			port map(   clock => clk, 
+						clear => '0'
+						enable => '1', 
+						source => entradaPC, 
+						destination => Endereco);
 						 
 ROM : entity work.ROMMIPS
 			port map( Endereco => Endereco, 
