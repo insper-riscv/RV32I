@@ -34,7 +34,11 @@ async def _write_reg(dut, addr: int, data: int):
 async def inicializacao_e_x0(dut):
     """Verifica leitura inicial e o comportamento do registrador x0 (endereço 0 => sempre zero)."""
     # Sobe o clock
+    dut.clear.value=1
+    await Timer(1, units="ns")
+    dut.clear.value=0
     clock = Clock(dut.clk, 10, units="ns")
+    
     cocotb.start_soon(clock.start())
 
     aw = len(dut.enderecoA)
@@ -56,6 +60,9 @@ async def inicializacao_e_x0(dut):
 @cocotb.test()
 async def escrita_e_leitura_basica(dut):
     """Escreve em um registrador e confere leituras nas duas portas."""
+    dut.clear.value=1
+    await Timer(1, units="ns")
+    dut.clear.value=0
     clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
 
@@ -75,6 +82,9 @@ async def escrita_e_leitura_basica(dut):
 @cocotb.test()
 async def x0_sempre_zero(dut):
     """Tenta escrever em x0; leituras de endereço 0 devem continuar retornando zero."""
+    dut.clear.value=1
+    await Timer(1, units="ns")
+    dut.clear.value=0
     clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
 
@@ -92,6 +102,9 @@ async def x0_sempre_zero(dut):
 @cocotb.test()
 async def leituras_simultaneas(dut):
     """Portas A e B devem ler endereços independentes no mesmo ciclo."""
+    dut.clear.value=1
+    await Timer(1, units="ns")
+    dut.clear.value=0
     clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
 
@@ -117,9 +130,14 @@ async def write_then_read_same_cycle(dut):
     Se os endereços de leitura apontarem para o mesmo alvo da escrita,
     após a borda de subida (quando a escrita acontece), a leitura combinacional deve refletir o novo valor.
     """
-
     clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
+
+    dut.clear.value=1
+    await Timer(100, units="ns")
+    dut.clear.value=0
+
+    await RisingEdge(dut.clk)
 
     dw = len(dut.saidaA)
     mask = (1 << dw) - 1
@@ -129,16 +147,14 @@ async def write_then_read_same_cycle(dut):
     # Configura leituras
     dut.enderecoA.value = addr
     dut.enderecoB.value = addr
-    await Timer(1, units="ns")
-
-    # Escreve
     dut.enderecoC.value = addr
     dut.dadoEscritaC.value = novo
     dut.escreveC.value = 1
-    await RisingEdge(dut.clk)
-    await Timer(1, units="ns")
-    dut.escreveC.value = 0
 
+    await RisingEdge(dut.clk)
+    dut.escreveC.value = 0
+    
+    await Timer(1, units="ns")
     # Log detalhado
     a = int(dut.saidaA.value)
     b = int(dut.saidaB.value)
@@ -153,6 +169,9 @@ async def write_then_read_same_cycle(dut):
 @cocotb.test()
 async def fuzz_banco(dut):
     """Sequência aleatória de escritas e leituras; x0 deve permanecer 0 em todas leituras."""
+    dut.clear.value=1
+    await Timer(1, units="ns")
+    dut.clear.value=0
     clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
 

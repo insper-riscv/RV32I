@@ -7,18 +7,20 @@ import argparse
 from pathlib import Path
 from cocotb.runner import get_runner
 
-def run_cocotb_test(toplevel: str, sources: list, test_module: str):
-    """
-    Função genérica para compilar e executar um teste cocotb.
-    """
+import subprocess
 
+# utils/runner.py (trechos relevantes)
+
+# utils/runner.py (trechos relevantes)
+
+def run_cocotb_test(toplevel: str, sources: list, test_module: str, waves: bool=False, open_wave: bool=False):
     sim = os.getenv("SIM", "ghdl")
     proj_root = Path(__file__).resolve().parent.parent
     sys.path.append(str(proj_root))
-    
     vhdl_sources = [proj_root / src for src in sources]
 
     runner = get_runner(sim)
+    build_dir = proj_root / "sim_build"
 
     runner.build(
         vhdl_sources=vhdl_sources,
@@ -26,11 +28,25 @@ def run_cocotb_test(toplevel: str, sources: list, test_module: str):
         always=True
     )
 
+    wave_file = None
+    plusargs = []
+    if waves and sim == "ghdl":
+        wave_file = build_dir / f"{toplevel}.ghw"
+        plusargs.append(f"--wave={wave_file}")   
+
     runner.test(
         hdl_toplevel=toplevel,
         test_module=test_module,
-        
+        build_dir=build_dir,
+        plusargs=plusargs,        
     )
+
+    if waves:
+        print(f"Waves: {wave_file} {'(gerado)' if wave_file and wave_file.exists() else '(não encontrado)'}")
+
+    if waves and open_wave and wave_file and wave_file.exists():
+        os.system(f"gtkwave {wave_file} &")
+
 
 # ====================================================================================
 # LÓGICA PRINCIPAL
@@ -59,6 +75,8 @@ if __name__ == "__main__":
         default="all",
         help=f"Nome do teste a ser executado. Opções: {list(TEST_CONFIGS.keys()) + ['all']}"
     )
+    parser.add_argument("--waves", "-w", action="store_true", help="Gravar ondas")
+    parser.add_argument("--open-wave", action="store_true", help="Abrir no GTKWave ao final")
     args = parser.parse_args()
 
     if args.test_name == "all":
@@ -66,16 +84,16 @@ if __name__ == "__main__":
         for name, config in TEST_CONFIGS.items():
             print(f"\n{'='*20} INICIANDO TESTE: {name.upper()} {'='*20}")
             try:
-                run_cocotb_test(**config)
+                # >>> propaga waves também no modo all:
+                run_cocotb_test(**config, waves=args.waves, open_wave=False)
                 print(f"{'-'*20} TESTE {name.upper()} FINALIZADO COM SUCESSO {'-'*20}")
             except Exception as e:
                 print(f"[ERRO] O teste '{name}' falhou: {e}")
         print("\nTodos os testes foram executados.")
-
     elif args.test_name in TEST_CONFIGS:
         print(f"Executando teste específico: {args.test_name}")
         config = TEST_CONFIGS[args.test_name]
-        run_cocotb_test(**config)
+        run_cocotb_test(**config, waves=args.waves, open_wave=args.open_wave)
         print(f"\nTeste {args.test_name} finalizado.")
     else:
         print(f"Erro: Teste '{args.test_name}' não encontrado em tests.json.")
