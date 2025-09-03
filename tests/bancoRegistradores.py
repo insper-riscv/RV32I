@@ -26,20 +26,33 @@ async def _write_reg(dut, addr: int, data: int):
     dut.escreveC.value = 1
     await RisingEdge(dut.clk)
     # pequena folga de propagação para leituras combinacionais subsequentes
-    await Timer(1, units="ns")
+    #await Timer(1, units="ns")
     dut.escreveC.value = 0
+
+
+def _restart_clock(dut, period_ns=10):
+
+    if hasattr(dut, "_clk_gen"):
+        try:
+            dut._clk_gen.kill()
+        except Exception:
+            pass
+
+    dut.clk.setimmediatevalue(0)
+
+    dut._clk_gen = cocotb.start_soon(
+        Clock(dut.clk, period_ns, units="ns").start()
+    )
 
 # ============== 1) Leitura inicial (x0 zero) ==============
 @cocotb.test()
 async def inicializacao_e_x0(dut):
     """Verifica leitura inicial e o comportamento do registrador x0 (endereço 0 => sempre zero)."""
-    # Sobe o clock
+    _restart_clock(dut, 10)
+
     dut.clear.value=1
     await Timer(1, units="ns")
     dut.clear.value=0
-    clock = Clock(dut.clk, 10, units="ns")
-    
-    cocotb.start_soon(clock.start())
 
     aw = len(dut.enderecoA)
     dw = len(dut.saidaA)
@@ -60,13 +73,12 @@ async def inicializacao_e_x0(dut):
 @cocotb.test()
 async def escrita_e_leitura_basica(dut):
     """Escreve em um registrador e confere leituras nas duas portas."""
+    _restart_clock(dut, 10)
+
     dut.clear.value=1
     await Timer(1, units="ns")
     dut.clear.value=0
-    clock = Clock(dut.clk, 10, units="ns")
-    cocotb.start_soon(clock.start())
 
-    aw = len(dut.enderecoA)
     dw = len(dut.saidaA)
     m = _mask(dw)
 
@@ -82,13 +94,12 @@ async def escrita_e_leitura_basica(dut):
 @cocotb.test()
 async def x0_sempre_zero(dut):
     """Tenta escrever em x0; leituras de endereço 0 devem continuar retornando zero."""
+    _restart_clock(dut, 10)
+
     dut.clear.value=1
     await Timer(1, units="ns")
     dut.clear.value=0
-    clock = Clock(dut.clk, 10, units="ns")
-    cocotb.start_soon(clock.start())
 
-    aw = len(dut.enderecoA)
     dw = len(dut.saidaA)
     m = _mask(dw)
 
@@ -102,11 +113,11 @@ async def x0_sempre_zero(dut):
 @cocotb.test()
 async def leituras_simultaneas(dut):
     """Portas A e B devem ler endereços independentes no mesmo ciclo."""
+    _restart_clock(dut, 10)
+
     dut.clear.value=1
     await Timer(1, units="ns")
     dut.clear.value=0
-    clock = Clock(dut.clk, 10, units="ns")
-    cocotb.start_soon(clock.start())
 
     aw = len(dut.enderecoA)
     dw = len(dut.saidaA)
@@ -130,11 +141,10 @@ async def write_then_read_same_cycle(dut):
     Se os endereços de leitura apontarem para o mesmo alvo da escrita,
     após a borda de subida (quando a escrita acontece), a leitura combinacional deve refletir o novo valor.
     """
-    clock = Clock(dut.clk, 10, units="ns")
-    cocotb.start_soon(clock.start())
+    _restart_clock(dut, 10)
 
     dut.clear.value=1
-    await Timer(100, units="ns")
+    await Timer(1, units="ns")
     dut.clear.value=0
 
     await RisingEdge(dut.clk)
@@ -169,22 +179,18 @@ async def write_then_read_same_cycle(dut):
 @cocotb.test()
 async def fuzz_banco(dut):
     """Sequência aleatória de escritas e leituras; x0 deve permanecer 0 em todas leituras."""
+    _restart_clock(dut, 10)
+
     dut.clear.value=1
     await Timer(1, units="ns")
     dut.clear.value=0
-    clock = Clock(dut.clk, 10, units="ns")
-    cocotb.start_soon(clock.start())
 
     aw = len(dut.enderecoA)
     dw = len(dut.saidaA)
     m = _mask(dw)
     nregs = 2**aw # Quantidade de registradores no banco
 
-    # Lê o conteúdo atual de TODOS os regs para inicializar o modelo
     ref = [0] * nregs
-    for i in range(nregs):
-        a, _ = await _read_ports(dut, i, 0)
-        ref[i] = 0 if i == 0 else a
 
     random.seed(2025)
     N = 200
@@ -195,8 +201,6 @@ async def fuzz_banco(dut):
             addr = random.randrange(nregs)
             data = random.getrandbits(dw) & m
             await _write_reg(dut, addr, data)
-            # Atualiza o modelo (x0 pode ser escrito no HW, mas saída é zero;
-            # no modelo, guardamos mesmo assim — a verificação sempre lê via porta)
             ref[addr] = data
         else:
             a_addr = random.randrange(nregs)
