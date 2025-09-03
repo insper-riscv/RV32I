@@ -5,7 +5,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity bancoRegistradores is
   port (
     clk           : in  std_logic;
-    clear         : in  std_logic;  -- pode ligar em '0' se não usar reset
+    clear         : in  std_logic := '0';  -- pode ligar em '0' se não usar reset
     escreveC      : in  std_logic := '0';  -- enable de escrita
     enderecoA     : in  std_logic_vector(4 downto 0);
     enderecoB     : in  std_logic_vector(4 downto 0);
@@ -26,16 +26,13 @@ architecture RTL of bancoRegistradores is
 
   signal decode_source_1 : std_logic_vector(31 downto 0);
   signal decode_source_2 : std_logic_vector(31 downto 0);
-  signal passthrough_1   : std_logic;
-  signal passthrough_2   : std_logic;
 begin
   ---------------------------------------------------------------------------
   -- Gera os enables como atribuições concorrentes (VHDL-93 OK)
   ---------------------------------------------------------------------------
   GEN_WE : for i in 1 to 31 generate
   begin
-    we(i) <= '1' when (escreveC = '1' and enderecoC = std_logic_vector(to_unsigned(i, 5)))
-             else '0';
+    we(i) <= '1' when (escreveC = '1' and enderecoC = std_logic_vector(to_unsigned(i, 5))) else '0';
   end generate;
 
   ---------------------------------------------------------------------------
@@ -54,10 +51,6 @@ begin
         destination => registers(i)
       );
   end generate;
-
-  -- (restante do seu código inalterado)
-  passthrough_1 <= '1' when (enderecoA = enderecoC) and (enderecoC /= "00000") else '0';
-  passthrough_2 <= '1' when (enderecoB = enderecoC) and (enderecoC /= "00000") else '0';
 
   process(enderecoA, registers)
   begin
@@ -137,7 +130,7 @@ begin
     end case;
   end process;
 
-  saidaA <= dadoEscritaC when passthrough_1 = '1' else decode_source_1;
-  saidaB <= dadoEscritaC when passthrough_2 = '1' else decode_source_2;
+  saidaA <= decode_source_1;
+  saidaB <= decode_source_2;
 end architecture;
 
