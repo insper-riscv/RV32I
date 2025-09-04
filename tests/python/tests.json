@@ -13,5 +13,12 @@
       "src/bancoReg.vhd"
     ],
     "test_module": "tests.python.cocotb.bancoRegistradores"
+  },
+  "ROM": {
+    "toplevel": "rom",
+    "sources": [
+      "src/ROM.vhd"
+    ],
+    "test_module": "tests.python.cocotb.ROM"
   }
 }
