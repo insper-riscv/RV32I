@@ -46,7 +46,7 @@ Reúne duas frentes de verificação:
   * `tests.json`: **catálogo de testes**, mapeando cada teste para o *toplevel* VHDL e módulos/entidades necessários.
   * `sim_build/<toplevel>/`: **saída da simulação** do respectivo teste *toplevel* (ex.: `results.xml`, `waves.ghw` para abrir no GTKWave).
 
-  > Para entender mais sobre os testes simulados, verificar o [README em `tests/python/`](tests/README.md)
+  > Para entender mais sobre os testes simulados, verificar o [README em `tests/python/`](tests/python/README.md)
 
 
 ## Dependências
@@ -104,4 +104,4 @@ gtkwave tests/python/sim_build/bancoregistradores/waves.ghw
 Exemplo das Waves de um teste (bancoRegistradores):
 ![Exemplo log teste](docs/todos_testes.png)
 
-> Para **criar novos testes** (como adicionar entradas no `tests.json`, padrões de pastas), consulte o [**README da pasta `tests/python`**](tests/README.md).
+> Para **criar novos testes** (como adicionar entradas no `tests.json`, padrões de pastas), consulte o [**README da pasta `tests/python`**](tests/python/README.md).
