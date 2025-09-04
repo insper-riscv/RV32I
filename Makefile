@@ -1,13 +1,20 @@
-.PHONY: test clean
+# Make sure /bin/bash is used for the 'find' in clean
+SHELL := /bin/bash
 
-# Run all tests
+.PHONY: test run clean
+
+# Run all tests (no args)
 test:
-	python3 -m utils.runner all
+	python3 -m tests.python.utils.runner
 
 # Run a single test by name
-# Example: make run TEST=example_and_gate
+# Usage: make run TEST=<test_name>
 run:
-	python3 -m utils.runner $(TEST)
+ifndef TEST
+	$(error Usage: make run TEST=<test_name>)
+endif
+	python3 -m tests.python.utils.runner $(TEST)
 
+# Remove generated waveforms
 clean:
-	rm -f **/*.vcd **/*.ghw || true
+	find . -type f \( -name '*.vcd' -o -name '*.ghw' \) -print -delete
