@@ -1,107 +1,105 @@
-# `tests/python` — Guia de testes (Cocotb + GHDL)
+# `tests/python` — Test Guide (Cocotb + GHDL)
 
-Aqui ficam os **testes de simulação** escritos em **Python** usando **Cocotb** e o **runner** que compila/roda tudo com o **GHDL**. Também aqui que fica as **ondas** no **GTKWave**.
+Here are the **simulation tests** written in **Python** using **Cocotb** and the **runner** that compiles/runs everything with **GHDL**. This is also where the **waveforms** for **GTKWave** are stored.
 
-## O que tem aqui
+## What’s here
 
 ```
 tests/python/
-├── cocotb/           # testes em Python (um arquivo por módulo VHDL)
-│   └── ...           # ex.: bancoRegistradores.py, examples/and_gate.py, etc.
+├── cocotb/           # Python tests (one file per VHDL module)
+│   └── ...           # e.g.: bancoRegistradores.py, examples/and_gate.py, etc.
 ├── utils/
-│   └── runner.py     # script que compila VHDL + executa testes
-├── tests.json        # catálogo: registro dos testes que podem ser executados
+│   └── runner.py     # script that compiles VHDL + runs tests
+├── tests.json        # catalog: registry of tests that can be executed
 └── sim_build/
-    └── <toplevel>/   # outputs da simulação (results.xml, waves.ghw, etc.)
+    └── <toplevel>/   # simulation outputs (results.xml, waves.ghw, etc.)
 ```
 
-* **`cocotb/`**: cada `.py` contém um ou mais `@cocotb.test()`.
-* **`tests.json`**: registra *nome do teste* → (*toplevel VHDL*, *arquivos VHDL*, *módulo Python*).
-* **`sim_build/<toplevel>/`**: saída da simulação; aqui nasce o `waves.ghw`.
+* **`cocotb/`**: each `.py` contains one or more `@cocotb.test()`.
+* **`tests.json`**: registers *test name* → (*VHDL toplevel*, *VHDL files*, *Python module*).
+* **`sim_build/<toplevel>/`**: simulation output; this is where `waves.ghw` is generated.
 
 
-## Criando um novo teste
+## Creating a new test
 
-### 1) Escreva o testbench em `cocotb/`
+### 1) Write the testbench in `cocotb/`
 
-Crie `tests/python/cocotb/meu_modulo.py`:
+Create `tests/python/cocotb/my_module.py`:
 
 ```python
-# tests/python/cocotb/meu_modulo.py
+# tests/python/cocotb/my_module.py
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 
 @cocotb.test()
-async def basico(dut):
+async def basic(dut):
     ...
 ```
 
+### 2) Register it in `tests.json`
 
-### 2) Registre no `tests.json`
-
-Abra `tests/python/tests.json` e adicione um bloco:
+Open `tests/python/tests.json` and add a block:
 
 ```json
 {
-  "meu_modulo": {
-    "toplevel": "minhaentidade",                 // entity VHDL (nome exato em minusculo!)
+  "my_module": {
+    "toplevel": "myentity",                 // VHDL entity (exact name, lowercase!)
     "sources": [
-      "src/DependenciaA.vhd",
-      "src/DependenciaB.vhd",
-      "src/MinhaEntidade.vhd"
+      "src/DependencyA.vhd",
+      "src/DependencyB.vhd",
+      "src/MyEntity.vhd"
     ],
-    "test_module": "tests.python.cocotb.meu_modulo"          
+    "test_module": "tests.python.cocotb.my_module"          
   }
 }
 ```
 
-**Campos:**
+**Fields:**
 
-* `toplevel`: o nome da **entity** VHDL que você quer simular.
-* `sources`: **todos** os `.vhd` necessários (a entity + dependências).
+* `toplevel`: the name of the **VHDL entity** you want to simulate.
+* `sources`: **all** required `.vhd` files (the entity + dependencies).
 
-  > Use caminhos **relativos à raiz do repositório** (ex.: `src/...`).
-* `test_module`: caminho Python do arquivo realtivo a raiz do projeto separado por pontos (ex.: `tests.python.cocotb.meu_modulo`).
+  > Use paths **relative to the repository root** (e.g.: `src/...`).
+* `test_module`: Python path to the file, relative to the project root, separated by dots (e.g.: `tests.python.cocotb.my_module`).
 
+## Running
 
-## Executando
+Run with the virtual environment active, from the **root of the repo**:
 
-Rode com o venv ativo, a partir da **raiz do repo**:
-
-* **Todos os testes** do catálogo:
+* **All tests** in the catalog:
 
   ```bash
   python3 tests/python/utils/runner.py
-  # ou
+  # or
   python3 tests/python/utils/runner.py all
   ```
 
-* **Um teste específico**:
+* **A specific test**:
 
   ```bash
-  python3 tests/python/utils/runner.py meu_modulo
+  python3 tests/python/utils/runner.py my_module
   ```
 
-Saída (por teste):
-`tests/python/sim_build/<toplevel>/results.xml` + `waves.ghw` (ondas).
+Output (per test):  
+`tests/python/sim_build/<toplevel>/results.xml` + `waves.ghw` (waveforms).
 
-Exemplo de log de um teste (bancoRegistradores):
-![Exemplo log teste](docs/exemplo_log_teste.png)
+Example of a test log (Register File):
+![Test log example](docs/exemplo_log_teste.png)
 
 
-## Visualizando ondas (GTKWave)
+## Viewing waveforms (GTKWave)
 
-Cada execução gera `waves.ghw` em `sim_build/<toplevel>/`:
+Each run generates `waves.ghw` in `sim_build/<toplevel>/`:
 
 ```bash
-gtkwave tests/python/sim_build/<entidade>/waves.ghw
+gtkwave tests/python/sim_build/<entity>/waves.ghw
 ```
 
-Dicas:
+Tips:
 
-* Adicione sinais do DUT (ex.: `clk`, `escreveC`, endereços, dados e saídas).
-* Salve um layout `.sav` no mesmo diretório para reutilizar a seleção de sinais.
+* Add signals from the DUT (e.g.: `clk`, `escreveC`, addresses, data, and outputs).
+* Save a `.sav` layout in the same directory to reuse your signal selection.
 
-Exemplo das Waves de um teste (bancoRegistradores):
-![Exemplo log teste](docs/todos_testes.png)
+Example of test waveforms (bancoRegistradores):
+![Example test waves](docs/todos_testes.png)

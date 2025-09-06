@@ -1,69 +1,68 @@
-# Processador RISC-V (RV32I) — VHDL + Testes Automatizados
+# RISC-V Processor (RV32I) — VHDL + Automated Testing
 
-**Autores:** [Ilana Finger](https://github.com/ilacftemp), [Leonardo Paloschi](), [Lucas Lima](https://github.com/lucasouzamil) e [Pedro Ventura](https://github.com/pedropcventura).
-**Orientador:** [Rafael Corsi](https://github.com/rafaelcorsi).
+**Authors:** [Ilana Finger](https://github.com/ilacftemp), [Leonardo Paloschi](), [Lucas Lima](https://github.com/lucasouzamil) e [Pedro Ventura](https://github.com/pedropcventura).
+**Advisor:** [Rafael Corsi](https://github.com/rafaelcorsi).
 
-Este repositório implementa, em **VHDL**, um processador baseado no **conjunto de instruções RV32I** (RISC-V de 32 bits).
-O foco é **implementação da arquitetura e verificação**: além do hardware em si, o projeto traz uma infraestrutura de **simulação com Cocotb** (Python) e **projetos Quartus** para testes em FPGA.
+This repository implements, in **VHDL**, a processor based on the **RV32I instruction set** (32-bit RISC-V).
+The focus is on **architecture implementation and verification**: in addition to the hardware itself, the project provides a **simulation infrastructure with Cocotb** (Python) and **Quartus projects** for FPGA testing.
 
-## Visão geral do projeto
+## Project Overview
 
-* **Arquitetura**: RV32I (inteiros 32-bit).
-* **Blocos típicos**: banco de registradores, ULA, gerador de imediato, ROM/RAM simples, unidade de controle, e o *top* `riscv.vhd`.
-* **Verificação**: testes automatizados em **Cocotb** (lib pyhton para testes) com **GHDL** (simulador VHDL). As ondas de simulação podem ser abertas no **GTKWave**.
-* **FPGA**: projetos **Quartus** para síntese e experimentos práticos (placa alvo utilizada: *Cyclone V: 5CEBA4F23C7 (a FPGA da placa DE0-CV)*).
+* **Architecture**: RV32I (32-bit integers).
+* **Typical blocks**: register bank, ALU, immediate generator, simple ROM/RAM, control unit, and the *top* `riscv.vhd`.
+* **Verification**: automated tests in **Cocotb** (Python testing library) with **GHDL** (VHDL simulator). Simulation waveforms can be opened in **GTKWave**.
+* **FPGA**: **Quartus projects** for synthesis and practical experiments (target board used: *Cyclone V: 5CEBA4F23C7 (the FPGA on the DE0-CV board)*).
 
 
-## Estrutura do repositório (função de cada pasta)
+## Repository Structure (function of each folder)
 
 ```
 .
-├── quartus/        # Projeto Quartus "principal" do processador (FPGA)
-├── src/            # Módulos VHDL usados pelo projeto Quartus e nos testes
-└── tests/          # Testes de verificação (simulação + projetos FPGA de módulos)
-    ├── FPGA/       # Projetos Quartus pequenos para testar módulos separadamente
-    └── python/     # Testes Cocotb (simulados), runner e artefatos de simulação
+├── quartus/        # Main Quartus project for the processor (FPGA)
+├── src/            # VHDL modules used by the Quartus project and in tests
+└── tests/          # Verification tests (simulation + FPGA projects for modules)
+    ├── FPGA/       # Small Quartus projects to test modules separately
+    └── python/     # Cocotb tests (simulated), runner, and simulation artifacts
 ```
 
 ### `quartus/`
 
-Onde fica o **projeto principal de FPGA**. É aqui que você abre no Quartus, configura pinos, compila e gera o bitstream. Usa os módulos de `src/`.
+Where the **main FPGA project** is located. This is where you open in Quartus, configure pins, compile, and generate the bitstream. Uses the modules from `src/`.
 
 ### `src/`
 
-Todos os **módulos VHDL** do processador (banco de registradores, ULA, unidade de controle, etc.).
-Esses arquivos são incluídos no **projeto do Quartus** e também são **alvo dos testes de simulação**.
+All **VHDL modules** of the processor (register bank, ALU, control unit, etc.).
+These files are included in the **Quartus project** and are also **targets for simulation tests**.
 
 ### `tests/`
 
-Reúne duas frentes de verificação:
+Brings together two verification fronts:
 
-* `tests/FPGA/`: **projetos Quartus de apoio** para testar **módulos isolados** diretamente na FPGA (útil para depurar blocos fora do processador completo).
-* `tests/python/`: onde ficam os **testbenches Cocotb** (Python), o **runner** e os **artefatos de simulação**.
+* `tests/FPGA/`: **support Quartus projects** to test **isolated modules** directly on the FPGA (useful for debugging blocks outside the complete processor).
+* `tests/python/`: where the **Cocotb testbenches** (Python), the **runner**, and **simulation artifacts** are located.
 
-  * `cocotb/`: **testes em Python** (cada arquivo testa um módulo/entidade VHDL).
-  * `utils/runner.py`: **orquestra** a compilação e simulação (lê o catálogo `tests.json`).
-  * `tests.json`: **catálogo de testes**, mapeando cada teste para o *toplevel* VHDL e módulos/entidades necessários.
-  * `sim_build/<toplevel>/`: **saída da simulação** do respectivo teste *toplevel* (ex.: `results.xml`, `waves.ghw` para abrir no GTKWave).
+  * `cocotb/`: **Python tests** (each file tests a VHDL module/entity).
+  * `utils/runner.py`: **orchestrates** compilation and simulation (reads the `tests.json` catalog).
+  * `tests.json`: **test catalog**, mapping each test to the VHDL *toplevel* and required modules/entities.
+  * `sim_build/<toplevel>/`: **simulation output** for the respective *toplevel* test (e.g., `results.xml`, `waves.ghw` to open in GTKWave).
 
-  > Para entender mais sobre os testes simulados, verificar o [README em `tests/python/`](tests/python/README.md)
+  > To learn more about the simulated tests, check the [README in `tests/python/`](tests/python/README.md)
 
+## Dependencies
 
-## Dependências
-
-### Sistema (Ubuntu/Debian)
+### System (Ubuntu/Debian)
 
 ```bash
 sudo apt update
 sudo apt install ghdl gtkwave
 ```
 
-* **GHDL**: simulador VHDL — compila e executa os `.vhd` para os testes Cocotb.
-* **GTKWave**: visualizador de formas de onda — abre os `.ghw` gerados na simulação (útil para depurar sinais).
+* **GHDL**: VHDL simulator — compiles and runs `.vhd` files for Cocotb tests.
+* **GTKWave**: waveform viewer — opens `.ghw` files generated in simulation (useful for debugging signals).
 
 ### Python
 
-Use ambiente virtual para isolar dependências:
+Use a virtual environment to isolate dependencies:
 
 ```bash
 python3 -m venv .venv
@@ -71,37 +70,37 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-O `requirements.txt` inclui **Cocotb** (framework de testes em Python para projetos HDL).
+The `requirements.txt` includes **Cocotb** (Python test framework for HDL projects).
 
-> Resumo: **GHDL** executa a simulação, **Cocotb** escreve/verifica testes, **GTKWave** mostra as ondas.
+> Summary: **GHDL** runs the simulation, **Cocotb** writes/verifies tests, **GTKWave** shows the waveforms.
 
 
-## Rodando um teste simulado
+## Running a Simulated Test
 
-Os testes são lançados pelo runner:
+Tests are launched by the runner:
 
 ```bash
-# da raiz do repositório (com o venv ativo)
-python3 tests/python/utils/runner.py           # roda todos os testes do catálogo
-python3 tests/python/utils/runner.py bancoRegistradores   # roda um teste específico
+# from the repository root (with the venv active)
+python3 tests/python/utils/runner.py           # runs all tests in the catalog
+python3 tests/python/utils/runner.py bancoRegistradores   # runs a specific test
 ```
 
-* O runner lê `tests/python/tests.json`, compila os **sources** indicados e roda os **testes Cocotb**.
-* A saída de cada *toplevel* vai para `tests/python/sim_build/<toplevel>/`, incluindo:
+* The runner reads `tests/python/tests.json`, compiles the indicated **sources**, and runs the **Cocotb tests**.
+* The output of each *toplevel* goes to `tests/python/sim_build/<toplevel>/`, including:
 
-  * `results.xml`: relatório xUnit
-  * `waves.ghw`: **ondas** da simulação (abra com `gtkwave`)
+  * `results.xml`: xUnit report
+  * `waves.ghw`: **simulation waveforms** (open with `gtkwave`)
 
-Exemplo de log de um teste (bancoRegistradores):
-![Exemplo log teste](docs/exemplo_log_teste.png)
+Example of a test log (bancoRegistradores):
+![Test log example](docs/exemplo_log_teste.png)
 
-Exemplo para abrir ondas:
+Example to open waveforms:
 
 ```bash
 gtkwave tests/python/sim_build/bancoregistradores/waves.ghw
 ```
 
-Exemplo das Waves de um teste (bancoRegistradores):
-![Exemplo log teste](docs/todos_testes.png)
+Example of test waveforms (bancoRegistradores):
+![Test waveforms example](docs/todos_testes.png)
 
-> Para **criar novos testes** (como adicionar entradas no `tests.json`, padrões de pastas), consulte o [**README da pasta `tests/python`**](tests/python/README.md).
+> To **create new tests** (such as adding entries in `tests.json`, folder patterns),
