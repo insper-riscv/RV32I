@@ -105,12 +105,12 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 
 ## 2. I-type aritmético/lógico (sem desvio)
 
-| Instrução | 31-25 (funct7 / imm) | 24-20 ( shamt) | 19-15 (rs1) | 14-12 (funct3) | 11-7 (rd) | 6-0 (opcode) | Formato (assembly)      | Implementação                  | Descrição                        |
+| Instrução | 31-25 (imm / funct7) | 24-20 (imm / shamt) | 19-15 (rs1) | 14-12 (funct3) | 11-7 (rd) | 6-0 (opcode) | Formato (assembly)      | Implementação                  | Descrição                        |
 |-----------|-----------------------|---------------------|-------------|----------------|-----------|--------------|-------------------------|---------------------------------|----------------------------------|
-| **ADDI**  | imm[11:0]             |                     | rs1         | 000            | rd        | 0010011      | `addi rd, rs1, imm`     | `x[rd] = x[rs1] + sext(imm)`    | Soma imediato (I-type)           |
-| **XORI**  | imm[11:0]             |                     | rs1         | 100            | rd        | 0010011      | `xori rd, rs1, imm`     | `x[rd] = x[rs1] ^ sext(imm)`    | XOR imediato (I-type)            |
-| **ORI**   | imm[11:0]             |                     | rs1         | 110            | rd        | 0010011      | `ori rd, rs1, imm`      | `x[rd] = x[rs1] \| sext(imm)`   | OR imediato (I-type)             |
-| **ANDI**  | imm[11:0]             |                     | rs1         | 111            | rd        | 0010011      | `andi rd, rs1, imm`     | `x[rd] = x[rs1] & sext(imm)`    | AND imediato (I-type)            |
+| **ADDI**  | imm[11:5]             | imm[4:0]             | rs1         | 000            | rd        | 0010011      | `addi rd, rs1, imm`     | `x[rd] = x[rs1] + sext(imm)`    | Soma imediato (I-type)           |
+| **XORI**  | imm[11:5]             | imm[4:0]             | rs1         | 100            | rd        | 0010011      | `xori rd, rs1, imm`     | `x[rd] = x[rs1] ^ sext(imm)`    | XOR imediato (I-type)            |
+| **ORI**   | imm[11:5]             | imm[4:0]             | rs1         | 110            | rd        | 0010011      | `ori rd, rs1, imm`      | `x[rd] = x[rs1] \| sext(imm)`   | OR imediato (I-type)             |
+| **ANDI**  | imm[11:5]             | imm[4:0]             | rs1         | 111            | rd        | 0010011      | `andi rd, rs1, imm`     | `x[rd] = x[rs1] & sext(imm)`    | AND imediato (I-type)            |
 | **SLLI**  | 0000000               | shamt[4:0]          | rs1         | 001            | rd        | 0010011      | `slli rd, rs1, shamt`   | `x[rd] = x[rs1] << shamt`       | Shift lógico à esquerda (I-type) |
 | **SRLI**  | 0000000               | shamt[4:0]          | rs1         | 101            | rd        | 0010011      | `srli rd, rs1, shamt`   | `x[rd] = x[rs1] >>u shamt`      | Shift lógico à direita (I-type)  |
 | **SRAI**  | 0100000               | shamt[4:0]          | rs1         | 101            | rd        | 0010011      | `srai rd, rs1, shamt`   | `x[rd] = x[rs1] >>s shamt`      | Shift aritmético à direita       |
