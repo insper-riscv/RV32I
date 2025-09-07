@@ -100,7 +100,26 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 | **AUIPC** | imm[31:12]            | rd        | 0010111      | `auipc rd, imm`    | `x[rd] = pc + sext(imm << 12)`   | Soma imediato ao PC (U-type) |
 
 ### Fluxo de dados
-![alt text](instructions/1-auipc.png)
+![alt text](instructions/1.png)
+
+### Características
+🐣: Nova implementação / 
+🛠️: Alterado
+
+#### Extender — Operações
+- 🐣**U**: `out[31:0] = sext(instr[31:12] << 12)`
+
+#### ALU — Operações
+- 🐣**PASS_B** : `out[31:0] = B[31:0]`
+- 🐣**ADD**  : `out[31:0] = A[31:0] + B[31:0]`
+
+#### Decoder
+- **Entradas**
+   - 🐣`opcode = instr[6:0]`
+
+- **Saídas**
+   - 🐣`we` : habilita escrita no RegFile
+   - 🐣`OpALU` : Seleciona qual operação deve ser feita na ALU
 
 
 ## 2. I-type aritmético/lógico (sem desvio)
@@ -117,6 +136,38 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 
 ### Fluxo de dados
 ![alt text](instructions/2.png)
+
+### Características 
+🐣: Nova implementação / 
+🛠️: Alterado
+
+#### Extender — Operações
+- **U**: `out[31:0] = sext(instr[31:12] << 12)`
+- 🐣**I**: `out[31:0] = sext(instr[31:20])`
+- 🐣**I_shamt**: `out[31:0] =  zext(instr[24:20])` (Preenhce com zeros a esquerda) (Neste momento, para as operaões de shamt)
+
+#### ALU — Operações
+- **PASS_B** : `out[31:0] = B[31:0]`
+- **ADD**    : `out[31:0] = A[31:0] + B[31:0]`
+- 🐣**XOR**    : `out[31:0] = A[31:0] ^ B[31:0]`
+- 🐣**OR**     : `out[31:0] = A[31:0] | B[31:0]`
+- 🐣**AND**    : `out[31:0] = A[31:0] & B[31:0]`
+- 🐣**SLL**    : `out[31:0] = A[31:0] << B[31:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
+- 🐣**SRL**    : `out[31:0] = A[31:0] >> u B[31:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
+- 🐣**SRA**    : `out[31:0] = A[31:0] << s B[31:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
+
+
+#### Decoder
+- **Entradas**
+   - `opcode = instr[6:0]`
+   - 🐣`funct3 = instr[14:12]`
+   - 🐣`funct7 = instr[31:25]` (Neste momento, para diferenciar SRL e SRA)
+
+- **Saídas**
+   - `we` : habilita escrita no RegFile
+   - 🛠️`OpALU[3:0]` : Seleciona qual operação deve ser feita na ALU.
+   - 🐣`selImm[1:0]` : Seleciona qual tipo de extensão a Unidade Extensora deve realizar.
+   - 🐣`selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
 
 
 ## 3. R-type completo
@@ -137,6 +188,44 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 
 ### Fluxo de dados
 ![alt text](instructions/3.png)
+
+### Características 
+🐣: Nova implementação / 
+🛠️: Alterado
+
+#### Extender — Operações
+- **U**: `out[31:0] = sext(instr[31:12] << 12)`
+- **I**: `out[31:0] = sext(instr[31:20])`
+- **I_shamt**: `out[31:0] =  zext(instr[24:20])` (Preenhce com zeros a esquerda)
+
+#### ALU — Operações
+- **PASS_B** : `out[31:0] = B[31:0]`
+- **ADD**    : `out[31:0] = A[31:0] + B[31:0]`
+- **XOR**    : `out[31:0] = A[31:0] ^ B[31:0]`
+- **OR**     : `out[31:0] = A[31:0] | B[31:0]`
+- **AND**    : `out[31:0] = A[31:0] & B[31:0]`
+- **SLL**    : `out[31:0] = A[31:0] << B[31:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
+- **SRL**    : `out[31:0] = A[31:0] >> u B[31:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
+- **SRA**    : `out[31:0] = A[31:0] << s B[31:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
+- 🐣**SUB**    : `out[31:0] = A[31:0] - B[31:0]`
+- 🐣**SLT**    : `out[31:0] = A[31:0] < s B[31:0] ? 1 : 0`
+- 🐣**SLTU**    : `out[31:0] = A[31:0] < u B[31:0] ? 1 : 0`
+
+
+#### Decoder
+- **Entradas**
+   - `opcode = instr[6:0]`
+   - `funct3 = instr[14:12]`
+   - `funct7 = instr[31:25]`
+
+- **Saídas**
+   - `we` : habilita escrita no RegFile
+   - `OpALU[2:0]` : Seleciona qual operação deve ser feita na ALU.
+   - `selImm[1:0]` : Seleciona qual tipo de extensão a Unidade Extensora deve realizar.
+   - `selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
+   - 🐣`selMuxRs2Imm` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
+
+
 
 
 ## 4. Saltos (mexe no PC, mas simples)
