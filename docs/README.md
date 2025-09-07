@@ -223,7 +223,7 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
    - `OpALU[2:0]` : Seleciona qual operação deve ser feita na ALU.
    - `selImm[1:0]` : Seleciona qual tipo de extensão a Unidade Extensora deve realizar.
    - `selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
-   - 🐣`selMuxRs2Imm` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
+   - 🐣`selMuxRs2Imm` : Seleciona entre rs2 e Imediato para ser o operando B na ALU.
 
 
 
