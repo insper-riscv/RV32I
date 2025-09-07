@@ -94,10 +94,10 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 
 ## 1. U-type sem mudar o PC
 
-| Instrução | 31-25 (funct7 / imm) | 24-20 (rs2 / shamt) | 19-15 (rs1) | 14-12 (funct3) | 11-7 (rd) | 6-0 (opcode) | Formato (assembly) | Implementação | Descrição |
-|-----------|-----------------------|---------------------|-------------|----------------|-----------|--------------|--------------------|---------------|-----------|
-| **LUI**   | imm[31:12]            |                     |             |                | rd        | 0110111      | `lui rd, imm`      | `x[rd] = sext(imm << 12)`        | Carrega imediato superior (U-type) |
-| **AUIPC** | imm[31:12]            |                     |             |                | rd        | 0010111      | `auipc rd, imm`    | `x[rd] = pc + sext(imm << 12)`   | Soma imediato ao PC (U-type) |
+| Instrução | 31-12 (imm) | 11-7 (rd) | 6-0 (opcode) | Formato (assembly) | Implementação | Descrição |
+|-----------|-------------------------------------------------------------------------|-----------|--------------|--------------------|---------------|-----------|
+| **LUI**   | imm[31:12]            | rd        | 0110111      | `lui rd, imm`      | `x[rd] = sext(imm << 12)`        | Carrega imediato superior (U-type) |
+| **AUIPC** | imm[31:12]            | rd        | 0010111      | `auipc rd, imm`    | `x[rd] = pc + sext(imm << 12)`   | Soma imediato ao PC (U-type) |
 
 ### Fluxo de dados
 ![alt text](instructions/1-auipc.png)
@@ -105,7 +105,7 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 
 ## 2. I-type aritmético/lógico (sem desvio)
 
-| Instrução | 31-25 (funct7 / imm) | 24-20 (rs2 / shamt) | 19-15 (rs1) | 14-12 (funct3) | 11-7 (rd) | 6-0 (opcode) | Formato (assembly)      | Implementação                  | Descrição                        |
+| Instrução | 31-25 (funct7 / imm) | 24-20 ( shamt) | 19-15 (rs1) | 14-12 (funct3) | 11-7 (rd) | 6-0 (opcode) | Formato (assembly)      | Implementação                  | Descrição                        |
 |-----------|-----------------------|---------------------|-------------|----------------|-----------|--------------|-------------------------|---------------------------------|----------------------------------|
 | **ADDI**  | imm[11:0]             |                     | rs1         | 000            | rd        | 0010011      | `addi rd, rs1, imm`     | `x[rd] = x[rs1] + sext(imm)`    | Soma imediato (I-type)           |
 | **XORI**  | imm[11:0]             |                     | rs1         | 100            | rd        | 0010011      | `xori rd, rs1, imm`     | `x[rd] = x[rs1] ^ sext(imm)`    | XOR imediato (I-type)            |
