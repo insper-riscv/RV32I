@@ -119,7 +119,7 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 
 - **Saídas**
    - 🐣`we` : habilita escrita no RegFile
-   - 🐣`OpALU` : Seleciona qual operação deve ser feita na ALU
+   - 🐣`opALU` : Seleciona qual operação deve ser feita na ALU
 
 
 ## 2. I-type aritmético/lógico (sem desvio)
@@ -152,9 +152,9 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 - 🐣**XOR**    : `out[31:0] = A[31:0] ^ B[31:0]`
 - 🐣**OR**     : `out[31:0] = A[31:0] | B[31:0]`
 - 🐣**AND**    : `out[31:0] = A[31:0] & B[31:0]`
-- 🐣**SLL**    : `out[31:0] = A[31:0] << B[31:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
-- 🐣**SRL**    : `out[31:0] = A[31:0] >> u B[31:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
-- 🐣**SRA**    : `out[31:0] = A[31:0] << s B[31:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
+- 🐣**SLL**    : `out[31:0] = A[31:0] << B[4:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
+- 🐣**SRL**    : `out[31:0] = A[31:0] >> u B[4:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
+- 🐣**SRA**    : `out[31:0] = A[31:0] << s B[4:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
 
 
 #### Decoder
@@ -165,8 +165,8 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 
 - **Saídas**
    - `we` : habilita escrita no RegFile
-   - 🛠️`OpALU[3:0]` : Seleciona qual operação deve ser feita na ALU.
-   - 🐣`selImm[1:0]` : Seleciona qual tipo de extensão a Unidade Extensora deve realizar.
+   - 🛠️`opALU[3:0]` : Seleciona qual operação deve ser feita na ALU.
+   - 🐣`selImm[1:0]` : Seleciona qual tipo de operação a Unidade Extensora deve realizar.
    - 🐣`selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
 
 
@@ -204,9 +204,9 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 - **XOR**    : `out[31:0] = A[31:0] ^ B[31:0]`
 - **OR**     : `out[31:0] = A[31:0] | B[31:0]`
 - **AND**    : `out[31:0] = A[31:0] & B[31:0]`
-- **SLL**    : `out[31:0] = A[31:0] << B[31:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
-- **SRL**    : `out[31:0] = A[31:0] >> u B[31:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
-- **SRA**    : `out[31:0] = A[31:0] << s B[31:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
+- **SLL**    : `out[31:0] = A[31:0] << B[4:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
+- **SRL**    : `out[31:0] = A[31:0] >> u B[4:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
+- **SRA**    : `out[31:0] = A[31:0] << s B[4:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
 - 🐣**SUB**    : `out[31:0] = A[31:0] - B[31:0]`
 - 🐣**SLT**    : `out[31:0] = A[31:0] < s B[31:0] ? 1 : 0`
 - 🐣**SLTU**    : `out[31:0] = A[31:0] < u B[31:0] ? 1 : 0`
@@ -220,8 +220,8 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 
 - **Saídas**
    - `we` : habilita escrita no RegFile
-   - `OpALU[2:0]` : Seleciona qual operação deve ser feita na ALU.
-   - `selImm[1:0]` : Seleciona qual tipo de extensão a Unidade Extensora deve realizar.
+   - `opALU[2:0]` : Seleciona qual operação deve ser feita na ALU.
+   - `selImm[1:0]` : Seleciona qual tipo de operação a Unidade Extensora deve realizar.
    - `selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
    - 🐣`selMuxRs2Imm` : Seleciona entre rs2 e Imediato para ser o operando B na ALU.
 
