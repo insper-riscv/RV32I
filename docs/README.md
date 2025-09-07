@@ -118,7 +118,7 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
    - 🐣`opcode = instr[6:0]`
 
 - **Saídas**
-   - 🐣`we` : habilita escrita no RegFile
+   - 🐣`weReg` : habilita escrita no RegFile
    - 🐣`opALU` : Seleciona qual operação deve ser feita na ALU
 
 
@@ -164,7 +164,7 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
    - 🐣`funct7 = instr[31:25]` (Neste momento, para diferenciar SRL e SRA)
 
 - **Saídas**
-   - `we` : habilita escrita no RegFile
+   - `weReg` : habilita escrita no RegFile
    - 🛠️`opALU[3:0]` : Seleciona qual operação deve ser feita na ALU.
    - 🐣`selImm[1:0]` : Seleciona qual tipo de operação a Unidade Extensora deve realizar.
    - 🐣`selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
@@ -219,7 +219,7 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
    - `funct7 = instr[31:25]`
 
 - **Saídas**
-   - `we` : habilita escrita no RegFile
+   - `weReg` : habilita escrita no RegFile
    - `opALU[2:0]` : Seleciona qual operação deve ser feita na ALU.
    - `selImm[1:0]` : Seleciona qual tipo de operação a Unidade Extensora deve realizar.
    - `selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
