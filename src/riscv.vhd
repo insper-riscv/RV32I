@@ -26,12 +26,12 @@ architecture arch_name of riscv is
 	signal PCNext         : std_logic_vector(31 downto 0);
 	signal ImmExt     	  : std_logic_vector(31 downto 0);
 	signal data_in_RegFile : std_logic_vector(31 downto 0);
-	signal saidaA_bancoReg: std_logic_vector(31 downto 0);
-	signal saidaB_bancoReg: std_logic_vector(31 downto 0);
+	signal d_rs1: std_logic_vector(31 downto 0);
+	signal d_rs2: std_logic_vector(31 downto 0);
 	signal dA : std_logic_vector(31 downto 0);
 	signal dB : std_logic_vector(31 downto 0);
-	signal saida_ULA      : std_logic_vector(31 downto 0);
-	signal dadoLeituraRAM : std_logic_vector(31 downto 0);
+	signal ALU_out      : std_logic_vector(31 downto 0);
+	signal RAM_out : std_logic_vector(31 downto 0);
 	signal taken          : std_logic;
 	signal alu_overflow   : std_logic;
 	
@@ -47,7 +47,7 @@ architecture arch_name of riscv is
 begin
 
 -- MUX_PCNext:			 
-PCNext <= (saida_ULA and x"FFFFFFFE") when (ctrl.JumpType=JT_JALR) else
+PCNext <= (ALU_out and x"FFFFFFFE") when (ctrl.JumpType=JT_JALR) else
 			    PCTarget when (ctrl.JumpType=JT_JAL or (ctrl.Branch='1' and taken='1')) else
 				 proxPC;
 
@@ -75,37 +75,37 @@ RegFile : entity work.RegFile
 					  rd => rd, 
 					  data_in => data_in_RegFile, 
 					  we => ctrl.weReg, 
-					  d_rs1 => saidaA_bancoReg, 
-					  d_rs2 => saidaB_bancoReg);
+					  d_rs1 => d_rs1, 
+					  d_rs2 => d_rs2);
 						 
 ALU : entity work.ALU generic map ( DATA_WIDTH => 32 )
 			port map (
 				op			    => ctrl.ALUCtrl,
 				source_1        => dA,
 				source_2        => dB,
-				destination     => saida_ULA
+				destination     => ALU_out
 			);
 						 
 -- MUX_ALUSrcA:
 with ctrl.selMuxPcRs1 select				 
-	dA <= saidaA_bancoReg when SRC_A_RS1,
+	dA <= d_rs1 when SRC_A_RS1,
 							addr        when SRC_A_PC,
 							(others => '0') when SRC_A_ZERO;
 						 
 -- MUX_ALUSrcB:					 
-dB <= ImmExt when (ctrl.selMuxRs2Imm = '1') else saidaB_bancoReg;
+dB <= ImmExt when (ctrl.selMuxRs2Imm = '1') else d_rs2;
 		  
 RAM : entity work.RAM
 			port map( clk => clk,
-						 addr => saida_ULA,
-						 data_in => saidaB_bancoReg,
-						 data_out => dadoLeituraRAM, 
+						 addr => ALU_out,
+						 data_in => d_rs2,
+						 data_out => RAM_out, 
 						 we => ctrl.MemWrite);
 						 
 -- MUX_ResultSrc:
 with ctrl.ResultSrc select
-	data_in_RegFile <= saida_ULA 		when RES_ALU,
-								  dadoLeituraRAM  when RES_MEM,
+	data_in_RegFile <= ALU_out 		when RES_ALU,
+								  RAM_out  when RES_MEM,
 								  proxPC 			when RES_PC4;
 						 
 extensor : entity work.immediateGen
@@ -120,12 +120,12 @@ UC : entity work.unidadeControle
 						 ctrl => ctrl);
 						 
 taken <= '1' when ( -- quando for 1, significa que o pulo do branch sera feito
-          (ctrl.BranchOp = BR_EQ  and (saidaA_bancoReg =  saidaB_bancoReg)) or
-          (ctrl.BranchOp = BR_NE  and (saidaA_bancoReg /= saidaB_bancoReg)) or
-          (ctrl.BranchOp = BR_LT  and (signed(saidaA_bancoReg)  <  signed(saidaB_bancoReg))) or
-          (ctrl.BranchOp = BR_GE  and (signed(saidaA_bancoReg)  >= signed(saidaB_bancoReg))) or
-          (ctrl.BranchOp = BR_LTU and (unsigned(saidaA_bancoReg) <  unsigned(saidaB_bancoReg))) or
-          (ctrl.BranchOp = BR_GEU and (unsigned(saidaA_bancoReg) >= unsigned(saidaB_bancoReg)))
+          (ctrl.BranchOp = BR_EQ  and (d_rs1 =  d_rs2)) or
+          (ctrl.BranchOp = BR_NE  and (d_rs1 /= d_rs2)) or
+          (ctrl.BranchOp = BR_LT  and (signed(d_rs1)  <  signed(d_rs2))) or
+          (ctrl.BranchOp = BR_GE  and (signed(d_rs1)  >= signed(d_rs2))) or
+          (ctrl.BranchOp = BR_LTU and (unsigned(d_rs1) <  unsigned(d_rs2))) or
+          (ctrl.BranchOp = BR_GEU and (unsigned(d_rs1) >= unsigned(d_rs2)))
         ) else '0';
 
 end architecture;

@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 package rv32i_ctrl_pkg is
-  -- enums legíveis
+  -- enums
   type result_src_t is (RES_ALU, RES_MEM, RES_PC4); 
   type imm_src_t    is (IMM_I, IMM_S, IMM_B, IMM_U, IMM_J);
   type src_a_t      is (SRC_A_RS1, SRC_A_PC, SRC_A_ZERO);

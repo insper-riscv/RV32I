@@ -28,7 +28,6 @@ architecture RTL of ALU is
   signal sll_res, srl_res, sra_res: std_logic_vector(DATA_WIDTH-1 downto 0);
   signal slt_res, sltu_res        : std_logic_vector(DATA_WIDTH-1 downto 0);
   signal shamt_u5                 : unsigned(4 downto 0);
-  signal ov_add, ov_sub           : std_logic; -- overflow de cada operação
 
 begin
 
@@ -36,11 +35,7 @@ begin
 
   beff <= (not dB) when (op = ALU_SUB) else dB;
   cin <= "1" when op = ALU_SUB' else "0";
-  addsub_res <= std_logic_vector(unsigned(dA) + unsigned(beff) + cin); -- faz soma da entrada A (com bit extra para overflow) com entrada B efetiva (negativada se a operação for subtração e com bit extra para overflow) e com cin (para complemento de 2 do B)
-
-  -- ov_add <= (not (dA(DATA_WIDTH-1) xor dB(DATA_WIDTH-1))) and (dA(DATA_WIDTH-1) xor addsub_res(DATA_WIDTH-1)); -- ov acontece se a e b tiverem mesmo sinal e resultado muda de sinal
-  -- ov_sub <= ((dA(DATA_WIDTH-1) xor dB(DATA_WIDTH-1))) and (dA(DATA_WIDTH-1) xor addsub_res(DATA_WIDTH-1)); -- ov acontece se a e b tiverem sinais diferentes e resultado muda de sinal em relacao a A
-  -- overflow <= ov_add when (op = ALU_ADD) else ov_sub when (op = ALU_SUB) else '0';
+  addsub_res <= std_logic_vector(unsigned(dA) + unsigned(beff) + cin); -- faz soma da entrada A com entrada B efetiva (negativada se a operação for subtração) e com cin (para complemento de 2 do B)
 
   and_res <= dA and dB;
   or_res <= dA or dB;
