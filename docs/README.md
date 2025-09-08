@@ -292,7 +292,48 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 | **BGEU**  | imm[12\|10:5]          | rs2         | rs1         | 111            | imm[4:1\|11]         | 1100011      | `bgeu rs1, rs2, off`     | `if (x[rs1] >=u x[rs2]) pc += sext(off)`       | Maior/igual (sem sinal)             |
 
 ### Fluxo de dados
-![alt text](instructions/x.png)
+![alt text](instructions/5.png)
+
+### Características 
+<strong style="color: green;">[NOVO] </strong>: Nova implementação / 
+<strong style="color: orange;">[ALTERADO] </strong>: Alterado
+
+#### Extender — Operações
+- **U**: `out[31:0] = sext(instr[31:12] << 12)`
+- **I**: `out[31:0] = sext(instr[31:20])`
+- **I_shamt**: `out[31:0] =  zext(instr[24:20])` (Preenhce com zeros a esquerda)
+- **JAL**: `out[31:0] = sext(offset) = sext(inst[31 & 30:21 & 20 & 19:12 & '0'])`
+- **JALR**: `out[31:0] = sext(offset) = sext(inst[31:20])`
+
+#### ALU — Operações
+- **PASS_B** : `out[31:0] = B[31:0]`
+- **ADD**    : `out[31:0] = A[31:0] + B[31:0]`
+- **XOR**    : `out[31:0] = A[31:0] ^ B[31:0]`
+- **OR**     : `out[31:0] = A[31:0] | B[31:0]`
+- **AND**    : `out[31:0] = A[31:0] & B[31:0]`
+- **SLL**    : `out[31:0] = A[31:0] << B[4:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
+- **SRL**    : `out[31:0] = A[31:0] >> u B[4:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
+- **SRA**    : `out[31:0] = A[31:0] << s B[4:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
+- **SUB**    : `out[31:0] = A[31:0] - B[31:0]`
+- **SLT**    : `out[31:0] = A[31:0] < s B[31:0] ? 1 : 0`
+- **SLTU**    : `out[31:0] = A[31:0] < u B[31:0] ? 1 : 0`
+
+
+#### Decoder
+- **Entradas**
+   - `opcode = instr[6:0]`
+   - `funct3 = instr[14:12]`
+   - `funct7 = instr[31:25]`
+
+- **Saídas**
+   - `weReg` : habilita escrita no RegFile
+   - `opALU[2:0]` : Seleciona qual operação deve ser feita na ALU.
+   - `selImm[2:0]` : Seleciona qual tipo de operação a Unidade Extensora deve realizar.
+   - `selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
+   - `selMuxRs2Imm` : Seleciona entre rs2 e Imediato para ser o operando B na ALU.
+   - `selMuxRs2Imm` : Seleciona entre rs2 e Imediato para ser o dado de entrada do Banco de Registradores. 
+   - `selMuxPc4ALU` : Seleciona entre PC + 4 e saída da ULA para ser o novo PC.
+   - <strong style="color: green;">[NOVO] </strong>`BranchOp` : Especifica qual operação de branch é para a Comparison Unit.
 
 
 ## 6. Loads/Stores (dados da memória)
