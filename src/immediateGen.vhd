@@ -1,38 +1,30 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use work.rv32i_ctrl_pkg.all;
 
 entity immediateGen is
     port
     (
-        instru : in std_logic_vector(25 downto 0);
-		  ImmSRC : in std_logic_vector(1 downto 0);
+        instru : in std_logic_vector(31 downto 0);
+		ImmSRC : in imm_src_t;
         ImmExt: out std_logic_vector(31 downto 0)
     );
 end entity;
 
 architecture comportamento of immediateGen is
 begin
-
-extensorSinal_tipoI : entity work.extendeSinalGenerico   generic map (larguraDadoEntrada => 16, larguraDadoSaida => 32)
-			port map( estendeSinal_IN => instru(31 downto 20), 
-						 estendeSinal_OUT => sinalExtendidoI);
-						 
-sinalExtendidoI <= (larguraDadoSaida-1 downto larguraDadoEntrada => estendeSinal_IN(larguraDadoEntrada-1) ) & estendeSinal_IN;
 							 
-extensorSinal_tipoS : entity work.extendeSinalGenerico   generic map (larguraDadoEntrada => 16, larguraDadoSaida => 32)
-			port map( estendeSinal_IN => (instru(31 downto 25) & instru(11 downto 7)), 
-						 estendeSinal_OUT => sinalExtendidoS);		 
-						 
-extensorSinal_tipoB : entity work.extendeSinalGenerico   generic map (larguraDadoEntrada => 16, larguraDadoSaida => 32)
-			port map( estendeSinal_IN => (instru(31) & instru(7) & instr(30 downto 25) & instr(11 downto 8) & '0'), 
-						 estendeSinal_OUT => sinalExtendidoB);
-						 
--- colocar extensor pra U e J
-						
-					
-sinalExtendido	<= sinalExtendidoI when (ImmScr = "00") else
-						sinalExtendidoS when (ImmScr = "01") else
-						sinalExtendidoB when (ImmScr = "10") else
-						-- adicionar pra U e J (ImmScr = "11")
+  imm_i <= (31 downto 12 => instru(31)) & instru(31 downto 20);
+  imm_s <= (31 downto 12 => instru(31)) & instru(31 downto 25) & instru(11 downto 7);
+  imm_b <= (31 downto 13 => instru(31)) & instru(31) & instru(7) & instru(30 downto 25) & instru(11 downto 8) & '0';
+  imm_u <= instru(31 downto 12) & x"000";
+  imm_j <= (31 downto 21 => instru(31)) & instru(31) & instru(19 downto 12) & instru(20) & instru(30 downto 21) & '0';
+
+  with ImmSRC select
+    ImmExt <= imm_i when IMM_I,
+              imm_s when IMM_S,
+              imm_b when IMM_B,
+              imm_u when IMM_U,
+              imm_j when IMM_J;
 
 end architecture;

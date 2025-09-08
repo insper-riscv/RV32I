@@ -30,7 +30,6 @@ architecture arch_name of riscv is
 	signal saidaB_bancoReg: std_logic_vector(31 downto 0);
 	signal saida_MUX_SrcA : std_logic_vector(31 downto 0);
 	signal saida_MUX_SrcB : std_logic_vector(31 downto 0);
-	signal flagZero       : std_logic;
 	signal saida_ULA      : std_logic_vector(31 downto 0);
 	signal dadoLeituraRAM : std_logic_vector(31 downto 0);
 	
@@ -46,15 +45,15 @@ architecture arch_name of riscv is
 begin
 
 -- MUX_PCSrc:			 
-entradaPC <= saida_ULA when (PCSrc = "01") else
-			    PCTarget when (PCSrc = "10") else
+PCNext <= (saida_ULA and x"FFFFFFFE") when (JumpType=JT_JALR) else
+			    PCTarget when (JumpType=JT_JAL or (Branch='1' and taken='1')) else
 				 proxPC; -- se PCSrc for igual a "00" ou "11"
 
 PC : entity work.genericRegister   generic map (larguraDados => 32)
 			port map(   clock => clk, 
 						clear => '0'
 						enable => '1', 
-						source => entradaPC, 
+						source => PCNext, 
 						destination => Endereco);
 						 
 ROM : entity work.ROMMIPS
@@ -77,12 +76,14 @@ bancoReg : entity work.bancoReg
 						 saidaA => saidaA_bancoReg, 
 						 saidaB => saidaB_bancoReg);
 						 
-ULA32bits : entity work.ULA32bits
-			port map( entradaA => saida_MUX_SrcA,
-						 entradaB => saida_MUX_SrcB,
-						 op_ULA => sinaisControle.ALUCtrl,
-						 flagZero => flagZero,
-						 resultado => saida_ULA);
+ULA32bits : entity work.ULA32bits generic map ( DATA_WIDTH => 32 )
+			port map (
+				select_function => ctrl.ALUCtrl,
+				source_1        => srcA,
+				source_2        => srcB,
+				overflow        => alu_overflow,
+				destination     => saida_ULA
+			);
 						 
 -- MUX_ALUSrcA:
 with sinaisControle.SrcA select				 

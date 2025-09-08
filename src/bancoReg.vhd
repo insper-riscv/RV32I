@@ -2,7 +2,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
-entity bancoRegistradores is
+entity bancoReg is
   port (
     clk           : in  std_logic;
     clear         : in  std_logic := '0';  -- pode ligar em '0' se não usar reset
@@ -16,7 +16,7 @@ entity bancoRegistradores is
   );
 end entity;
 
-architecture RTL of bancoRegistradores is
+architecture RTL of bancoReg is
   -- x0 é sempre zero; aqui guardamos apenas x1..x31
   type reg_array_t is array (1 to 31) of std_logic_vector(31 downto 0);
   signal registers : reg_array_t := (others => (others => '0'));
