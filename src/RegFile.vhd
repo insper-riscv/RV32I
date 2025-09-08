@@ -2,21 +2,21 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
-entity bancoReg is
+entity RegFile is
   port (
     clk           : in  std_logic;
     clear         : in  std_logic := '0';  -- pode ligar em '0' se não usar reset
-    escreveC      : in  std_logic := '0';  -- enable de escrita
-    enderecoA     : in  std_logic_vector(4 downto 0);
-    enderecoB     : in  std_logic_vector(4 downto 0);
-    enderecoC     : in  std_logic_vector(4 downto 0);
-    dadoEscritaC  : in  std_logic_vector(31 downto 0);
-    saidaA        : out std_logic_vector(31 downto 0);
-    saidaB        : out std_logic_vector(31 downto 0)
+    we            : in  std_logic := '0';  -- enable de escrita
+    rs1           : in  std_logic_vector(4 downto 0);
+    rs2           : in  std_logic_vector(4 downto 0);
+    rd            : in  std_logic_vector(4 downto 0);
+    data_in       : in  std_logic_vector(31 downto 0);
+    d_rs1         : out std_logic_vector(31 downto 0);
+    d_rs2         : out std_logic_vector(31 downto 0)
   );
 end entity;
 
-architecture RTL of bancoReg is
+architecture RTL of RegFile is
   -- x0 é sempre zero; aqui guardamos apenas x1..x31
   type reg_array_t is array (1 to 31) of std_logic_vector(31 downto 0);
   signal registers : reg_array_t := (others => (others => '0'));
@@ -32,7 +32,7 @@ begin
   ---------------------------------------------------------------------------
   GEN_WE : for i in 1 to 31 generate
   begin
-    we(i) <= '1' when (escreveC = '1' and enderecoC = std_logic_vector(to_unsigned(i, 5))) else '0';
+    we(i) <= '1' when (we = '1' and rd = std_logic_vector(to_unsigned(i, 5))) else '0';
   end generate;
 
   ---------------------------------------------------------------------------
@@ -47,14 +47,14 @@ begin
         clock       => clk,
         clear       => clear,
         enable      => we(i),          -- <<< usa o sinal intermediário
-        source      => dadoEscritaC,
+        source      => data_in,
         destination => registers(i)
       );
   end generate;
 
-  process(enderecoA, registers)
+  process(rs1, registers)
   begin
-    case to_integer(unsigned(enderecoA)) is
+    case to_integer(unsigned(rs1)) is
       when 0  => decode_source_1 <= (others => '0');
       when 1  => decode_source_1 <= registers(1);
       when 2  => decode_source_1 <= registers(2);
@@ -91,9 +91,9 @@ begin
     end case;
   end process;
 
-  process(enderecoB, registers)
+  process(rs2, registers)
   begin
-    case to_integer(unsigned(enderecoB)) is
+    case to_integer(unsigned(rs2)) is
       when 0  => decode_source_2 <= (others => '0');
       when 1  => decode_source_2 <= registers(1);
       when 2  => decode_source_2 <= registers(2);
@@ -130,7 +130,7 @@ begin
     end case;
   end process;
 
-  saidaA <= decode_source_1;
-  saidaB <= decode_source_2;
+  d_rs1 <= decode_source_1;
+  d_rs2 <= decode_source_2;
 end architecture;
 

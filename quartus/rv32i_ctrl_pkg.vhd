@@ -13,12 +13,12 @@ package rv32i_ctrl_pkg is
 
   -- “pacote” de controle
   type ctrl_t is record
-    RegWrite    : std_logic;
+    weReg    : std_logic;
     MemWrite    : std_logic;
     ResultSrc   : result_src_t;
     ASel        : a_sel_t;
     ALUSrc      : std_logic;
-    ImmSrc      : imm_src_t;
+    selImm      : imm_src_t;
     Branch      : std_logic;
     BranchOp    : br_op_t;
     MemSize     : mem_size_t;
