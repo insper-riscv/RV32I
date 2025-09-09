@@ -33,9 +33,8 @@ begin
 			v.BranchOp    := BR_NONE;
 			v.MemSize     := MS_W;
 			v.MemUnsigned := '0';
-			v.ALUCtrl     := ALU_ADD;
+			v.ALUCtrl     := ALU_SLV_ADD;
 			v.JumpType    := JT_NONE;
-			v.JalrMask    := '0';
 			
 			case opcode is
 				when OP_L =>
@@ -44,7 +43,7 @@ begin
 					v.selMuxRs2Imm     := '1';
 					v.selImm   := IMM_I;
 					v.selMuxPcRs1     := SRC_A_RS1;
-					v.ALUCtrl  := ALU_ADD;
+					v.ALUCtrl  := ALU_SLV_ADD;
 					case funct3 is
 						when "000" => v.MemSize := MS_B; v.MemUnsigned := '0';
 						when "001" => v.MemSize := MS_H; v.MemUnsigned := '0';
@@ -59,7 +58,7 @@ begin
 					v.selMuxRs2Imm     := '1';
 					v.selImm   := IMM_S;
 					v.selMuxPcRs1     := SRC_A_RS1;
-					v.ALUCtrl  := ALU_ADD;
+					v.ALUCtrl  := ALU_SLV_ADD;
 					case funct3 is
 						when "000" => v.MemSize := MS_B;
 						when "001" => v.MemSize := MS_H;
@@ -72,7 +71,7 @@ begin
 					v.selMuxRs2Imm    := '0';
 					v.selImm  := IMM_B;
 					v.selMuxPcRs1    := SRC_A_RS1;
-					v.ALUCtrl := ALU_SUB;
+					v.ALUCtrl := ALU_SLV_SUB;
 					case funct3 is
 						when "000" => v.BranchOp := BR_EQ;
 						when "001" => v.BranchOp := BR_NE;
@@ -88,30 +87,30 @@ begin
 					v.selMuxRs2Imm     := '1';
 					v.selImm   := IMM_I;
 					case funct3 is -- de I para baixo, funct3 define realmente a operacao da ULA, nao eh fixada como acima (tipos L, S e B)
-						when "000" => v.ALUCtrl := ALU_ADD;
-						when "111" => v.ALUCtrl := ALU_AND;
-						when "110" => v.ALUCtrl := ALU_OR;
-						when "100" => v.ALUCtrl := ALU_XOR;
-						when "010" => v.ALUCtrl := ALU_SLT;
-						when "011" => v.ALUCtrl := ALU_SLTU;
-						when "001" => v.ALUCtrl := ALU_SLL;
-						when "101" => if funct7(5) = '1' then v.ALUCtrl := ALU_SRA; else v.ALUCtrl := ALU_SRL; end if;
-						when others=> v.ALUCtrl := ALU_ADD;
+						when "000" => v.ALUCtrl := ALU_SLV_ADD;
+						when "111" => v.ALUCtrl := ALU_SLV_AND;
+						when "110" => v.ALUCtrl := ALU_SLV_OR;
+						when "100" => v.ALUCtrl := ALU_SLV_XOR;
+						when "010" => v.ALUCtrl := ALU_SLV_SLT;
+						when "011" => v.ALUCtrl := ALU_SLV_SLTU;
+						when "001" => v.ALUCtrl := ALU_SLV_SLL;
+						when "101" => if funct7(5) = '1' then v.ALUCtrl := ALU_SLV_SRA; else v.ALUCtrl := ALU_SLV_SRL; end if;
+						when others=> v.ALUCtrl := ALU_SLV_ADD;
 					end case;
 				
 				when OP_R =>
 					v.weReg := '1';
 					v.selMuxRs2Imm     := '0';
 					case funct3 is
-						when "000" => if funct7(5)='1' then v.ALUCtrl := ALU_SUB; else v.ALUCtrl := ALU_ADD; end if;
-						when "111" => v.ALUCtrl := ALU_AND;
-						when "110" => v.ALUCtrl := ALU_OR;
-						when "100" => v.ALUCtrl := ALU_XOR;
-						when "010" => v.ALUCtrl := ALU_SLT;
-						when "011" => v.ALUCtrl := ALU_SLTU;
-						when "001" => v.ALUCtrl := ALU_SLL;
-						when "101" => if funct7(5)='1' then v.ALUCtrl := ALU_SRA; else v.ALUCtrl := ALU_SRL; end if;
-						when others=> v.ALUCtrl := ALU_ADD;
+						when "000" => if funct7(5)='1' then v.ALUCtrl := ALU_SLV_SUB; else v.ALUCtrl := ALU_SLV_ADD; end if;
+						when "111" => v.ALUCtrl := ALU_SLV_AND;
+						when "110" => v.ALUCtrl := ALU_SLV_OR;
+						when "100" => v.ALUCtrl := ALU_SLV_XOR;
+						when "010" => v.ALUCtrl := ALU_SLV_SLT;
+						when "011" => v.ALUCtrl := ALU_SLV_SLTU;
+						when "001" => v.ALUCtrl := ALU_SLV_SLL;
+						when "101" => if funct7(5)='1' then v.ALUCtrl := ALU_SLV_SRA; else v.ALUCtrl := ALU_SLV_SRL; end if;
+						when others=> v.ALUCtrl := ALU_SLV_ADD;
 					end case;	
 		
 				when OP_LUI =>
@@ -119,14 +118,14 @@ begin
 					v.selMuxRs2Imm     := '1';
 					v.selImm   := IMM_U;
 					v.selMuxPcRs1     := SRC_A_ZERO;
-					v.ALUCtrl  := ALU_ADD;
+					v.ALUCtrl  := ALU_SLV_PASS_B;
 
 				when OP_AUIPC =>
 					v.weReg := '1';
 					v.selMuxRs2Imm     := '1';
 					v.selImm   := IMM_U;
 					v.selMuxPcRs1     := SRC_A_PC;
-					v.ALUCtrl  := ALU_ADD;
+					v.ALUCtrl  := ALU_SLV_ADD;
 
 				when OP_JAL =>
 					v.weReg := '1';
@@ -134,7 +133,7 @@ begin
 					v.selMuxRs2Imm     := '1';
 					v.selImm   := IMM_J;
 					v.selMuxPcRs1     := SRC_A_PC;
-					v.ALUCtrl  := ALU_ADD;
+					v.ALUCtrl  := ALU_SLV_ADD;
 					v.JumpType := JT_JAL;
 
 				when OP_JALR =>
@@ -143,9 +142,8 @@ begin
 					v.selMuxRs2Imm     := '1';
 					v.selImm   := IMM_I;
 					v.selMuxPcRs1     := SRC_A_RS1;
-					v.ALUCtrl  := ALU_ADD;
+					v.ALUCtrl  := ALU_SLV_ADD;
 					v.JumpType := JT_JALR;
-					v.JalrMask := '1';
 
 				when others =>
 					null;

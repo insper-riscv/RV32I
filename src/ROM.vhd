@@ -12,7 +12,7 @@ entity ROM IS
           data : out std_logic_vector (dataWidth-1 downto 0) );
 end entity;
 
-architecture async OF ROM IS
+architecture rtl OF ROM IS
   type blocoMemoria IS ARRAY(0 TO 2**memoryAddrWidth - 1) OF std_logic_vector(dataWidth-1 downto 0);
 
   constant ROMDATA : blocoMemoria := (

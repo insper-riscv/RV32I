@@ -22,7 +22,7 @@ architecture RTL of RegFile is
   signal registers : reg_array_t := (others => (others => '0'));
 
   -- habilitação individual de escrita para cada registrador x1..x31
-  signal we : std_logic_vector(1 to 31);
+  signal we_ind : std_logic_vector(1 to 31);
 
   signal decode_source_1 : std_logic_vector(31 downto 0);
   signal decode_source_2 : std_logic_vector(31 downto 0);
@@ -32,7 +32,7 @@ begin
   ---------------------------------------------------------------------------
   GEN_WE : for i in 1 to 31 generate
   begin
-    we(i) <= '1' when (we = '1' and rd = std_logic_vector(to_unsigned(i, 5))) else '0';
+    we_ind(i) <= '1' when (we = '1' and rd = std_logic_vector(to_unsigned(i, 5))) else '0';
   end generate;
 
   ---------------------------------------------------------------------------
@@ -46,7 +46,7 @@ begin
       port map (
         clock       => clk,
         clear       => clear,
-        enable      => we(i),          -- <<< usa o sinal intermediário
+        enable      => we_ind(i),          -- <<< usa o sinal intermediário
         source      => data_in,
         destination => registers(i)
       );
@@ -133,4 +133,3 @@ begin
   d_rs1 <= decode_source_1;
   d_rs2 <= decode_source_2;
 end architecture;
-

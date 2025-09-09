@@ -15,7 +15,7 @@ entity RAM IS
         );
 end entity;
 
-architecture async OF RAM IS
+architecture rtl OF RAM IS
   type blocoMemoria IS ARRAY(0 TO 2**memoryAddrWidth - 1) OF std_logic_vector(dataWidth-1 DOWNTO 0);
 
   signal memRAM: blocoMemoria;

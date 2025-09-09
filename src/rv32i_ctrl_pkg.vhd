@@ -12,6 +12,8 @@ package rv32i_ctrl_pkg is
   type jump_type_t  is (JT_NONE, JT_JAL, JT_JALR);
   type alu_op_t     is (ALU_ADD, ALU_SUB, ALU_AND, ALU_OR, ALU_XOR, ALU_SLT, ALU_SLTU, ALU_SLL, ALU_SRL, ALU_SRA, ALU_PASS_A, ALU_PASS_B, ALU_ILLEGAL); -- todas instruções aceitas pela ULA
 
+  subtype alu_slv_t is std_logic_vector(3 downto 0);
+
   -- conjunto de sinais de controle
   type ctrl_t is record
     weReg       : std_logic;
@@ -24,9 +26,8 @@ package rv32i_ctrl_pkg is
     BranchOp    : br_op_t;
     MemSize     : mem_size_t;
     MemUnsigned : std_logic; -- como completar resto do que li: 0 - completo com sinal (copia bit mais significativo da leitura para todo o resto); 1 - completo com zeros
-    ALUCtrl     : alu_op_t;
+    ALUCtrl     : alu_slv_t;
     JumpType    : jump_type_t;
-    JalrMask    : std_logic;
   end record;
 
   -- opcodes
@@ -40,19 +41,21 @@ package rv32i_ctrl_pkg is
   constant OP_I      : std_logic_vector(6 downto 0) := "0010011";
   constant OP_R      : std_logic_vector(6 downto 0) := "0110011";
 
-  -- alu control
-  constant ALU_ADD    : std_logic_vector(3 downto 0) := "0000";
-  constant ALU_SUB    : std_logic_vector(3 downto 0) := "0001";
-  constant ALU_AND    : std_logic_vector(3 downto 0) := "0010";
-  constant ALU_OR     : std_logic_vector(3 downto 0) := "0011";
-  constant ALU_XOR    : std_logic_vector(3 downto 0) := "0100";
-  constant ALU_SLT    : std_logic_vector(3 downto 0) := "0101";
-  constant ALU_SLTU   : std_logic_vector(3 downto 0) := "0110";
-  constant ALU_SLL    : std_logic_vector(3 downto 0) := "1000";
-  constant ALU_SRL    : std_logic_vector(3 downto 0) := "1001";
-  constant ALU_SRA    : std_logic_vector(3 downto 0) := "1010";
-  constant ALU_PASS_A : std_logic_vector(3 downto 0) := "1011";
-  constant ALU_PASS_B : std_logic_vector(3 downto 0) := "1100";
-  constant ALU_ILLEGAL: std_logic_vector(3 downto 0) := "1111";
+  -- codificação dos 4 bits
+  constant ALU_SLV_ADD    : alu_slv_t := "0000";
+  constant ALU_SLV_SUB    : alu_slv_t := "0001";
+  constant ALU_SLV_AND    : alu_slv_t := "0010";
+  constant ALU_SLV_OR     : alu_slv_t := "0011";
+  constant ALU_SLV_XOR    : alu_slv_t := "0100";
+  constant ALU_SLV_SLT    : alu_slv_t := "0101";
+  constant ALU_SLV_SLTU   : alu_slv_t := "0110";
+  constant ALU_SLV_SLL    : alu_slv_t := "1000";
+  constant ALU_SLV_SRL    : alu_slv_t := "1001";
+  constant ALU_SLV_SRA    : alu_slv_t := "1010";
+  constant ALU_SLV_PASS_A : alu_slv_t := "1011";
+  constant ALU_SLV_PASS_B : alu_slv_t := "1100";
+  constant ALU_SLV_ILLEGAL: alu_slv_t := "1111";
+
+  pure function alu_slv_to_enum(slv : alu_slv_t) return alu_op_t;
 
 end package;

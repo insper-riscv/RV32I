@@ -11,10 +11,10 @@ entity genericRegister is
         clock       : in  std_logic;
         --! Sinal de clear (sincrono)
         clear       : in  std_logic := '1';
-        --! Habilita a entidade
-        enable      : in  std_logic := 'X';
+        --! Habilita a entida de
+        enable      : in  std_logic := '0';
         --! Vetor de dados para escrita
-        source      : in  std_logic_vector((data_width - 1) downto 0) := (others => 'X');
+        source      : in  std_logic_vector((data_width - 1) downto 0) := (others => '0');
         --! Vetor de dados registrados
         destination : out std_logic_vector((data_width - 1) downto 0) := (others => '0')
     );
