@@ -349,4 +349,4 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 | **SB**    | imm[11:5]          | rs2                   | rs1         | 000            | imm[4:0]             | 0100011      | `sb rs2, off(rs1)`      | `M[x[rs1] + sext(off)] = x[rs2][7:0]`                  | Store byte (8 bits) — *byte-enable*       |
 
 ### Fluxo de dados
-![alt text](instructions/x.png)
+![alt text](instructions/6.png)
