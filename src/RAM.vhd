@@ -11,37 +11,42 @@ entity RAM IS
           addr     : IN  STD_LOGIC_VECTOR (addrWidth-1 DOWNTO 0);
           data_in  : in std_logic_vector(dataWidth-1 downto 0);
           data_out : out std_logic_vector(dataWidth-1 downto 0);
-          we		   : in std_logic
+          we		   : in std_logic;
+          wstrb   : in  std_logic_vector(3 downto 0)
         );
 end entity;
 
-architecture rtl OF RAM IS
-  type blocoMemoria IS ARRAY(0 TO 2**memoryAddrWidth - 1) OF std_logic_vector(dataWidth-1 DOWNTO 0);
+architecture rtl of RAM is
+  type mem_t is array(0 to 2**memoryAddrWidth - 1) of std_logic_vector(31 downto 0);
+  signal mem : mem_t := (others => (others => '0'));
 
-  signal memRAM: blocoMemoria;
---  Caso queira inicializar a RAM (para testes):
---  attribute ram_init_file : string;
---  attribute ram_init_file of memRAM:
---  signal is "RAMcontent.mif";
-
--- Utiliza uma quantidade menor de endereços locais:
-   signal localAddress : std_logic_vector(memoryAddrWidth-1 downto 0);
-
+  -- word index (32-bit aligned)
+  signal widx : std_logic_vector(memoryAddrWidth-1 downto 0);
 begin
-
-  -- Ajusta o enderecamento para o acesso de 32 bits.
-  localAddress <= addr(memoryAddrWidth+1 downto 2);
+  widx <= addr(memoryAddrWidth+1 downto 2);
 
   process(clk)
+    variable i : integer;
   begin
-      if(rising_edge(clk)) then
-          if we = '1' then
-              memRAM(to_integer(unsigned(localAddress))) <= data_in;
-          end if;
+    if rising_edge(clk) then
+      if we = '1' then
+        -- update selected bytes inside the 32-bit word
+        if wstrb(0) = '1' then
+          mem(to_integer(unsigned(widx)))(7 downto 0)   <= data_in(7 downto 0);
+        end if;
+        if wstrb(1) = '1' then
+          mem(to_integer(unsigned(widx)))(15 downto 8)  <= data_in(15 downto 8);
+        end if;
+        if wstrb(2) = '1' then
+          mem(to_integer(unsigned(widx)))(23 downto 16) <= data_in(23 downto 16);
+        end if;
+        if wstrb(3) = '1' then
+          mem(to_integer(unsigned(widx)))(31 downto 24) <= data_in(31 downto 24);
+        end if;
       end if;
+    end if;
   end process;
 
-  -- A leitura deve ser sempre assincrona:
-  data_out <= memRAM(to_integer(unsigned(localAddress)));
-
+  -- asynchronous read (unchanged)
+  data_out <= mem(to_integer(unsigned(widx)));
 end architecture;
