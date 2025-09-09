@@ -333,7 +333,6 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
    - `selMuxRs2Imm` : Seleciona entre rs2 e Imediato para ser o operando B na ALU.
    - `selMuxRs2Imm` : Seleciona entre rs2 e Imediato para ser o dado de entrada do Banco de Registradores. 
    - `selMuxPc4ALU` : Seleciona entre PC + 4 e saída da ULA para ser o novo PC.
-   - <strong style="color: green;">[NOVO] </strong>`BranchOp` : Especifica qual operação de branch é para a Comparison Unit.
 
 
 ## 6. Loads/Stores (dados da memória)
