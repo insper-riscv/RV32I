@@ -8,22 +8,17 @@ entity ALU is
   generic (DATA_WIDTH:natural:=32);
 
     port (
-        select_function : in  std_logic_vector(3 downto 0);
-        dA        : in  std_logic_vector((DATA_WIDTH - 1) downto 0);
-        dB        : in  std_logic_vector((DATA_WIDTH - 1) downto 0);
-        -- overflow        : out std_logic;
-        destination     : out std_logic_vector((DATA_WIDTH - 1) downto 0)
+        op          : in  alu_op_t;
+        dA          : in  std_logic_vector((DATA_WIDTH - 1) downto 0);
+        dB          : in  std_logic_vector((DATA_WIDTH - 1) downto 0);
+        destination : out std_logic_vector((DATA_WIDTH - 1) downto 0)
     );
 
 end entity;
 
 architecture RTL of ALU is
 
-  signal op                       : alu_op_t;
-  signal beff                     : std_logic_vector(DATA_WIDTH-1 downto 0); -- b efetivo (positivo se for soma, negativo se for subtração)
-  signal cin                      : unsigned(0 downto 0); -- "0" para adição, mas "1" para subtração, pois representa o "+1" necessário para o complemento de 2 (not(b)+1)
-  signal addsub_ext               : unsigned(DATA_WIDTH downto 0); -- reultado final com bit extra pra capturar o carry out
-  signal addsub_res               : std_logic_vector(DATA_WIDTH-1 downto 0); -- resultado final da soma/subtração sem o bit extra de carry out
+  signal addsub_res               : std_logic_vector(DATA_WIDTH-1 downto 0); -- resultado final da soma/subtração
   signal and_res, or_res, xor_res : std_logic_vector(DATA_WIDTH-1 downto 0); -- resultados finais de cada operação
   signal sll_res, srl_res, sra_res: std_logic_vector(DATA_WIDTH-1 downto 0);
   signal slt_res, sltu_res        : std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -31,12 +26,7 @@ architecture RTL of ALU is
 
 begin
 
-  op <= decode_alu_ctrl(select_function);
-
-  beff <= (not dB) when (op = ALU_SUB) else dB;
-  cin <= "1" when op = ALU_SUB' else "0";
-  addsub_res <= std_logic_vector(unsigned(dA) + unsigned(beff) + cin); -- faz soma da entrada A com entrada B efetiva (negativada se a operação for subtração) e com cin (para complemento de 2 do B)
-
+  addsub_res <= std_logic_vector(signed(dA) - signed(dB)) when op = ALU_SUB else std_logic_vector(signed(dA) + signed(dB));
   and_res <= dA and dB;
   or_res <= dA or dB;
   xor_res <= dA xor dB;
@@ -64,6 +54,9 @@ begin
       when ALU_SLL => destination <= sll_res;
       when ALU_SRL => destination <= srl_res;
       when ALU_SRA => destination <= sra_res;
+      when ALU_PASS_A => destination <= dA;
+      when ALU_PASS_B => destination <= dB;
+      when ALU_ILLEGAL => destination <= (others => '0');
       when others => destination <= (others => '0');
     end case;
   end process;
