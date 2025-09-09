@@ -114,8 +114,8 @@ RAM : entity work.RAM
 						data_out => RAM_out, 
 						we => we_ram);
 						 
--- MUX_ResultSrc:
-with ctrl.ResultSrc select
+-- MUX_selMuxImmPc4:
+with ctrl.selMuxImmPc4 select
 	data_in_RegFile <=  ALU_out when RES_ALU,
 					    dmem_out when RES_MEM,
 					    proxPC when RES_PC4;
