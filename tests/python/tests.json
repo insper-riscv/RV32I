@@ -10,7 +10,7 @@
     "toplevel": "bancoregistradores",
     "sources": [
       "src/genericRegister.vhd",
-      "src/bancoReg.vhd"
+      "src/RegFile.vhd"
     ],
     "test_module": "tests.python.cocotb.bancoRegistradores"
   },
