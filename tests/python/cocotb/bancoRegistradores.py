@@ -11,23 +11,23 @@ def _mask(width: int) -> int:
 
 async def _read_ports(dut, a_addr: int, b_addr: int):
     """Leituras assíncronas: ajusta endereços e espera pequenos deltas."""
-    dut.enderecoA.value = a_addr
-    dut.enderecoB.value = b_addr
+    dut.rs1.value = a_addr
+    dut.rs2.value = b_addr
     # Espera uma pequena janela para propagação combinacional
     await Timer(1, units="ns")
-    aval = int(dut.saidaA.value)
-    bval = int(dut.saidaB.value)
+    aval = int(dut.d_rs1.value)
+    bval = int(dut.d_rs2.value)
     return aval, bval
 
 async def _write_reg(dut, addr: int, data: int):
     """Escrita sincronizada: amostrada na borda de subida do clock."""
-    dut.enderecoC.value = addr
-    dut.dadoEscritaC.value = data
-    dut.escreveC.value = 1
+    dut.rd.value = addr
+    dut.data_in.value = data
+    dut.we.value = 1
     await RisingEdge(dut.clk)
     # pequena folga de propagação para leituras combinacionais subsequentes
     #await Timer(1, units="ns")
-    dut.escreveC.value = 0
+    dut.we.value = 0
 
 
 def _restart_clock(dut, period_ns=10):
@@ -54,8 +54,8 @@ async def inicializacao_e_x0(dut):
     await Timer(1, units="ns")
     dut.clear.value=0
 
-    aw = len(dut.enderecoA)
-    dw = len(dut.saidaA)
+    aw = len(dut.rs1)
+    dw = len(dut.d_rs1)
     m = _mask(dw)
 
     # Lê x0 simultaneamente em A e B
@@ -79,7 +79,7 @@ async def escrita_e_leitura_basica(dut):
     await Timer(1, units="ns")
     dut.clear.value=0
 
-    dw = len(dut.saidaA)
+    dw = len(dut.d_rs1)
     m = _mask(dw)
 
     addr = 3
@@ -100,7 +100,7 @@ async def x0_sempre_zero(dut):
     await Timer(1, units="ns")
     dut.clear.value=0
 
-    dw = len(dut.saidaA)
+    dw = len(dut.d_rs1)
     m = _mask(dw)
 
     val = 0xFFFFFFFF & m
@@ -119,8 +119,8 @@ async def leituras_simultaneas(dut):
     await Timer(1, units="ns")
     dut.clear.value=0
 
-    aw = len(dut.enderecoA)
-    dw = len(dut.saidaA)
+    aw = len(dut.rs1)
+    dw = len(dut.d_rs1)
     m = _mask(dw)
 
     addr_a = 4
@@ -149,25 +149,25 @@ async def write_then_read_same_cycle(dut):
 
     await RisingEdge(dut.clk)
 
-    dw = len(dut.saidaA)
+    dw = len(dut.d_rs1)
     mask = (1 << dw) - 1
     addr = 9
     novo = 0xCAFEBABE & mask
 
     # Configura leituras
-    dut.enderecoA.value = addr
-    dut.enderecoB.value = addr
-    dut.enderecoC.value = addr
-    dut.dadoEscritaC.value = novo
-    dut.escreveC.value = 1
+    dut.rs1.value = addr
+    dut.rs2.value = addr
+    dut.rd.value = addr
+    dut.data_in.value = novo
+    dut.we.value = 1
 
     await RisingEdge(dut.clk)
-    dut.escreveC.value = 0
+    dut.we.value = 0
     
     await Timer(1, units="ns")
     # Log detalhado
-    a = int(dut.saidaA.value)
-    b = int(dut.saidaB.value)
+    a = int(dut.d_rs1.value)
+    b = int(dut.d_rs2.value)
     dut._log.info(f"[DEPOIS DA BORDA] addr={addr} novo={novo:#x} A={a:#x} B={b:#x}")
 
     assert a == novo and b == novo, (
@@ -185,8 +185,8 @@ async def fuzz_banco(dut):
     await Timer(1, units="ns")
     dut.clear.value=0
 
-    aw = len(dut.enderecoA)
-    dw = len(dut.saidaA)
+    aw = len(dut.rs1)
+    dw = len(dut.d_rs1)
     m = _mask(dw)
     nregs = 2**aw # Quantidade de registradores no banco
 

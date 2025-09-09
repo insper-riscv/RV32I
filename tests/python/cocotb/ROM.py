@@ -57,9 +57,9 @@ def parse_mif(mif_path: Path, width_bits=32, depth=64):
 
 async def read_rom(dut, byte_addr: int):
     """A ROM é assíncrona: escreve Endereco e espera um pequeno delta."""
-    dut.Endereco.value = byte_addr
+    dut.addr.value = byte_addr
     await Timer(1, units="ns")
-    return int(dut.Dado.value)
+    return int(dut.data.value)
 
 def byte_to_index(byte_addr: int) -> int:
     """Emula a mesma fatia do VHDL: Endereco(memoryAddrWidth+1 downto 2)."""
@@ -80,7 +80,7 @@ async def rom_leitura_basica(dut):
     here = Path(__file__).resolve()
     mif_path = here.parents[3] / "src" / "initROM.mif"
 
-    exp = parse_mif(mif_path, width_bits=len(dut.Dado), depth=64)
+    exp = parse_mif(mif_path, width_bits=len(dut.data), depth=64)
 
     # Checa alguns endereços (byte addresses) que mapeiam 0, 1, 2...
     for word_idx in [0, 1, 2, 3, 4, 5, 6, 7, 10, 14, 21, 22, 63]:
@@ -94,7 +94,7 @@ async def rom_leitura_basica(dut):
 async def rom_alias_byte_addresses(dut):
     """
     Confere que endereços byte-alinhados dentro da mesma palavra (k*4 + {0,1,2,3})
-    retornam o MESMO dado (pois Endereco[1:0] é ignorado).
+    retornam o MESMO data (pois Endereco[1:0] é ignorado).
     """
     # Escolhe alguns índices para amostrar
     for word_idx in [0, 1, 9, 21, 31, 63]:
@@ -115,7 +115,7 @@ async def rom_limites(dut):
     """
     low = await read_rom(dut, 0)
     low_again = await read_rom(dut, 3)
-    assert low == low_again, "Endereços 0 e 3 devem mapear para o mesmo dado (idx 0)."
+    assert low == low_again, "Endereços 0 e 3 devem mapear para o mesmo data (idx 0)."
 
     top_base = 63 << 2
     top_vals = [await read_rom(dut, top_base + off) for off in [0,1,2,3]]

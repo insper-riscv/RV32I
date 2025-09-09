@@ -7,7 +7,7 @@
     "test_module": "tests.python.cocotb.examples.and_gate"
   },
   "bancoRegistradores": {
-    "toplevel": "bancoregistradores",
+    "toplevel": "regfile",
     "sources": [
       "src/genericRegister.vhd",
       "src/RegFile.vhd"
