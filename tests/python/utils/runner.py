@@ -3,42 +3,47 @@ import sys
 import json
 import argparse
 from pathlib import Path
-from cocotb.runner import get_runner
+from cocotb.runner import get_runner, VHDL   # <-- IMPORTANTE
 
 def run_cocotb_test(toplevel: str, sources: list, test_module: str):
-    tests_root = Path(__file__).resolve().parents[1]     
-    repo_root  = Path(__file__).resolve().parents[3]    
-    sys.path.append(str(repo_root))                      
+    tests_root = Path(__file__).resolve().parents[1]
+    repo_root  = Path(__file__).resolve().parents[3]
+    sys.path.append(str(repo_root))
 
     sim = os.getenv("SIM", "ghdl")
-    vhdl_sources = [repo_root / src for src in sources] 
+    vhdl_sources = [repo_root / src for src in sources]
 
     runner = get_runner(sim)
 
     build_dir = tests_root / "sim_build" / toplevel
     build_dir.mkdir(parents=True, exist_ok=True)
 
+    # Força VHDL-2008 em TODAS as fases de build (ghdl -i/-a/-e)
     runner.build(
         vhdl_sources=vhdl_sources,
         hdl_toplevel=toplevel,
         always=True,
         build_dir=build_dir,
+        build_args=[VHDL("--std=08")],  # <-- AQUI
     )
 
     wave_file = build_dir / "waves.ghw"
     plusargs = [f"--wave={wave_file}"]
 
+    # Força VHDL-2008 também na execução (ghdl -r)
     runner.test(
         hdl_toplevel=toplevel,
-        test_module=test_module,  
+        hdl_toplevel_lang="vhdl",       # ajuda a evitar autodetect errado
+        test_module=test_module,
         build_dir=build_dir,
-        plusargs=plusargs
+        plusargs=plusargs,
+        test_args=["--std=08"],         # <-- AQUI
     )
 
     print(f"Waves: {wave_file} (gerado)")
 
 if __name__ == "__main__":
-    tests_root = Path(__file__).resolve().parents[1]  
+    tests_root = Path(__file__).resolve().parents[1]
     json_path  = tests_root / "tests.json"
 
     try:
