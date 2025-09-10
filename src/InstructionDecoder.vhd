@@ -25,7 +25,7 @@ begin
 			-- valores default:
 			v.weReg    := '0';
 			v.MemWrite    := '0';
-			v.ResultSrc   := RES_ALU;
+			v.selMuxImmPc4   := RES_ALU;
 			v.selMuxPcRs1        := SRC_A_RS1;
 			v.selMuxRs2Imm        := '0';
 			v.selImm      := IMM_I;
@@ -39,7 +39,7 @@ begin
 			case opcode is
 				when OP_L =>
 					v.weReg := '1';
-					v.ResultSrc:= RES_MEM;
+					v.selMuxImmPc4:= RES_MEM;
 					v.selMuxRs2Imm     := '1';
 					v.selImm   := IMM_I;
 					v.selMuxPcRs1     := SRC_A_RS1;
@@ -129,7 +129,7 @@ begin
 
 				when OP_JAL =>
 					v.weReg := '1';
-					v.ResultSrc:= RES_PC4;
+					v.selMuxImmPc4:= RES_PC4;
 					v.selMuxRs2Imm     := '1';
 					v.selImm   := IMM_J;
 					v.selMuxPcRs1     := SRC_A_PC;
@@ -138,7 +138,7 @@ begin
 
 				when OP_JALR =>
 					v.weReg := '1';
-					v.ResultSrc:= RES_PC4;
+					v.selMuxImmPc4:= RES_PC4;
 					v.selMuxRs2Imm     := '1';
 					v.selImm   := IMM_I;
 					v.selMuxPcRs1     := SRC_A_RS1;

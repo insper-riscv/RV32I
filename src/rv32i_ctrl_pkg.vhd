@@ -18,7 +18,7 @@ package rv32i_ctrl_pkg is
   type ctrl_t is record
     weReg       : std_logic;
     MemWrite    : std_logic;
-    ResultSrc   : result_src_t;
+    selMuxImmPc4   : result_src_t;
     selMuxPcRs1 : src_a_t;
     selMuxRs2Imm: std_logic;
     selImm      : imm_src_t;
