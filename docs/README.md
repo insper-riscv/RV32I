@@ -107,11 +107,11 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 **[ALTERADO]**: Alterado
 
 #### Extender — Operações
-- **[NOVO]****U**: `out[31:0] = sext(instr[31:12] << 12)`
+- **[NOVO]** **U**: `out[31:0] = sext(instr[31:12] << 12)`
 
 #### ALU — Operações
-- **[NOVO]****PASS_B** : `out[31:0] = B[31:0]`
-- **[NOVO]****ADD**  : `out[31:0] = A[31:0] + B[31:0]`
+- **[NOVO]** **PASS_B** : `out[31:0] = B[31:0]`
+- **[NOVO]** **ADD**  : `out[31:0] = A[31:0] + B[31:0]`
 
 #### Decoder
 - **Entradas**
@@ -143,18 +143,18 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 
 #### Extender — Operações
 - **U**: `out[31:0] = sext(instr[31:12] << 12)`
-- **[NOVO]****I**: `out[31:0] = sext(instr[31:20])`
-- **[NOVO]****I_shamt**: `out[31:0] =  zext(instr[24:20])` (Preenhce com zeros a esquerda) (Neste momento, para as operaões de shamt)
+- **[NOVO]** **I**: `out[31:0] = sext(instr[31:20])`
+- **[NOVO]** **I_shamt**: `out[31:0] =  zext(instr[24:20])` (Preenhce com zeros a esquerda) (Neste momento, para as operaões de shamt)
 
 #### ALU — Operações
 - **PASS_B** : `out[31:0] = B[31:0]`
 - **ADD**    : `out[31:0] = A[31:0] + B[31:0]`
-- **[NOVO]****XOR**    : `out[31:0] = A[31:0] ^ B[31:0]`
-- **[NOVO]****OR**     : `out[31:0] = A[31:0] | B[31:0]`
-- **[NOVO]****AND**    : `out[31:0] = A[31:0] & B[31:0]`
-- **[NOVO]****SLL**    : `out[31:0] = A[31:0] << B[4:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
-- **[NOVO]****SRL**    : `out[31:0] = A[31:0] >> u B[4:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
-- **[NOVO]****SRA**    : `out[31:0] = A[31:0] << s B[4:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
+- **[NOVO]** **XOR**    : `out[31:0] = A[31:0] ^ B[31:0]`
+- **[NOVO]** **OR**     : `out[31:0] = A[31:0] | B[31:0]`
+- **[NOVO]** **AND**    : `out[31:0] = A[31:0] & B[31:0]`
+- **[NOVO]** **SLL**    : `out[31:0] = A[31:0] << B[4:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
+- **[NOVO]** **SRL**    : `out[31:0] = A[31:0] >> u B[4:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
+- **[NOVO]** **SRA**    : `out[31:0] = A[31:0] << s B[4:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
 
 
 #### Decoder
@@ -207,9 +207,9 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 - **SLL**    : `out[31:0] = A[31:0] << B[4:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
 - **SRL**    : `out[31:0] = A[31:0] >> u B[4:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
 - **SRA**    : `out[31:0] = A[31:0] << s B[4:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
-- **[NOVO]****SUB**    : `out[31:0] = A[31:0] - B[31:0]`
-- **[NOVO]****SLT**    : `out[31:0] = A[31:0] < s B[31:0] ? 1 : 0`
-- **[NOVO]****SLTU**    : `out[31:0] = A[31:0] < u B[31:0] ? 1 : 0`
+- **[NOVO]** **SUB**    : `out[31:0] = A[31:0] - B[31:0]`
+- **[NOVO]** **SLT**    : `out[31:0] = A[31:0] < s B[31:0] ? 1 : 0`
+- **[NOVO]** **SLTU**    : `out[31:0] = A[31:0] < u B[31:0] ? 1 : 0`
 
 
 #### Decoder
@@ -246,8 +246,8 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 - **U**: `out[31:0] = sext(instr[31:12] << 12)`
 - **I**: `out[31:0] = sext(instr[31:20])`
 - **I_shamt**: `out[31:0] =  zext(instr[24:20])` (Preenhce com zeros a esquerda)
-- **[NOVO]****JAL**: `out[31:0] = sext(offset) = sext(inst[31 & 30:21 & 20 & 19:12 & '0'])`
-- **[NOVO]****JALR**: `out[31:0] = sext(offset) = sext(inst[31:20])`
+- **[NOVO]** **JAL**: `out[31:0] = sext(offset) = sext(inst[31 & 30:21 & 20 & 19:12 & '0'])`
+- **[NOVO]** **JALR**: `out[31:0] = sext(offset) = sext(inst[31:20])`
 
 #### ALU — Operações
 - **PASS_B** : `out[31:0] = B[31:0]`
@@ -369,11 +369,11 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 - **JALR**: `out[31:0] = sext(offset) = sext(inst[31:20])`
 
 #### [NOVO] ExtenderRAM — Operações
-- **[NOVO]****LB**: `out[31:0] = sext(data[7:0])`
-- **[NOVO]****LBU**: `out[31:0] = zeroext(data[7:0])`
-- **[NOVO]****LH**: `out[31:0] =  sext(data[15:0])`
-- **[NOVO]****LHU**: `out[31:0] = zeroext(data[15:0])`
-- **[NOVO]****LW**: `out[31:0] = data[31:0]`
+- **[NOVO]** **LB**: `out[31:0] = sext(data[7:0])`
+- **[NOVO]** **LBU**: `out[31:0] = zeroext(data[7:0])`
+- **[NOVO]** **LH**: `out[31:0] =  sext(data[15:0])`
+- **[NOVO]** **LHU**: `out[31:0] = zeroext(data[15:0])`
+- **[NOVO]** **LW**: `out[31:0] = data[31:0]`
 
 #### ALU — Operações
 - **PASS_B** : `out[31:0] = B[31:0]`
