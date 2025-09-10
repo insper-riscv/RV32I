@@ -27,11 +27,11 @@
 | BGE       | if(x[rs1]>=s x[rs2]) pc+=off | 1100011 | 101 | -     |0|XXX|XX|0|XXX|0|1|BGE|XXXX|0|
 | BLTU      | if(x[rs1]<u x[rs2]) pc+=off | 1100011 | 110 | -      |0|XXX|XX|0|XXX|0|1|BLTU|XXXX|0|
 | BGEU      | if(x[rs1]>=u x[rs2]) pc+=off | 1100011 | 111 | -     |0|XXX|XX|0|XXX|0|1|BGEU|XXXX|0|
-| LW        | x[rd] = sext(M[x[rs1]+off][31:0]) | 0000011 | 010 | - |0|I|11|1|LW|1|1|ADD|XXXX|0|
-| LH        | x[rd] = sext(M[x[rs1]+off][15:0]) | 0000011 | 001 | - |0|I|11|1|LH|1|1|ADD|XXXX|0|
-| LHU       | x[rd] = zeroext(M[x[rs1]+off][15:0]) | 0000011 | 101 | - |0|I|11|1|LHU|1|1|ADD|XXXX|0|
-| LB        | x[rd] = sext(M[x[rs1]+off][7:0]) | 0000011 | 000 | - |0|I|11|1|LB|1|1|ADD|XXXX|0|
-| LBU       | x[rd] = zeroext(M[x[rs1]+off][7:0]) | 0000011 | 100 | - |0|I|11|1|LBU|1|1|ADD|XXXX|0|
+| LW        | x[rd] = sext(M[x[rs1]+off][31:0]) | 0000011 | 010 | - |0|I|10|1|LW|1|1|ADD|XXXX|0|
+| LH        | x[rd] = sext(M[x[rs1]+off][15:0]) | 0000011 | 001 | - |0|I|10|1|LH|1|1|ADD|XXXX|0|
+| LHU       | x[rd] = zeroext(M[x[rs1]+off][15:0]) | 0000011 | 101 | - |0|I|10|1|LHU|1|1|ADD|XXXX|0|
+| LB        | x[rd] = sext(M[x[rs1]+off][7:0]) | 0000011 | 000 | - |0|I|10|1|LB|1|1|ADD|XXXX|0|
+| LBU       | x[rd] = zeroext(M[x[rs1]+off][7:0]) | 0000011 | 100 | - |0|I|10|1|LBU|1|1|ADD|XXXX|0|
 | SW        | M[x[rs1]+off] = x[rs2][31:0] | 0100011 | 010 | - |0|S|XX|0|XXX|1|1|PASS_B|1111|1|
 | SH        | M[x[rs1]+off] = x[rs2][15:0] | 0100011 | 001 | - |0|S|XX|0|XXX|1|1|PASS_B|0011|1|
 | SB        | M[x[rs1]+off] = x[rs2][7:0] | 0100011 | 000 | -  |0|S|XX|0|XXX|1|1|PASS_B|0001|1|
