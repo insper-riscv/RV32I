@@ -361,14 +361,14 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 **[NOVO]**: Nova implementação / 
 **[ALTERADO]**: Alterado
 
-#### **[ALTERADO]**ExtenderImm — Operações
+#### [ALTERADO] ExtenderImm — Operações
 - **U**: `out[31:0] = sext(instr[31:12] << 12)`
 - **I**: `out[31:0] = sext(instr[31:20])`
 - **I_shamt**: `out[31:0] =  zext(instr[24:20])` (Preenhce com zeros a esquerda)
 - **JAL**: `out[31:0] = sext(offset) = sext(inst[31 & 30:21 & 20 & 19:12 & '0'])`
 - **JALR**: `out[31:0] = sext(offset) = sext(inst[31:20])`
 
-#### **[NOVO]**ExtenderRAM — Operações
+#### [NOVO] ExtenderRAM — Operações
 - **[NOVO]****LB**: `out[31:0] = sext(data[7:0])`
 - **[NOVO]****LBU**: `out[31:0] = zeroext(data[7:0])`
 - **[NOVO]****LH**: `out[31:0] =  sext(data[15:0])`
