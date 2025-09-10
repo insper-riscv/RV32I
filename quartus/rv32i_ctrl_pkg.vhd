@@ -4,23 +4,23 @@ use ieee.numeric_std.all;
 
 package rv32i_ctrl_pkg is
   -- enums legíveis
-  type result_src_t is (RES_ALU, RES_MEM, RES_PC4);
-  type imm_src_t    is (IMM_I, IMM_S, IMM_B, IMM_U, IMM_J);
+  type mux_alu_pc4_ram_t is (mux_ALU_pc4_ram, mux_alu_pc4_RAM, mux_alu_PC4_ram);
+  type op_ex_imm_t    is (IMM_I, IMM_I_shamt IMM_S, IMM_U, IMM_J);
   type a_sel_t      is (A_RS1, A_PC, A_ZERO);
-  type br_op_t      is (BR_NONE, BR_EQ, BR_NE, BR_LT, BR_GE, BR_LTU, BR_GEU);
+  type branch_op_t      is (ALU_BR_NONE, ALU_BR_EQ, ALU_BR_NE, ALU_BR_LT, ALU_BR_GE, ALU_BR_LTU, ALU_BR_GEU);
   type mem_size_t   is (MS_B, MS_H, MS_W);
   type jump_type_t  is (JT_NONE, JT_JAL, JT_JALR);
 
   -- “pacote” de controle
   type ctrl_t is record
     weReg    : std_logic;
-    MemWrite    : std_logic;
-    selMuxImmPc4   : result_src_t;
+    weRAM    : std_logic;
+    selMuxImmPc4ALU   : mux_alu_pc4_ram_t;
     ASel        : a_sel_t;
     ALUSrc      : std_logic;
-    selImm      : imm_src_t;
+    opExImm      : op_ex_imm_t;
     Branch      : std_logic;
-    BranchOp    : br_op_t;
+    BranchOp    : branch_op_t;
     MemSize     : mem_size_t;
     MemUnsigned : std_logic;
     ALUCtrl     : std_logic_vector(3 downto 0);

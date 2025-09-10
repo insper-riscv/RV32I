@@ -88,10 +88,7 @@ ALU : entity work.ALU generic map ( DATA_WIDTH => 32 )
 						destination => ALU_out);
 						 
 -- MUX_ALUSrcA:
-with ctrl.selMuxPcRs1 select				 
-	dA <= d_rs1 when SRC_A_RS1,
-						addr when SRC_A_PC,
-						(others => '0') when SRC_A_ZERO;
+dA <= addr when (ctrl.selMuxPcRs1 = '1') else d_rs1;
 						 
 -- MUX_ALUSrcB:					 
 dB <= ImmExt when (ctrl.selMuxRs2Imm = '1') else d_rs2;
@@ -100,7 +97,7 @@ DataMem : entity work.DataMem
 			port map( addr => ALU_out,
 						din_store => d_rs2,
 						word_in => RAM_out,
-						memwrite => ctrl.MemWrite,
+						memwrite => ctrl.weRAM,
 						memsize => ctrl.MemSize,
 						memunsigned => ctrl.MemUnsigned,
 						dout_load => dmem_out,
@@ -116,13 +113,13 @@ RAM : entity work.RAM
 						 
 -- MUX_selMuxImmPc4:
 with ctrl.selMuxImmPc4 select
-	data_in_RegFile <=  ALU_out when RES_ALU,
-					    dmem_out when RES_MEM,
-					    proxPC when RES_PC4;
+	data_in_RegFile <=  ALU_out when mux_ALU_pc4_ram,
+					    dmem_out when mux_alu_pc4_RAM,
+					    proxPC when mux_alu_PC4_ram;
 						 
 extensor : entity work.Extender
 			port map( Inst => Inst,
-						selImm => ctrl.selImm,
+						opExImm => ctrl.opExImm,
 						ImmExt => ImmExt);
 			 
 UC : entity work.InstructionDecoder
@@ -132,12 +129,12 @@ UC : entity work.InstructionDecoder
 						ctrl => ctrl);
 						 
 taken <= '1' when ( -- quando for 1, significa que o pulo do branch sera feito
-          (ctrl.BranchOp = BR_EQ  and (d_rs1 =  d_rs2)) or
-          (ctrl.BranchOp = BR_NE  and (d_rs1 /= d_rs2)) or
-          (ctrl.BranchOp = BR_LT  and (signed(d_rs1)  <  signed(d_rs2))) or
-          (ctrl.BranchOp = BR_GE  and (signed(d_rs1)  >= signed(d_rs2))) or
-          (ctrl.BranchOp = BR_LTU and (unsigned(d_rs1) <  unsigned(d_rs2))) or
-          (ctrl.BranchOp = BR_GEU and (unsigned(d_rs1) >= unsigned(d_rs2)))
+          (ctrl.BranchOp = ALU_BR_EQ  and (d_rs1 =  d_rs2)) or
+          (ctrl.BranchOp = ALU_BR_NE  and (d_rs1 /= d_rs2)) or
+          (ctrl.BranchOp = ALU_BR_LT  and (signed(d_rs1)  <  signed(d_rs2))) or
+          (ctrl.BranchOp = ALU_BR_GE  and (signed(d_rs1)  >= signed(d_rs2))) or
+          (ctrl.BranchOp = ALU_BR_LTU and (unsigned(d_rs1) <  unsigned(d_rs2))) or
+          (ctrl.BranchOp = ALU_BR_GEU and (unsigned(d_rs1) >= unsigned(d_rs2)))
         ) else '0';
 
 dataOUT <= dmem_out;

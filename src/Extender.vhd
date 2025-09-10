@@ -6,27 +6,28 @@ entity Extender is
     port
     (
         Inst   : in std_logic_vector(31 downto 0);
-		selImm : in imm_src_t;
+		opExImm : in op_ex_imm_t;
         ImmExt : out std_logic_vector(31 downto 0)
     );
 end entity;
 
 architecture comportamento of Extender is
 
-	signal imm_i, imm_s, imm_b, imm_u, imm_j : std_logic_vector(31 downto 0);
+	signal imm_i, imm_i_shamt, imm_s, , imm_u, imm_jal, imm_jalr : std_logic_vector(31 downto 0);
 
 begin
 
-  imm_i <= (31 downto 12 => Inst(31)) & Inst(31 downto 20);
-  imm_s <= (31 downto 12 => Inst(31)) & Inst(31 downto 25) & Inst(11 downto 7);
-  imm_b <= (31 downto 13 => Inst(31)) & Inst(31) & Inst(7) & Inst(30 downto 25) & Inst(11 downto 8) & '0';
-  imm_u <= Inst(31 downto 12) & (11 downto 0 => '0');
-  imm_j <= (31 downto 21 => Inst(31)) & Inst(31) & Inst(19 downto 12) & Inst(20) & Inst(30 downto 21) & '0';
+  imm_i       <= (31 downto 12 => Inst(31)) & Inst(31 downto 20);
+  imm_i_shamt <= 
+  imm_s       <= (31 downto 12 => Inst(31)) & Inst(31 downto 25) & Inst(11 downto 7);
+  imm_u       <= Inst(31 downto 12) & (11 downto 0 => '0');
+  imm_jal     <= (31 downto 21 => Inst(31)) & Inst(31) & Inst(19 downto 12) & Inst(20) & Inst(30 downto 21) & '0';
+  imm_jalr    <=
 
-  with selImm select
+  with opExImm select
     ImmExt <= imm_i when IMM_I,
               imm_s when IMM_S,
-              imm_b when IMM_B,
+              
               imm_u when IMM_U,
               imm_j when IMM_J,
               (others=>'0') when others;

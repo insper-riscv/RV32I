@@ -8,7 +8,7 @@ entity ALU is
   generic (DATA_WIDTH:natural:=32);
 
     port (
-        op          : in  alu_op_t;
+        op          : in  op_alu_t;
         dA          : in  std_logic_vector((DATA_WIDTH - 1) downto 0);
         dB          : in  std_logic_vector((DATA_WIDTH - 1) downto 0);
         destination : out std_logic_vector((DATA_WIDTH - 1) downto 0)
@@ -38,7 +38,7 @@ begin
 
   slt_res <= (0 => '1' when signed(dA) < signed(dB) else '0', others => '0');
   sltu_res <= (0 => '1' when unsigned(dA) < unsigned(dB) else '0', others => '0');
-  
+
   process(all)
   begin
     case op is
@@ -54,7 +54,7 @@ begin
       when ALU_SRA => destination <= sra_res;
       when ALU_PASS_A => destination <= dA;
       when ALU_PASS_B => destination <= dB;
-      when ALU_ILLEGAL => destination <= (others => '0');
+      when ALU_NOP => destination <= (others => '0');
       when others => destination <= (others => '0');
     end case;
   end process;
