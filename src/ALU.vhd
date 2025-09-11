@@ -36,9 +36,9 @@ begin
   srl_res <= std_logic_vector(shift_right(unsigned(dA), to_integer(shamt_u5)));
   sra_res <= std_logic_vector(shift_right(signed(dA), to_integer(shamt_u5)));
 
-  slt_res <= (0 => '1' when signed(dA) < signed(dB) else '0', others => '0');
-  sltu_res <= (0 => '1' when unsigned(dA) < unsigned(dB) else '0', others => '0');
-
+  slt_res  <= (0 => '1', others => '0') when signed(dA)   < signed(dB)   else (others => '0');
+  sltu_res <= (0 => '1', others => '0') when unsigned(dA) < unsigned(dB) else (others => '0');
+ 
   process(all)
   begin
     case op is
