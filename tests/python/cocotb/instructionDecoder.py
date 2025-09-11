@@ -58,29 +58,12 @@ def _parse_field(val: str, width: int) -> int:
     return int(val, 2)
 
 
-
 def load_reference():
     """Carrega a tabela CSV de opcodes."""
     data_dir = Path(__file__).resolve().parent / "data"
     csv_path = data_dir / "riscv_opcodes.csv"
     with open(csv_path, newline="") as f:
         return list(csv.DictReader(f))
-
-
-def decode_ctrl(ctrl_val: int):
-    """Divide o vetor de controle (22 bits) em sinais individuais."""
-    fields = {}
-    fields["SelMuxPc4ALU"]         = (ctrl_val >> 21) & 0b1
-    fields["opExImm[2:0]"]         = (ctrl_val >> 18) & 0b111
-    fields["selMuxALUPc4RAM[1:0]"] = (ctrl_val >> 16) & 0b11
-    fields["weReg"]                = (ctrl_val >> 15) & 0b1
-    fields["opExRAM[2:0]"]         = (ctrl_val >> 12) & 0b111
-    fields["selMuxRS2Imm"]         = (ctrl_val >> 11) & 0b1
-    fields["selMUXPcRS1"]          = (ctrl_val >> 10) & 0b1
-    fields["opALU[4:0]"]           = (ctrl_val >> 5) & 0b11111
-    fields["mask[3:0]"]            = (ctrl_val >> 1) & 0b1111
-    fields["weRAM"]                = (ctrl_val >> 0) & 0b1
-    return fields
 
 
 # ===== Teste =====
@@ -90,7 +73,7 @@ async def test_instruction_decoder(dut):
     Para cada linha da tabela CSV:
     - aplica opcode/funct3/funct7
     - espera propagação
-    - compara todos os campos de saída com a tabela
+    - compara todos os sinais de saída com a tabela
     """
     ref_table = load_reference()
 
@@ -104,17 +87,32 @@ async def test_instruction_decoder(dut):
 
         await Timer(1, units="ns")
 
-        got_ctrl = int(dut.ctrl.value)
-        got_fields = decode_ctrl(got_ctrl)
+        # === lê saídas do DUT ===
+        got_fields = {
+            "SelMuxPc4ALU":         int(dut.selMuxPc4ALU.value),
+            "opExImm[2:0]":         int(dut.opExImm.value),
+            "selMuxALUPc4RAM[1:0]": int(dut.selMuxALUPc4RAM.value),
+            "weReg":                int(dut.weReg.value),
+            "opExRAM[2:0]":         int(dut.opExRAM.value),
+            "selMuxRS2Imm":         int(dut.selMuxRS2Imm.value),
+            "selMUXPcRS1":          int(dut.selPCRS1.value),
+            "opALU[4:0]":           int(dut.opALU.value),
+            "mask[3:0]":            int(dut.mask.value),
+            "weRAM":                int(dut.weRAM.value),
+        }
 
         # === compara campo a campo ===
         for key, got in got_fields.items():
             exp_raw = row[key].strip()
-
             expected = _parse_field(exp_raw, len(exp_raw))
 
             assert got == expected, (
                 f"{inst}: {key} esperado {exp_raw}({expected}), obtido {got}"
             )
 
-        dut._log.info(f"{inst} OK ({got_ctrl:022b})")
+        dut._log.info(
+            f"{inst} OK "
+            f"(selMuxPc4ALU={got_fields['SelMuxPc4ALU']} "
+            f"opExImm={got_fields['opExImm[2:0]']:03b} "
+            f"opALU={got_fields['opALU[4:0]']:05b})"
+        )

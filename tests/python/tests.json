@@ -24,8 +24,6 @@
   "ALU": {
     "toplevel": "alu",
     "sources": [
-      "src/rv32i_ctrl_pkg.vhd",
-      "src/rv32i_ctrl_pkg_body.vhd",
       "src/ALU.vhd"
     ],
     "test_module": "tests.python.cocotb.ALU"
@@ -33,6 +31,7 @@
   "InstructionDecoder": {
     "toplevel": "instructiondecoder",
     "sources": [
+    "src/rv32i_ctrl_consts.vhd",
       "src/InstructionDecoder.vhd"
     ],
     "test_module": "tests.python.cocotb.instructionDecoder"
