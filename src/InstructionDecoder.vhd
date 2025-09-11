@@ -22,7 +22,7 @@ entity InstructionDecoder is
   );
 end entity;
 
-architecture comportamento of InstructionDecoder is
+architecture behaviour of InstructionDecoder is
 
 	-- add necessary signals here
 begin
