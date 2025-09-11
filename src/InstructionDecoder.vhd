@@ -24,10 +24,10 @@ begin
 		begin
 			-- valores default:
 			v.selMuxPc4ALU 		:= '0';
-			v.opExImm      		:= IMM_I;
-			v.selMuxALUPc4RAM   := mux_ALU_pc4_ram;
+			v.opExImm      		:= IMM_SLV_I;
+			v.selMuxALUPc4RAM   := mux_out_ALU;
 			v.weReg    			:= '0';
-			v.opExtRAM 			:= RAM_LW;
+			v.opExRAM 			:= RAM_SLV_LW;
 			v.selMuxRs2Imm      := '0';
 			v.selMuxPcRs1       := '0';
 			v.ALUCtrl     		:= ALU_SLV_ADD;
@@ -37,8 +37,8 @@ begin
 			case opcode is
 				when OP_LUI =>
 					v.selMuxPc4ALU 		:= '0';
-					v.opExImm 			:= IMM_U;
-					v.selMuxALUPc4RAM 	:= mux_ALU_pc4_ram;
+					v.opExImm 			:= IMM_SLV_U;
+					v.selMuxALUPc4RAM 	:= mux_out_ALU;
 					v.weReg 			:= '1';
 					v.selMuxRs2Imm 		:= '1';
 					v.ALUCtrl  			:= ALU_SLV_PASS_B;
@@ -46,8 +46,8 @@ begin
 
 				when OP_AUIPC =>
 					v.selMuxPc4ALU 		:= '0';
-					v.opExImm   		:= IMM_U;
-					v.selMuxALUPc4RAM 	:= mux_ALU_pc4_ram;
+					v.opExImm   		:= IMM_SLV_U;
+					v.selMuxALUPc4RAM 	:= mux_out_ALU;
 					v.weReg 			:= '1';
 					v.selMuxRs2Imm     	:= '1';
 					v.selMuxPcRs1     	:= '0';
@@ -56,8 +56,8 @@ begin
 
 				when OP_I =>
 					v.selMuxPc4ALU 		:= '0';
-					v.opExImm   		:= IMM_U;
-					v.selMuxALUPc4RAM 	:= mux_ALU_pc4_ram;
+					v.opExImm 			:= IMM_SLV_I;
+					v.selMuxALUPc4RAM 	:= mux_out_ALU;
 					v.weReg 			:= '1';
 					v.selMuxRs2Imm     	:= '1';
 					v.selMuxPcRs1     	:= '1';
@@ -71,13 +71,16 @@ begin
 						when "010" => v.ALUCtrl := ALU_SLV_SLT;
 						when "011" => v.ALUCtrl := ALU_SLV_SLTU;
 						when "001" => v.ALUCtrl := ALU_SLV_SLL;
+									  v.opExImm := IMM_SLV_I_shamt;
 						when "101" => if funct7(5) = '1' then v.ALUCtrl := ALU_SLV_SRA; else v.ALUCtrl := ALU_SLV_SRL; end if;
+							 		  v.opExImm := IMM_SLV_I_shamt;
 						when others=> v.ALUCtrl := ALU_SLV_ADD;
+									  v.opExImm := IMM_SLV_I;
 					end case;
 
 				when OP_R =>
 					v.selMuxPc4ALU 		:= '0';
-					v.selMuxALUPc4RAM   := mux_ALU_pc4_ram;
+					v.selMuxALUPc4RAM   := mux_out_ALU;
 					v.weReg    			:= '1';
 					v.selMuxRs2Imm      := '0';
 					v.selMuxPcRs1       := '1';
@@ -96,8 +99,8 @@ begin
 
 				when OP_JAL =>
 					v.selMuxPc4ALU 		:= '0';
-					v.opExImm      		:= IMM_JAL;
-					v.selMuxALUPc4RAM   := mux_alu_PC4_ram;
+					v.opExImm      		:= IMM_SLV_JAL;
+					v.selMuxALUPc4RAM   := mux_out_PC4;
 					v.weReg    			:= '1';
 					v.selMuxRs2Imm      := '1';
 					v.selMuxPcRs1       := '0';
@@ -106,8 +109,8 @@ begin
 
 				when OP_JALR =>
 					v.selMuxPc4ALU 		:= '0';
-					v.opExImm      		:= IMM_JALR;
-					v.selMuxALUPc4RAM   := mux_alu_PC4_ram;
+					v.opExImm      		:= IMM_SLV_JALR;
+					v.selMuxALUPc4RAM   := mux_out_PC4;
 					v.weReg    			:= '1';
 					v.selMuxRs2Imm      := '1';
 					v.selMuxPcRs1       := '1';
@@ -116,7 +119,7 @@ begin
 
 				when OP_B =>
 					v.selMuxPc4ALU 		:= '1';
-					v.selMuxALUPc4RAM   := mux_alu_pc4_RAM;
+					v.selMuxALUPc4RAM   := mux_out_RAM;
 					v.weReg    			:= '1';
 					v.selMuxRs2Imm      := '0';
 					v.selMuxPcRs1       := '1';
@@ -133,29 +136,29 @@ begin
 
 				when OP_L =>
 					v.selMuxPc4ALU 		:= '0';
-					v.opExImm      		:= IMM_I;
-					v.selMuxALUPc4RAM   := mux_alu_pc4_RAM;
+					v.opExImm      		:= IMM_SLV_I;
+					v.selMuxALUPc4RAM   := mux_out_RAM;
 					v.weReg    			:= '1';
 					v.selMuxRs2Imm      := '1';
 					v.selMuxPcRs1       := '1';
 					v.ALUCtrl     		:= ALU_SLV_ADD;
 					v.weRAM    			:= '0';
 					case funct3 is
-						when "000" => v.opExtRAM := RAM_LB;
-						when "001" => v.opExtRAM := RAM_LH;
-						when "010" => v.opExtRAM := RAM_LW;
-						when "100" => v.opExtRAM := RAM_LBU;
-						when "101" => v.opExtRAM := RAM_LHU;
+						when "000" => v.opExRAM := RAM_SLV_LB;
+						when "001" => v.opExRAM := RAM_SLV_LH;
+						when "010" => v.opExRAM := RAM_SLV_LW;
+						when "100" => v.opExRAM := RAM_SLV_LBU;
+						when "101" => v.opExRAM := RAM_SLV_LHU;
 						when others=> null;
 					end case;
 
 				when OP_S =>
 					v.selMuxPc4ALU 		:= '0';
-					v.opExImm      		:= IMM_S;
+					v.opExImm      		:= IMM_SLV_S;
 					v.weReg    			:= '0';
 					v.selMuxRs2Imm      := '1';
 					v.selMuxPcRs1       := '1';
-					v.ALUCtrl     		:= ALU_SLV_PASS;
+					v.ALUCtrl     		:= ALU_SLV_PASS_B;
 					v.weRAM    			:= '1';
 					case funct3 is
 						when "000" => v.mask := MASK_SB;
@@ -166,16 +169,28 @@ begin
 
 				when OP_NOP =>
 					v.selMuxPc4ALU 		:= '0';
-					v.opExImm      		:= IMM_I;
-					v.selMuxALUPc4RAM   := mux_ALU_pc4_ram;
+					v.opExImm      		:= IMM_SLV_I;
+					v.selMuxALUPc4RAM   := mux_out_ALU;
 					v.weReg    			:= '0';
-					v.opExtRAM 			:= RAM_LW;
+					v.opExRAM 			:= RAM_SLV_LW;
 					v.selMuxRs2Imm      := '0';
 					v.selMuxPcRs1       := '0';
 					v.ALUCtrl     		:= ALU_SLV_ADD;
 					v.mask 				:= MASK_SW;
 					v.weRAM    			:= '0';
-					
+
+				when others => 
+					v.selMuxPc4ALU 		:= '0';
+					v.opExImm      		:= IMM_SLV_I;
+					v.selMuxALUPc4RAM   := mux_out_ALU;
+					v.weReg    			:= '0';
+					v.opExRAM 			:= RAM_SLV_LW;
+					v.selMuxRs2Imm      := '0';
+					v.selMuxPcRs1       := '0';
+					v.ALUCtrl     		:= ALU_SLV_ADD;
+					v.mask 				:= MASK_SW;
+					v.weRAM    			:= '0';	
+
 			end case;
 			
 			c <= v;

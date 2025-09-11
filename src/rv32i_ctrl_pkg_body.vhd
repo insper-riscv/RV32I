@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 package body rv32i_ctrl_pkg is
     
-  pure function alu_slv_to_enum(slv : return) return op_alu_t is
+  pure function alu_slv_to_enum(slv : op_alu_slv_t) return op_alu_t is
   begin
     case slv is
       when ALU_SLV_ADD     => return ALU_ADD;
@@ -30,7 +30,7 @@ package body rv32i_ctrl_pkg is
     end case;
   end function;
 
-  pure function ex_imm_slv_to_enum(slv : return) return op_ex_imm_t is
+  pure function ex_imm_slv_to_enum(slv : op_ex_imm_slv_t) return op_ex_imm_t is
   begin
     case slv is
       when IMM_SLV_I       => return IMM_I;
@@ -39,10 +39,11 @@ package body rv32i_ctrl_pkg is
       when IMM_SLV_U       => return IMM_U;
       when IMM_SLV_JAL     => return IMM_JAL;
       when IMM_SLV_JALR    => return IMM_JALR;
+      when others          => return IMM_I;
     end case;
   end function;
 
-  pure function ex_ram_slv_to_enum(slv : return) return op_ex_ram_t is
+  pure function ex_ram_slv_to_enum(slv : op_ex_ram_slv_t) return op_ex_ram_t is
   begin
     case slv is
       when RAM_SLV_LW      => return RAM_LW;
@@ -50,7 +51,8 @@ package body rv32i_ctrl_pkg is
       when RAM_SLV_LHU     => return RAM_LHU;
       when RAM_SLV_LB      => return RAM_LB;
       when RAM_SLV_LBU     => return RAM_LBU;
+      when others          => return RAM_LW;
     end case;
   end function;
 
-end package body;
+end package body rv32i_ctrl_pkg;
