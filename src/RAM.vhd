@@ -12,7 +12,7 @@ entity RAM IS
           data_in  : in std_logic_vector(dataWidth-1 downto 0);
           data_out : out std_logic_vector(dataWidth-1 downto 0);
           we		   : in std_logic;
-          wstrb   : in  std_logic_vector(3 downto 0)
+          mask   : in  std_logic_vector(3 downto 0)
         );
 end entity;
 
@@ -31,16 +31,16 @@ begin
     if rising_edge(clk) then
       if we = '1' then
         -- update selected bytes inside the 32-bit word
-        if wstrb(0) = '1' then
+        if mask(0) = '1' then
           mem(to_integer(unsigned(widx)))(7 downto 0)   <= data_in(7 downto 0);
         end if;
-        if wstrb(1) = '1' then
+        if mask(1) = '1' then
           mem(to_integer(unsigned(widx)))(15 downto 8)  <= data_in(15 downto 8);
         end if;
-        if wstrb(2) = '1' then
+        if mask(2) = '1' then
           mem(to_integer(unsigned(widx)))(23 downto 16) <= data_in(23 downto 16);
         end if;
-        if wstrb(3) = '1' then
+        if mask(3) = '1' then
           mem(to_integer(unsigned(widx)))(31 downto 24) <= data_in(31 downto 24);
         end if;
       end if;

@@ -35,5 +35,12 @@
       "src/InstructionDecoder.vhd"
     ],
     "test_module": "tests.python.cocotb.instructionDecoder"
+  },
+  "RAM": {
+    "toplevel": "ram",
+    "sources": [
+    "src/RAM.vhd"
+    ],
+    "test_module": "tests.python.cocotb.RAM"
   }
 }
