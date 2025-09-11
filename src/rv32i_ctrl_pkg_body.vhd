@@ -2,6 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 package body rv32i_ctrl_pkg is
+    
   pure function alu_slv_to_enum(slv : return) return op_alu_t is
   begin
     case slv is
@@ -28,4 +29,28 @@ package body rv32i_ctrl_pkg is
       when others          => return ALU_ILLEGAL;
     end case;
   end function;
+
+  pure function ex_imm_slv_to_enum(slv : return) return op_ex_imm_t is
+  begin
+    case slv is
+      when IMM_SLV_I       => return IMM_I;
+      when IMM_SLV_I_shamt => return IMM_I_shamt;
+      when IMM_SLV_S       => return IMM_S;
+      when IMM_SLV_U       => return IMM_U;
+      when IMM_SLV_JAL     => return IMM_JAL;
+      when IMM_SLV_JALR    => return IMM_JALR;
+    end case;
+  end function;
+
+  pure function ex_ram_slv_to_enum(slv : return) return op_ex_ram_t is
+  begin
+    case slv is
+      when RAM_SLV_LW      => return RAM_LW;
+      when RAM_SLV_LH      => return RAM_LH;
+      when RAM_SLV_LHU     => return RAM_LHU;
+      when RAM_SLV_LB      => return RAM_LB;
+      when RAM_SLV_LBU     => return RAM_LBU;
+    end case;
+  end function;
+
 end package body;

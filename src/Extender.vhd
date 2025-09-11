@@ -5,9 +5,10 @@ use work.rv32i_ctrl_pkg.all;
 entity Extender is
     port
     (
-        Inst   : in std_logic_vector(31 downto 0);
+        signal_in : in std_logic_vector(31 downto 0);
 		opExImm : in op_ex_imm_t;
-        ImmExt : out std_logic_vector(31 downto 0)
+		opExRAM : in op_ex_ram_t;
+        signalExt : out std_logic_vector(31 downto 0)
     );
 end entity;
 

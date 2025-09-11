@@ -92,34 +92,28 @@ dA <= addr when (ctrl.selMuxPcRs1 = '1') else d_rs1;
 						 
 -- MUX_ALUSrcB:					 
 dB <= ImmExt when (ctrl.selMuxRs2Imm = '1') else d_rs2;
-
-DataMem : entity work.DataMem
-			port map( addr => ALU_out,
-						din_store => d_rs2,
-						word_in => RAM_out,
-						memwrite => ctrl.weRAM,
-						memsize => ctrl.MemSize,
-						memunsigned => ctrl.MemUnsigned,
-						dout_load => dmem_out,
-						word_out => dmem_word_out,
-						we_ram => we_ram);
 		  
 RAM : entity work.RAM
 			port map( clk => clk,
 						addr => ALU_out,
-						data_in => dmem_word_out,
+						data_in => d_rs2,
 						data_out => RAM_out, 
-						we => we_ram);
+						we => ctrl.weRAM);
+
+ExtenderRAM : entity work.Extender
+			port map( Inst => RAM_out,
+						opExImm => ex_ram_slv_to_enum(ctrl.opExRAM),
+						ImmExt => RAMExt);
 						 
 -- MUX_selMuxImmPc4:
 with ctrl.selMuxImmPc4 select
 	data_in_RegFile <=  ALU_out when mux_ALU_pc4_ram,
-					    dmem_out when mux_alu_pc4_RAM,
+					    RAMExt when mux_alu_pc4_RAM,
 					    proxPC when mux_alu_PC4_ram;
 						 
-extensor : entity work.Extender
+ExtenderImm : entity work.Extender
 			port map( Inst => Inst,
-						opExImm => ctrl.opExImm,
+						opExImm => ex_imm_slv_to_enum(ctrl.opExImm),
 						ImmExt => ImmExt);
 			 
 UC : entity work.InstructionDecoder
