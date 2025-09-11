@@ -1,187 +1,76 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use work.rv32i_ctrl_pkg.all;
 
 entity InstructionDecoder is
   port (
     opcode  : in  std_logic_vector(6 downto 0);
     funct3  : in  std_logic_vector(2 downto 0);
     funct7  : in  std_logic_vector(6 downto 0);
-    ctrl    : out ctrl_t
+    ctrl    : out std_logic_vector(21 downto 0);
   );
 end entity;
 
 architecture comportamento of InstructionDecoder is
 
-	signal c : ctrl_t;
+	-- other signals
 	
 begin
 
-	process(all)
-		variable v : ctrl_t;
-		
-		begin
-			-- valores default:
-			v.selMuxPc4ALU 		:= '0';
-			v.opExImm      		:= IMM_I;
-			v.selMuxALUPc4RAM   := mux_ALU_pc4_ram;
-			v.weReg    			:= '0';
-			v.opExtRAM 			:= RAM_LW;
-			v.selMuxRs2Imm      := '0';
-			v.selMuxPcRs1       := '0';
-			v.ALUCtrl     		:= ALU_SLV_ADD;
-			v.mask 				:= MASK_SW;
-			v.weRAM    			:= '0';
-			
-			case opcode is
-				when OP_LUI =>
-					v.selMuxPc4ALU 		:= '0';
-					v.opExImm 			:= IMM_U;
-					v.selMuxALUPc4RAM 	:= mux_ALU_pc4_ram;
-					v.weReg 			:= '1';
-					v.selMuxRs2Imm 		:= '1';
-					v.ALUCtrl  			:= ALU_SLV_PASS_B;
-					v.weRAM    			:= '0';
 
-				when OP_AUIPC =>
-					v.selMuxPc4ALU 		:= '0';
-					v.opExImm   		:= IMM_U;
-					v.selMuxALUPc4RAM 	:= mux_ALU_pc4_ram;
-					v.weReg 			:= '1';
-					v.selMuxRs2Imm     	:= '1';
-					v.selMuxPcRs1     	:= '0';
-					v.ALUCtrl  			:= ALU_SLV_ADD;
-					v.weRAM    			:= '0';
+process(opcode, funct3, funct7)
+begin
 
-				when OP_I =>
-					v.selMuxPc4ALU 		:= '0';
-					v.opExImm   		:= IMM_U;
-					v.selMuxALUPc4RAM 	:= mux_ALU_pc4_ram;
-					v.weReg 			:= '1';
-					v.selMuxRs2Imm     	:= '1';
-					v.selMuxPcRs1     	:= '1';
-					v.ALUCtrl  			:= ALU_SLV_ADD;
-					v.weRAM    			:= '0';
-					case funct3 is
-						when "000" => v.ALUCtrl := ALU_SLV_ADD;
-						when "111" => v.ALUCtrl := ALU_SLV_AND;
-						when "110" => v.ALUCtrl := ALU_SLV_OR;
-						when "100" => v.ALUCtrl := ALU_SLV_XOR;
-						when "010" => v.ALUCtrl := ALU_SLV_SLT;
-						when "011" => v.ALUCtrl := ALU_SLV_SLTU;
-						when "001" => v.ALUCtrl := ALU_SLV_SLL;
-						when "101" => if funct7(5) = '1' then v.ALUCtrl := ALU_SLV_SRA; else v.ALUCtrl := ALU_SLV_SRL; end if;
-						when others=> v.ALUCtrl := ALU_SLV_ADD;
-					end case;
+  if    (opcode = "0010011" and funct3 = "001" and funct7 = "0000000") then ctrl <= B"0_010_00_1_000_1_1_00101_0000_0"; -- SLLI
+  elsif (opcode = "0010011" and funct3 = "101" and funct7 = "0000000") then ctrl <= B"0_010_00_1_000_1_1_00110_0000_0"; -- SRLI
+  elsif (opcode = "0010011" and funct3 = "101" and funct7 = "0100000") then ctrl <= B"0_010_00_1_000_1_1_00111_0000_0"; -- SRAI
+  
+  elsif (opcode = "0110011" and funct3 = "000" and funct7 = "0000000") then ctrl <= B"0_000_00_1_000_0_1_00001_0000_0"; -- ADD
+  elsif (opcode = "0110011" and funct3 = "000" and funct7 = "0100000") then ctrl <= B"0_000_00_1_000_0_1_01000_0000_0"; -- SUB
+  elsif (opcode = "0110011" and funct3 = "100" and funct7 = "0000000") then ctrl <= B"0_000_00_1_000_0_1_00010_0000_0"; -- XOR
+  elsif (opcode = "0110011" and funct3 = "110" and funct7 = "0000000") then ctrl <= B"0_000_00_1_000_0_1_00011_0000_0"; -- OR
+  elsif (opcode = "0110011" and funct3 = "111" and funct7 = "0000000") then ctrl <= B"0_000_00_1_000_0_1_00100_0000_0"; -- AND
+  elsif (opcode = "0110011" and funct3 = "001" and funct7 = "0000000") then ctrl <= B"0_000_00_1_000_0_1_00101_0000_0"; -- SLL
+  elsif (opcode = "0110011" and funct3 = "101" and funct7 = "0000000") then ctrl <= B"0_000_00_1_000_0_1_00110_0000_0"; -- SRL
+  elsif (opcode = "0110011" and funct3 = "101" and funct7 = "0100000") then ctrl <= B"0_000_00_1_000_0_1_00111_0000_0"; -- SRA
+  elsif (opcode = "0110011" and funct3 = "010" and funct7 = "0000000") then ctrl <= B"0_000_00_1_000_0_1_01001_0000_0"; -- SLT
+  elsif (opcode = "0110011" and funct3 = "011" and funct7 = "0000000") then ctrl <= B"0_000_00_1_000_0_1_01010_0000_0"; -- SLTU
+  
+  elsif (opcode = "0010011" and funct3 = "000") then ctrl <= B"0_001_00_1_000_1_1_00001_0000_0"; -- ADDI
+  elsif (opcode = "0010011" and funct3 = "100") then ctrl <= B"0_001_00_1_000_1_1_00010_0000_0"; -- XORI
+  elsif (opcode = "0010011" and funct3 = "110") then ctrl <= B"0_001_00_1_000_1_1_00011_0000_0"; -- ORI
+  elsif (opcode = "0010011" and funct3 = "111") then ctrl <= B"0_001_00_1_000_1_1_00100_0000_0"; -- ANDI
+  
+  elsif (opcode = "1100011" and funct3 = "000") then ctrl <= B"0_000_00_0_000_0_1_01011_0000_0"; -- BEQ
+  elsif (opcode = "1100011" and funct3 = "001") then ctrl <= B"0_000_00_0_000_0_1_01100_0000_0"; -- BNE
+  elsif (opcode = "1100011" and funct3 = "100") then ctrl <= B"0_000_00_0_000_0_1_01101_0000_0"; -- BLT
+  elsif (opcode = "1100011" and funct3 = "101") then ctrl <= B"0_000_00_0_000_0_1_01110_0000_0"; -- BGE
+  elsif (opcode = "1100011" and funct3 = "110") then ctrl <= B"0_000_00_0_000_0_1_01111_0000_0"; -- BLTU
+  elsif (opcode = "1100011" and funct3 = "111") then ctrl <= B"0_000_00_0_000_0_1_10000_0000_0"; -- BGEU
+  
+  elsif (opcode = "0000011" and funct3 = "010") then ctrl <= B"0_001_10_1_000_1_1_00001_0000_0"; -- LW
+  elsif (opcode = "0000011" and funct3 = "001") then ctrl <= B"0_001_10_1_001_1_1_00001_0000_0"; -- LH
+  elsif (opcode = "0000011" and funct3 = "101") then ctrl <= B"0_001_10_1_010_1_1_00001_0000_0"; -- LHU
+  elsif (opcode = "0000011" and funct3 = "000") then ctrl <= B"0_001_10_1_011_1_1_00001_0000_0"; -- LB
+  elsif (opcode = "0000011" and funct3 = "100") then ctrl <= B"0_001_10_1_100_1_1_00001_0000_0"; -- LBU
+  
+  elsif (opcode = "0100011" and funct3 = "010") then ctrl <= B"0_101_00_0_000_1_1_00000_1111_1"; -- SW
+  elsif (opcode = "0100011" and funct3 = "001") then ctrl <= B"0_101_00_0_000_1_1_00000_0011_1"; -- SH
+  elsif (opcode = "0100011" and funct3 = "000") then ctrl <= B"0_101_00_0_000_1_1_00000_0001_1"; -- SB
+  
+  elsif (opcode = "0110111") then ctrl <= B"0_000_00_1_000_1_0_00000_0000_0"; -- LUI
+  elsif (opcode = "0010111") then ctrl <= B"0_000_00_1_000_1_0_00001_0000_0"; -- AUIPC
+  
+  elsif (opcode = "1101111") then ctrl <= B"1_011_01_1_000_1_0_00001_0000_0"; -- JAL
+  elsif (opcode = "1100111") then ctrl <= B"1_100_01_1_000_1_1_00001_0000_0"; -- JALR
 
-				when OP_R =>
-					v.selMuxPc4ALU 		:= '0';
-					v.selMuxALUPc4RAM   := mux_ALU_pc4_ram;
-					v.weReg    			:= '1';
-					v.selMuxRs2Imm      := '0';
-					v.selMuxPcRs1       := '1';
-					v.weRAM    			:= '0';
-					case funct3 is
-						when "000" => if funct7(5)='1' then v.ALUCtrl := ALU_SLV_SUB; else v.ALUCtrl := ALU_SLV_ADD; end if;
-						when "111" => v.ALUCtrl := ALU_SLV_AND;
-						when "110" => v.ALUCtrl := ALU_SLV_OR;
-						when "100" => v.ALUCtrl := ALU_SLV_XOR;
-						when "010" => v.ALUCtrl := ALU_SLV_SLT;
-						when "011" => v.ALUCtrl := ALU_SLV_SLTU;
-						when "001" => v.ALUCtrl := ALU_SLV_SLL;
-						when "101" => if funct7(5)='1' then v.ALUCtrl := ALU_SLV_SRA; else v.ALUCtrl := ALU_SLV_SRL; end if;
-						when others=> v.ALUCtrl := ALU_SLV_ADD;
-					end case;
+  
+  
+  else ctrl <= "0000000000000000000000" -- NOP
+  end if;
 
-				when OP_JAL =>
-					v.selMuxPc4ALU 		:= '0';
-					v.opExImm      		:= IMM_JAL;
-					v.selMuxALUPc4RAM   := mux_alu_PC4_ram;
-					v.weReg    			:= '1';
-					v.selMuxRs2Imm      := '1';
-					v.selMuxPcRs1       := '0';
-					v.ALUCtrl     		:= ALU_SLV_ADD;
-					v.weRAM    			:= '0';
 
-				when OP_JALR =>
-					v.selMuxPc4ALU 		:= '0';
-					v.opExImm      		:= IMM_JALR;
-					v.selMuxALUPc4RAM   := mux_alu_PC4_ram;
-					v.weReg    			:= '1';
-					v.selMuxRs2Imm      := '1';
-					v.selMuxPcRs1       := '1';
-					v.ALUCtrl     		:= ALU_SLV_ADD;
-					v.weRAM    			:= '0';
+end process;
 
-				when OP_B =>
-					v.selMuxPc4ALU 		:= '1';
-					v.selMuxALUPc4RAM   := mux_alu_pc4_RAM;
-					v.weReg    			:= '1';
-					v.selMuxRs2Imm      := '0';
-					v.selMuxPcRs1       := '1';
-					v.weRAM    			:= '0';
-					case funct3 is
-						when "000" => v.ALUCtrl := ALU_SLV_BR_EQ;
-						when "001" => v.ALUCtrl := ALU_SLV_BR_NE;
-						when "100" => v.ALUCtrl := ALU_SLV_BR_LT;
-						when "101" => v.ALUCtrl := ALU_SLV_BR_GE;
-						when "110" => v.ALUCtrl := ALU_SLV_BR_LTU;
-						when "111" => v.ALUCtrl := ALU_SLV_BR_GEU;
-						when others=> v.ALUCtrl := ALU_SLV_BR_NONE;
-					end case;
-
-				when OP_L =>
-					v.selMuxPc4ALU 		:= '0';
-					v.opExImm      		:= IMM_I;
-					v.selMuxALUPc4RAM   := mux_alu_pc4_RAM;
-					v.weReg    			:= '1';
-					v.selMuxRs2Imm      := '1';
-					v.selMuxPcRs1       := '1';
-					v.ALUCtrl     		:= ALU_SLV_ADD;
-					v.weRAM    			:= '0';
-					case funct3 is
-						when "000" => v.opExtRAM := RAM_LB;
-						when "001" => v.opExtRAM := RAM_LH;
-						when "010" => v.opExtRAM := RAM_LW;
-						when "100" => v.opExtRAM := RAM_LBU;
-						when "101" => v.opExtRAM := RAM_LHU;
-						when others=> null;
-					end case;
-
-				when OP_S =>
-					v.selMuxPc4ALU 		:= '0';
-					v.opExImm      		:= IMM_S;
-					v.weReg    			:= '0';
-					v.selMuxRs2Imm      := '1';
-					v.selMuxPcRs1       := '1';
-					v.ALUCtrl     		:= ALU_SLV_PASS;
-					v.weRAM    			:= '1';
-					case funct3 is
-						when "000" => v.mask := MASK_SB;
-						when "001" => v.mask := MASK_SH;
-						when "010" => v.mask := MASK_SW;
-						when others => null;
-					end case;
-
-				when OP_NOP =>
-					v.selMuxPc4ALU 		:= '0';
-					v.opExImm      		:= IMM_I;
-					v.selMuxALUPc4RAM   := mux_ALU_pc4_ram;
-					v.weReg    			:= '0';
-					v.opExtRAM 			:= RAM_LW;
-					v.selMuxRs2Imm      := '0';
-					v.selMuxPcRs1       := '0';
-					v.ALUCtrl     		:= ALU_SLV_ADD;
-					v.mask 				:= MASK_SW;
-					v.weRAM    			:= '0';
-					
-			end case;
-			
-			c <= v;
-			
-		end process;
-
-  ctrl <= c;
 
 end architecture;
