@@ -27,11 +27,11 @@ begin
 			v.opExImm      		:= IMM_I;
 			v.selMuxALUPc4RAM   := mux_ALU_pc4_ram;
 			v.weReg    			:= '0';
-			v.opExtRAM 			:= 
+			v.opExtRAM 			:= RAM_LW;
 			v.selMuxRs2Imm      := '0';
 			v.selMuxPcRs1       := '0';
 			v.ALUCtrl     		:= ALU_SLV_ADD;
-			v.mask 				:= 
+			v.mask 				:= MASK_SW;
 			v.weRAM    			:= '0';
 			
 			case opcode is
@@ -156,12 +156,11 @@ begin
 					v.selMuxRs2Imm      := '1';
 					v.selMuxPcRs1       := '1';
 					v.ALUCtrl     		:= ALU_SLV_PASS;
-					v.mask 				:= 
 					v.weRAM    			:= '1';
 					case funct3 is
-						when "000" => v.
-						when "001" => v.
-						when "010" => v.
+						when "000" => v.mask := MASK_SB;
+						when "001" => v.mask := MASK_SH;
+						when "010" => v.mask := MASK_SW;
 						when others => null;
 					end case;
 
@@ -170,11 +169,11 @@ begin
 					v.opExImm      		:= IMM_I;
 					v.selMuxALUPc4RAM   := mux_ALU_pc4_ram;
 					v.weReg    			:= '0';
-					v.opExtRAM 			:= 
+					v.opExtRAM 			:= RAM_LW;
 					v.selMuxRs2Imm      := '0';
 					v.selMuxPcRs1       := '0';
 					v.ALUCtrl     		:= ALU_SLV_ADD;
-					v.mask 				:= 
+					v.mask 				:= MASK_SW;
 					v.weRAM    			:= '0';
 					
 			end case;
