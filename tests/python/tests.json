@@ -29,5 +29,12 @@
       "src/ALU.vhd"
     ],
     "test_module": "tests.python.cocotb.ALU"
+  },
+  "InstructionDecoder": {
+    "toplevel": "instructiondecoder",
+    "sources": [
+      "src/InstructionDecoder.vhd"
+    ],
+    "test_module": "tests.python.cocotb.instructionDecoder"
   }
 }
