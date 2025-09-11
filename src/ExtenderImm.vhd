@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 
 entity ExtenderImm is 
   port(
-    signalIn  : in std_logic_vector(24 downto 0);
+   signalIn  : in std_logic_vector(24 downto 0);
 	 opExImm   : in std_logic_vector(2 downto 0);
 	 signalOut : out std_logic_vector(31 downto 0)
   );
