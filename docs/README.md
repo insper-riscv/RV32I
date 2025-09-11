@@ -165,9 +165,6 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 
 - **Saídas**
    - `weReg` : habilita escrita no RegFile
-   - **[ALTERADO]**`opALU[3:0]` : Seleciona qual operação deve ser feita na ALU.
-   - **[NOVO]**`selImm[1:0]` : Seleciona qual tipo de operação a Unidade Extensora deve realizar.
-   - **[NOVO]**`selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
 
 
 ## 3. R-type completo
@@ -221,7 +218,7 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 - **Saídas**
    - `weReg` : habilita escrita no RegFile
    - `opALU[2:0]` : Seleciona qual operação deve ser feita na ALU.
-   - `selImm[1:0]` : Seleciona qual tipo de operação a Unidade Extensora deve realizar.
+   - `opExImm[1:0]` : Seleciona qual tipo de operação a Unidade Extensora deve realizar.
    - `selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
    - **[NOVO]**`selMuxRs2Imm` : Seleciona entre rs2 e Imediato para ser o operando B na ALU.
 
