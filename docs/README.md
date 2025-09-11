@@ -103,23 +103,23 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 ![alt text](instructions/1.png)
 
 ### Características
-🐣: Nova implementação / 
-🛠️: Alterado
+**[NOVO]**: Nova implementação / 
+**[ALTERADO]**: Alterado
 
 #### Extender — Operações
-- 🐣**U**: `out[31:0] = sext(instr[31:12] << 12)`
+- **[NOVO]** **U**: `out[31:0] = sext(instr[31:12] << 12)`
 
 #### ALU — Operações
-- 🐣**PASS_B** : `out[31:0] = B[31:0]`
-- 🐣**ADD**  : `out[31:0] = A[31:0] + B[31:0]`
+- **[NOVO]** **PASS_B** : `out[31:0] = B[31:0]`
+- **[NOVO]** **ADD**  : `out[31:0] = A[31:0] + B[31:0]`
 
 #### Decoder
 - **Entradas**
-   - 🐣`opcode = instr[6:0]`
+   - **[NOVO]**`opcode = instr[6:0]`
 
 - **Saídas**
-   - 🐣`weReg` : habilita escrita no RegFile
-   - 🐣`opALU` : Seleciona qual operação deve ser feita na ALU
+   - **[NOVO]**`weReg` : habilita escrita no RegFile
+   - **[NOVO]**`opALU` : Seleciona qual operação deve ser feita na ALU
 
 
 ## 2. I-type aritmético/lógico (sem desvio)
@@ -138,36 +138,33 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 ![alt text](instructions/2.png)
 
 ### Características 
-🐣: Nova implementação / 
-🛠️: Alterado
+**[NOVO]**: Nova implementação / 
+**[ALTERADO]**: Alterado
 
 #### Extender — Operações
 - **U**: `out[31:0] = sext(instr[31:12] << 12)`
-- 🐣**I**: `out[31:0] = sext(instr[31:20])`
-- 🐣**I_shamt**: `out[31:0] =  zext(instr[24:20])` (Preenhce com zeros a esquerda) (Neste momento, para as operaões de shamt)
+- **[NOVO]** **I**: `out[31:0] = sext(instr[31:20])`
+- **[NOVO]** **I_shamt**: `out[31:0] =  zext(instr[24:20])` (Preenhce com zeros a esquerda) (Neste momento, para as operaões de shamt)
 
 #### ALU — Operações
 - **PASS_B** : `out[31:0] = B[31:0]`
 - **ADD**    : `out[31:0] = A[31:0] + B[31:0]`
-- 🐣**XOR**    : `out[31:0] = A[31:0] ^ B[31:0]`
-- 🐣**OR**     : `out[31:0] = A[31:0] | B[31:0]`
-- 🐣**AND**    : `out[31:0] = A[31:0] & B[31:0]`
-- 🐣**SLL**    : `out[31:0] = A[31:0] << B[4:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
-- 🐣**SRL**    : `out[31:0] = A[31:0] >> u B[4:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
-- 🐣**SRA**    : `out[31:0] = A[31:0] << s B[4:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
+- **[NOVO]** **XOR**    : `out[31:0] = A[31:0] ^ B[31:0]`
+- **[NOVO]** **OR**     : `out[31:0] = A[31:0] | B[31:0]`
+- **[NOVO]** **AND**    : `out[31:0] = A[31:0] & B[31:0]`
+- **[NOVO]** **SLL**    : `out[31:0] = A[31:0] << B[4:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
+- **[NOVO]** **SRL**    : `out[31:0] = A[31:0] >> u B[4:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
+- **[NOVO]** **SRA**    : `out[31:0] = A[31:0] << s B[4:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
 
 
 #### Decoder
 - **Entradas**
    - `opcode = instr[6:0]`
-   - 🐣`funct3 = instr[14:12]`
-   - 🐣`funct7 = instr[31:25]` (Neste momento, para diferenciar SRL e SRA)
+   - **[NOVO]**`funct3 = instr[14:12]`
+   - **[NOVO]**`funct7 = instr[31:25]` (Neste momento, para diferenciar SRL e SRA)
 
 - **Saídas**
    - `weReg` : habilita escrita no RegFile
-   - 🛠️`opALU[3:0]` : Seleciona qual operação deve ser feita na ALU.
-   - 🐣`opExImm[1:0]` : Seleciona qual tipo de operação a Unidade Extensora deve realizar.
-   - 🐣`selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
 
 
 ## 3. R-type completo
@@ -190,8 +187,8 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 ![alt text](instructions/3.png)
 
 ### Características 
-🐣: Nova implementação / 
-🛠️: Alterado
+**[NOVO]**: Nova implementação / 
+**[ALTERADO]**: Alterado
 
 #### Extender — Operações
 - **U**: `out[31:0] = sext(instr[31:12] << 12)`
@@ -207,9 +204,9 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 - **SLL**    : `out[31:0] = A[31:0] << B[4:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
 - **SRL**    : `out[31:0] = A[31:0] >> u B[4:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
 - **SRA**    : `out[31:0] = A[31:0] << s B[4:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
-- 🐣**SUB**    : `out[31:0] = A[31:0] - B[31:0]`
-- 🐣**SLT**    : `out[31:0] = A[31:0] < s B[31:0] ? 1 : 0`
-- 🐣**SLTU**    : `out[31:0] = A[31:0] < u B[31:0] ? 1 : 0`
+- **[NOVO]** **SUB**    : `out[31:0] = A[31:0] - B[31:0]`
+- **[NOVO]** **SLT**    : `out[31:0] = A[31:0] < s B[31:0] ? 1 : 0`
+- **[NOVO]** **SLTU**    : `out[31:0] = A[31:0] < u B[31:0] ? 1 : 0`
 
 
 #### Decoder
@@ -223,7 +220,7 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
    - `opALU[2:0]` : Seleciona qual operação deve ser feita na ALU.
    - `opExImm[1:0]` : Seleciona qual tipo de operação a Unidade Extensora deve realizar.
    - `selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
-   - 🐣`selMuxRs2Imm` : Seleciona entre rs2 e Imediato para ser o operando B na ALU.
+   - **[NOVO]**`selMuxRs2Imm` : Seleciona entre rs2 e Imediato para ser o operando B na ALU.
 
 
 
@@ -236,7 +233,48 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 | **JALR**  | imm[11:5]           | imm[4:0]              | rs1         | 000            | rd        | 1100111      | `jalr rd, rs1, off`  | `t = pc + 4; pc = (x[rs1] + sext(off)) & ~1; x[rd] = t` | Salto indireto via `rs1` (I-type)  |
 
 ### Fluxo de dados
-![alt text](instructions/x.png)
+![alt text](instructions/4.png)
+
+### Características 
+**[NOVO]**: Nova implementação / 
+**[ALTERADO]**: Alterado
+
+#### Extender — Operações
+- **U**: `out[31:0] = sext(instr[31:12] << 12)`
+- **I**: `out[31:0] = sext(instr[31:20])`
+- **I_shamt**: `out[31:0] =  zext(instr[24:20])` (Preenhce com zeros a esquerda)
+- **[NOVO]** **JAL**: `out[31:0] = sext(offset) = sext(inst[31 & 30:21 & 20 & 19:12 & '0'])`
+- **[NOVO]** **JALR**: `out[31:0] = sext(offset) = sext(inst[31:20])`
+
+#### ALU — Operações
+- **PASS_B** : `out[31:0] = B[31:0]`
+- **ADD**    : `out[31:0] = A[31:0] + B[31:0]`
+- **XOR**    : `out[31:0] = A[31:0] ^ B[31:0]`
+- **OR**     : `out[31:0] = A[31:0] | B[31:0]`
+- **AND**    : `out[31:0] = A[31:0] & B[31:0]`
+- **SLL**    : `out[31:0] = A[31:0] << B[4:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
+- **SRL**    : `out[31:0] = A[31:0] >> u B[4:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
+- **SRA**    : `out[31:0] = A[31:0] << s B[4:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
+- **SUB**    : `out[31:0] = A[31:0] - B[31:0]`
+- **SLT**    : `out[31:0] = A[31:0] < s B[31:0] ? 1 : 0`
+- **SLTU**    : `out[31:0] = A[31:0] < u B[31:0] ? 1 : 0`
+
+
+#### Decoder
+- **Entradas**
+   - `opcode = instr[6:0]`
+   - `funct3 = instr[14:12]`
+   - `funct7 = instr[31:25]`
+
+- **Saídas**
+   - `weReg` : habilita escrita no RegFile
+   - `opALU[2:0]` : Seleciona qual operação deve ser feita na ALU.
+   - **[ALTERADO]**`selImm[2:0]` : Seleciona qual tipo de operação a Unidade Extensora deve realizar.
+   - `selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
+   - `selMuxRs2Imm` : Seleciona entre rs2 e Imediato para ser o operando B na ALU.
+   - **[NOVO]**`selMuxImmPc4` : Seleciona entre Imediato e PC+4 para ser o dado de entrada do Banco de Registradores. 
+   - **[NOVO]**`selMuxPc4ALU` : Seleciona entre PC + 4 e saída da ULA para ser o novo PC.
+
 
 
 ## 5. Branches (controle condicional no PC)
@@ -251,7 +289,53 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 | **BGEU**  | imm[12\|10:5]          | rs2         | rs1         | 111            | imm[4:1\|11]         | 1100011      | `bgeu rs1, rs2, off`     | `if (x[rs1] >=u x[rs2]) pc += sext(off)`       | Maior/igual (sem sinal)             |
 
 ### Fluxo de dados
-![alt text](instructions/x.png)
+![alt text](instructions/5.png)
+
+### Características 
+**[NOVO]**: Nova implementação / 
+**[ALTERADO]**: Alterado
+
+#### Extender — Operações
+- **U**: `out[31:0] = sext(instr[31:12] << 12)`
+- **I**: `out[31:0] = sext(instr[31:20])`
+- **I_shamt**: `out[31:0] =  zext(instr[24:20])` (Preenhce com zeros a esquerda)
+- **JAL**: `out[31:0] = sext(offset) = sext(inst[31 & 30:21 & 20 & 19:12 & '0'])`
+- **JALR**: `out[31:0] = sext(offset) = sext(inst[31:20])`
+
+#### ALU — Operações
+- **PASS_B** : `out[31:0] = B[31:0]`
+- **ADD**    : `out[31:0] = A[31:0] + B[31:0]`
+- **XOR**    : `out[31:0] = A[31:0] ^ B[31:0]`
+- **OR**     : `out[31:0] = A[31:0] | B[31:0]`
+- **AND**    : `out[31:0] = A[31:0] & B[31:0]`
+- **SLL**    : `out[31:0] = A[31:0] << B[4:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
+- **SRL**    : `out[31:0] = A[31:0] >> u B[4:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
+- **SRA**    : `out[31:0] = A[31:0] << s B[4:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
+- **SUB**    : `out[31:0] = A[31:0] - B[31:0]`
+- **SLT**    : `out[31:0] = A[31:0] < s B[31:0] ? 1 : 0`
+- **SLTU**    : `out[31:0] = A[31:0] < u B[31:0] ? 1 : 0`
+- **[NOVO]** **BEQ**    : `Branch = dA == dB` (Com sinal)
+- **[NOVO]** **BNE**    : `Branch = dA != dB`
+- **[NOVO]** **BLT**    : `Branch = dA < s dB` (Com sinal)
+- **[NOVO]** **BGE**    : `Branch = dA >= s dB` (Com sinal)
+- **[NOVO]** **BLTU**   : `Branch = dA < u dB` (Sem sinal)
+- **[NOVO]** **BGEU**   : `Branch = dA >= u dB` (Sem sinal)
+
+
+#### Decoder
+- **Entradas**
+   - `opcode = instr[6:0]`
+   - `funct3 = instr[14:12]`
+   - `funct7 = instr[31:25]`
+
+- **Saídas**
+   - `weReg` : habilita escrita no RegFile
+   - **[ALTERADO]**`opALU[4:0]` : Seleciona qual operação deve ser feita na ALU.
+   - `selImm[2:0]` : Seleciona qual tipo de operação a Unidade Extensora deve realizar.
+   - `selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
+   - `selMuxRs2Imm` : Seleciona entre rs2 e Imediato para ser o operando B na ALU.
+   - `selMuxImmPc4` : Seleciona entre Imediato e PC+4 para ser o dado de entrada do Banco de Registradores. 
+   - `selMuxPc4ALU` : Seleciona entre PC + 4 e saída da ULA para ser o novo PC.
 
 
 ## 6. Loads/Stores (dados da memória)
@@ -268,4 +352,60 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 | **SB**    | imm[11:5]          | rs2                   | rs1         | 000            | imm[4:0]             | 0100011      | `sb rs2, off(rs1)`      | `M[x[rs1] + sext(off)] = x[rs2][7:0]`                  | Store byte (8 bits) — *byte-enable*       |
 
 ### Fluxo de dados
-![alt text](instructions/x.png)
+![alt text](instructions/6.png)
+
+### Características 
+**[NOVO]**: Nova implementação / 
+**[ALTERADO]**: Alterado
+
+#### [ALTERADO] ExtenderImm — Operações
+- **U**: `out[31:0] = sext(instr[31:12] << 12)`
+- **I**: `out[31:0] = sext(instr[31:20])`
+- **I_shamt**: `out[31:0] =  zext(instr[24:20])` (Preenhce com zeros a esquerda)
+- **JAL**: `out[31:0] = sext(offset) = sext(inst[31 & 30:21 & 20 & 19:12 & '0'])`
+- **JALR**: `out[31:0] = sext(offset) = sext(inst[31:20])`
+
+#### [NOVO] ExtenderRAM — Operações
+- **[NOVO]** **LB**: `out[31:0] = sext(data[7:0])`
+- **[NOVO]** **LBU**: `out[31:0] = zeroext(data[7:0])`
+- **[NOVO]** **LH**: `out[31:0] =  sext(data[15:0])`
+- **[NOVO]** **LHU**: `out[31:0] = zeroext(data[15:0])`
+- **[NOVO]** **LW**: `out[31:0] = data[31:0]`
+
+#### ALU — Operações
+- **PASS_B** : `out[31:0] = B[31:0]`
+- **ADD**    : `out[31:0] = A[31:0] + B[31:0]`
+- **XOR**    : `out[31:0] = A[31:0] ^ B[31:0]`
+- **OR**     : `out[31:0] = A[31:0] | B[31:0]`
+- **AND**    : `out[31:0] = A[31:0] & B[31:0]`
+- **SLL**    : `out[31:0] = A[31:0] << B[4:0]` (Desloca os bits de A á esquerda, preenchendo com zero a direita)
+- **SRL**    : `out[31:0] = A[31:0] >> u B[4:0]` (Desloca os bits de A para a direita, preenchendo com zeros à esquerda).
+- **SRA**    : `out[31:0] = A[31:0] << s B[4:0]` (Desloca os bits de A para a direita, replicando o bit do sinal de A á esquerda)
+- **SUB**    : `out[31:0] = A[31:0] - B[31:0]`
+- **SLT**    : `out[31:0] = A[31:0] < s B[31:0] ? 1 : 0`
+- **SLTU**    : `out[31:0] = A[31:0] < u B[31:0] ? 1 : 0`
+- **BEQ**    : `Branch = dA == dB` (Com sinal)
+- **BNE**    : `Branch = dA != dB`
+- **BLT**    : `Branch = dA < s dB` (Com sinal)
+- **BGE**    : `Branch = dA >= s dB` (Com sinal)
+- **BLTU**   : `Branch = dA < u dB` (Sem sinal)
+- **BGEU**   : `Branch = dA >= u dB` (Sem sinal)
+
+
+#### Decoder
+- **Entradas**
+   - `opcode = instr[6:0]`
+   - `funct3 = instr[14:12]`
+   - `funct7 = instr[31:25]`
+
+- **Saídas**
+   - `weReg` : habilita escrita no RegFile
+   - `opALU[4:0]` : Seleciona qual operação deve ser feita na ALU.
+   - **[ALTERADO]**`opExImm[2:0]` : Seleciona qual tipo de operação a Unidade Extensora dos Imediatos deve realizar.
+   - `selMuxPcRs1` : Seleciona entre PC e Rs1 para ser o operando A na ALU.
+   - `selMuxRs2Imm` : Seleciona entre rs2 e Imediato para ser o operando B na ALU.
+   - `selMuxImmPc4` : Seleciona entre Imediato e PC+4 para ser o dado de entrada do Banco de Registradores. 
+   - `selMuxPc4ALU` : Seleciona entre PC + 4 e saída da ULA para ser o novo PC.
+   - `opExRAM[3:0]` : Seleciona qual tipo de operação a Unidade Extensora da RAM deve realizar.
+   - `mask[4:0]` : Mascara de para os bytes de escrita na RAM.
+   - `weRAM` : Habilita escrita na RAM.

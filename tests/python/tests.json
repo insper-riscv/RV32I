@@ -7,10 +7,10 @@
     "test_module": "tests.python.cocotb.examples.and_gate"
   },
   "bancoRegistradores": {
-    "toplevel": "bancoregistradores",
+    "toplevel": "regfile",
     "sources": [
       "src/genericRegister.vhd",
-      "src/bancoReg.vhd"
+      "src/RegFile.vhd"
     ],
     "test_module": "tests.python.cocotb.bancoRegistradores"
   },
@@ -20,5 +20,14 @@
       "src/ROM.vhd"
     ],
     "test_module": "tests.python.cocotb.ROM"
+  },
+  "ALU": {
+    "toplevel": "alu",
+    "sources": [
+      "src/rv32i_ctrl_pkg.vhd",
+      "src/rv32i_ctrl_pkg_body.vhd",
+      "src/ALU.vhd"
+    ],
+    "test_module": "tests.python.cocotb.ALU"
   }
 }
