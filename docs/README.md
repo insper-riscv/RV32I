@@ -364,6 +364,7 @@ A implementação das instruções em hardware foi conduzida de forma incrementa
 - **I_shamt**: `out[31:0] =  zext(instr[24:20])` (Preenhce com zeros a esquerda)
 - **JAL**: `out[31:0] = sext(offset) = sext(inst[31 & 30:21 & 20 & 19:12 & '0'])`
 - **JALR**: `out[31:0] = sext(offset) = sext(inst[31:20])`
+- **S**: `out[31:0] = sext(inst[31:25] & inst[11:7])`
 
 #### [NOVO] ExtenderRAM — Operações
 - **[NOVO]** **LB**: `out[31:0] = sext(data[7:0])`
