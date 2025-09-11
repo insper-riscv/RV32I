@@ -100,18 +100,18 @@ RAM : entity work.RAM
 						data_out => RAM_out, 
 						we => ctrl.weRAM);
 
-ExtenderRAM : entity work.Extender
-			port map( Inst => RAM_out,
-						opExImm => ex_ram_slv_to_enum(ctrl.opExRAM),
-						ImmExt => RAMExt);
+ExtenderRAM : entity work.ExtenderRAM
+			port map( RAM_out => RAM_out,
+						opExRAM => ex_ram_slv_to_enum(ctrl.opExRAM),
+						RAMExt => RAMExt);
 						 
 -- MUX_selMuxImmPc4:
 with ctrl.selMuxImmPc4 select
-	data_in_RegFile <=  ALU_out when mux_ALU_pc4_ram,
-					    RAMExt when mux_alu_pc4_RAM,
-					    proxPC when mux_alu_PC4_ram;
+	data_in_RegFile <=  ALU_out when mux_out_ALU,
+					    RAMExt when mux_out_RAM,
+					    proxPC when mux_out_PC4;
 						 
-ExtenderImm : entity work.Extender
+ExtenderImm : entity work.ExtenderImm
 			port map( Inst => Inst,
 						opExImm => ex_imm_slv_to_enum(ctrl.opExImm),
 						ImmExt => ImmExt);
