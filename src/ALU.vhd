@@ -11,15 +11,16 @@ entity ALU is
         op          : in  op_alu_t;
         dA          : in  std_logic_vector((DATA_WIDTH - 1) downto 0);
         dB          : in  std_logic_vector((DATA_WIDTH - 1) downto 0);
-        destination : out std_logic_vector((DATA_WIDTH - 1) downto 0)
+        destination : out std_logic_vector((DATA_WIDTH - 1) downto 0);
+        Branch      : out std_logic
     );
 
 end entity;
 
 architecture RTL of ALU is
 
-  signal addsub_res               : std_logic_vector(DATA_WIDTH-1 downto 0); -- resultado final da soma/subtração
-  signal and_res, or_res, xor_res : std_logic_vector(DATA_WIDTH-1 downto 0); -- resultados finais de cada operação
+  signal addsub_res               : std_logic_vector(DATA_WIDTH-1 downto 0);
+  signal and_res, or_res, xor_res : std_logic_vector(DATA_WIDTH-1 downto 0);
   signal sll_res, srl_res, sra_res: std_logic_vector(DATA_WIDTH-1 downto 0);
   signal slt_res, sltu_res        : std_logic_vector(DATA_WIDTH-1 downto 0);
   signal shamt_u5                 : unsigned(4 downto 0);
@@ -38,7 +39,16 @@ begin
 
   slt_res  <= (0 => '1', others => '0') when signed(dA)   < signed(dB)   else (others => '0');
   sltu_res <= (0 => '1', others => '0') when unsigned(dA) < unsigned(dB) else (others => '0');
- 
+
+  Branch <= '1' when (
+          (op = ALU_BR_EQ  and (dA =  dB)) or
+          (op = ALU_BR_NE  and (dA /= dB)) or
+          (op = ALU_BR_LT  and (signed(dA)  <  signed(dB))) or
+          (op = ALU_BR_GE  and (signed(dA)  >= signed(dB))) or
+          (op = ALU_BR_LTU and (unsigned(dA) <  unsigned(dB))) or
+          (op = ALU_BR_GEU and (unsigned(dA) >= unsigned(dB)))
+        ) else '0';
+  
   process(all)
   begin
     case op is
@@ -56,7 +66,7 @@ begin
       when ALU_PASS_B => destination <= dB;
       when ALU_NOP => destination <= (others => '0');
       when others => destination <= (others => '0');
-    end case;
-  end process;
-
-end architecture;
+      end case;
+      end process;
+      
+      end architecture;

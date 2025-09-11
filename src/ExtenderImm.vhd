@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use work.rv32i_ctrl_pkg.all;
 
-entity Extender is
+entity ExtenderImm is
     port
     (
         Inst    : in std_logic_vector(19 downto 0);
@@ -11,7 +11,7 @@ entity Extender is
     );
 end entity;
 
-architecture comportamento of Extender is
+architecture comportamento of ExtenderImm is
 
 	signal imm_i, imm_i_shamt, imm_s, imm_u, imm_jal, imm_jalr : std_logic_vector(31 downto 0);
 
