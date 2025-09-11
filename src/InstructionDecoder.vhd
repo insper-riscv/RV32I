@@ -7,13 +7,13 @@ entity InstructionDecoder is
     opcode  : in  std_logic_vector(6 downto 0);
     funct3  : in  std_logic_vector(2 downto 0);
     funct7  : in  std_logic_vector(6 downto 0);
-    ctrl    : out std_logic_vector(21 downto 0);
+    ctrl    : out std_logic_vector(21 downto 0)
   );
 end entity;
 
 architecture comportamento of InstructionDecoder is
 
-	-- other signals
+	-- add necessary signals here
 	
 begin
 
@@ -66,7 +66,7 @@ begin
 
   
   
-  else ctrl <= "0000000000000000000000" -- NOP
+  else ctrl <= "0000000000000000000000"; -- NOP
   end if;
 
 

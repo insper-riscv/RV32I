@@ -5,58 +5,140 @@ use work.rv32i_ctrl_pkg.all;
 
 entity ALU is
 
-  generic (DATA_WIDTH:natural:=32);
-
     port (
-        op          : in  op_alu_t;
-        dA          : in  std_logic_vector((DATA_WIDTH - 1) downto 0);
-        dB          : in  std_logic_vector((DATA_WIDTH - 1) downto 0);
-        destination : out std_logic_vector((DATA_WIDTH - 1) downto 0)
+        op          : in  std_logic_vector(4 downto 0);
+        dA          : in  std_logic_vector(31 downto 0);
+        dB          : in  std_logic_vector(31 downto 0);
+        dataOut     : out std_logic_vector(31 downto 0);
+		  branch      : out std_logic
     );
 
 end entity;
 
 architecture RTL of ALU is
 
-  signal addsub_res               : std_logic_vector(DATA_WIDTH-1 downto 0); -- resultado final da soma/subtração
-  signal and_res, or_res, xor_res : std_logic_vector(DATA_WIDTH-1 downto 0); -- resultados finais de cada operação
-  signal sll_res, srl_res, sra_res: std_logic_vector(DATA_WIDTH-1 downto 0);
-  signal slt_res, sltu_res        : std_logic_vector(DATA_WIDTH-1 downto 0);
-  signal shamt_u5                 : unsigned(4 downto 0);
+  -- add necessary signals here
 
 begin
 
-  addsub_res <= std_logic_vector(signed(dA) - signed(dB)) when op = ALU_SUB else std_logic_vector(signed(dA) + signed(dB));
-  and_res <= dA and dB;
-  or_res <= dA or dB;
-  xor_res <= dA xor dB;
+process(op, dA, dB)
+begin
+  -- default (safety)
+  dataOut <= (others => '0');
+  branch  <= '0';
 
-  shamt_u5 <= unsigned(dB(4 downto 0)); -- calcula shift amount pras operacoes de tipo R e I que precisam de shift
-  sll_res <= std_logic_vector(shift_left(unsigned(dA), to_integer(shamt_u5)));
-  srl_res <= std_logic_vector(shift_right(unsigned(dA), to_integer(shamt_u5)));
-  sra_res <= std_logic_vector(shift_right(signed(dA), to_integer(shamt_u5)));
+  if (op = "00000") then
+    -- PASS_B
+    dataOut <= dB;
+    branch  <= '0';
 
-  slt_res  <= (0 => '1', others => '0') when signed(dA)   < signed(dB)   else (others => '0');
-  sltu_res <= (0 => '1', others => '0') when unsigned(dA) < unsigned(dB) else (others => '0');
- 
-  process(all)
-  begin
-    case op is
-      when ALU_ADD => destination <= addsub_res;
-      when ALU_SUB => destination <= addsub_res;
-      when ALU_AND => destination <= and_res;
-      when ALU_OR => destination <= or_res;
-      when ALU_XOR => destination <= xor_res;
-      when ALU_SLT => destination <= slt_res;
-      when ALU_SLTU => destination <= sltu_res;
-      when ALU_SLL => destination <= sll_res;
-      when ALU_SRL => destination <= srl_res;
-      when ALU_SRA => destination <= sra_res;
-      when ALU_PASS_A => destination <= dA;
-      when ALU_PASS_B => destination <= dB;
-      when ALU_NOP => destination <= (others => '0');
-      when others => destination <= (others => '0');
-    end case;
-  end process;
+  elsif (op = "00001") then
+    -- ADD
+    dataOut <= std_logic_vector(unsigned(dA) + unsigned(dB));
+    branch  <= '0';
+
+  elsif (op = "00010") then
+    -- XOR
+    dataOut <= dA xor dB;
+    branch  <= '0';
+
+  elsif (op = "00011") then
+    -- OR
+    dataOut <= dA or dB;
+    branch  <= '0';
+
+  elsif (op = "00100") then
+    -- AND
+    dataOut <= dA and dB;
+    branch  <= '0';
+
+  elsif (op = "00101") then
+    -- SLL  (logical left)
+    dataOut <= std_logic_vector(shift_left(unsigned(dA), to_integer(unsigned(dB(4 downto 0)))));
+    branch  <= '0';
+
+  elsif (op = "00110") then
+    -- SRL  (logical right)
+    dataOut <= std_logic_vector(shift_right(unsigned(dA), to_integer(unsigned(dB(4 downto 0)))));
+    branch  <= '0';
+
+  elsif (op = "00111") then
+    -- SRA  (arithmetic right)
+    dataOut <= std_logic_vector(shift_right(signed(dA), to_integer(unsigned(dB(4 downto 0)))));
+    branch  <= '0';
+
+  elsif (op = "01000") then
+    -- SUB
+    dataOut <= std_logic_vector(unsigned(dA) - unsigned(dB));
+    branch  <= '0';
+
+  elsif (op = "01001") then
+    -- SLT (signed)
+    if signed(dA) < signed(dB) then
+      dataOut <= (31 downto 1 => '0') & '1';
+    else
+      dataOut <= (others => '0');
+    end if;
+	 
+    branch <= '0';
+
+  elsif (op = "01010") then
+    -- SLTU (unsigned)
+    if unsigned(dA) < unsigned(dB) then
+      dataOut <= (31 downto 1 => '0') & '1';
+    else
+      dataOut <= (others => '0');
+    end if;
+	 
+    branch <= '0';
+
+  elsif (op = "01011") then
+    -- BEQ
+    dataOut <= (others => '0');
+    if dA = dB then 
+	   branch <= '1'; else branch <= '0'; 
+	 end if;
+
+  elsif (op = "01100") then
+    -- BNE
+    dataOut <= (others => '0');
+    if dA /= dB then 
+	   branch <= '1'; else branch <= '0'; 
+	 end if;
+
+  elsif (op = "01101") then
+    -- BLT (signed)
+    dataOut <= (others => '0');
+    if signed(dA) < signed(dB) then 
+	   branch <= '1'; else branch <= '0'; 
+	 end if;
+
+  elsif (op = "01110") then
+    -- BGE (signed)
+    dataOut <= (others => '0');
+    if signed(dA) >= signed(dB) then 
+	   branch <= '1'; else branch <= '0'; 
+	  end if;
+
+  elsif (op = "01111") then
+    -- BLTU (unsigned)
+    dataOut <= (others => '0');
+    if unsigned(dA) < unsigned(dB) then 
+	   branch <= '1'; else branch <= '0'; 
+	 end if;
+
+  elsif (op = "10000") then
+    -- BGEU (unsigned)
+    dataOut <= (others => '0');
+    if unsigned(dA) >= unsigned(dB) then 
+	   branch <= '1'; else branch <= '0'; 
+	 end if;
+
+  else
+    -- keep defaults
+    null;
+  end if;
+end process;
+
 
 end architecture;
