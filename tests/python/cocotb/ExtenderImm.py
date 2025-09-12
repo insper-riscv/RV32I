@@ -39,7 +39,7 @@ async def apply_and_check(dut, op, inp, expected, name):
     dut._log.info(f"{name} OK: in={inp:#09x} out={got:#010x}")
 
 @cocotb.test()
-async def test_extender_u(dut):
+async def u(dut):
     """Testa extensão U-type (instr[31:12] << 12)."""
     inp = random.getrandbits(25)
     upper = (inp >> 5) & ((1 << 20) - 1)
@@ -48,7 +48,7 @@ async def test_extender_u(dut):
 
 
 @cocotb.test()
-async def test_extender_i(dut):
+async def i(dut):
     """Testa extensão I-type (sext(instr[31:20]))."""
     inp = random.getrandbits(25)
     imm12 = (inp >> 13) & 0xFFF
@@ -57,7 +57,7 @@ async def test_extender_i(dut):
 
 
 @cocotb.test()
-async def test_extender_i_shamt(dut):
+async def i_shamt(dut):
     """Testa extensão I-shamt (zext(instr[24:20]))."""
     inp = random.getrandbits(25)
     shamt = (inp >> 13) & 0x1F
@@ -66,7 +66,7 @@ async def test_extender_i_shamt(dut):
 
 
 @cocotb.test()
-async def test_extender_jal(dut):
+async def jal(dut):
     """Testa extensão JAL-type (sext(offset))."""
     inp = random.getrandbits(25)
     imm20 = (inp >> 24) & 0x1
@@ -79,7 +79,7 @@ async def test_extender_jal(dut):
 
 
 @cocotb.test()
-async def test_extender_jalr(dut):
+async def jalr(dut):
     """Testa extensão JALR-type (sext(instr[31:20]))."""
     inp = random.getrandbits(25)
     imm12 = (inp >> 13) & 0xFFF
@@ -88,7 +88,7 @@ async def test_extender_jalr(dut):
 
 
 @cocotb.test()
-async def test_extender_s(dut):
+async def s(dut):
     """Testa extensão S-type (sext(instr[31:25] & instr[11:7]))."""
     inp = random.getrandbits(25)
     imm_high = (inp >> 18) & 0x7F

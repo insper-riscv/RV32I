@@ -36,7 +36,7 @@ async def read_word(dut, addr):
 
 
 @cocotb.test()
-async def test_sw(dut):
+async def sw(dut):
     """Testa store word (SW)."""
     cocotb.start_soon(Clock(dut.clk, 10, "ns").start())
     await init_dut(dut)
@@ -51,7 +51,7 @@ async def test_sw(dut):
 
 
 @cocotb.test()
-async def test_sh(dut):
+async def sh(dut):
     """Testa store halfword (SH)."""
     cocotb.start_soon(Clock(dut.clk, 10, "ns").start())
 
@@ -69,7 +69,7 @@ async def test_sh(dut):
 
 
 @cocotb.test()
-async def test_sb(dut):
+async def sb(dut):
     """Testa store byte (SB)."""
     cocotb.start_soon(Clock(dut.clk, 10, "ns").start())
 
@@ -87,7 +87,7 @@ async def test_sb(dut):
 
 
 @cocotb.test()
-async def test_lw(dut):
+async def lw(dut):
     """Testa load word (LW)."""
     cocotb.start_soon(Clock(dut.clk, 10, "ns").start())
 
@@ -100,7 +100,7 @@ async def test_lw(dut):
 
 
 @cocotb.test()
-async def test_lh_lhu(dut):
+async def lh_lhu(dut):
     """Testa load halfword (LH e LHU)."""
     cocotb.start_soon(Clock(dut.clk, 10, "ns").start())
 
@@ -122,7 +122,7 @@ async def test_lh_lhu(dut):
 
 
 @cocotb.test()
-async def test_lb_lbu(dut):
+async def lb_lbu(dut):
     """Testa load byte (LB e LBU)."""
     cocotb.start_soon(Clock(dut.clk, 10, "ns").start())
 
@@ -144,7 +144,7 @@ async def test_lb_lbu(dut):
 
 
 @cocotb.test()
-async def test_multi_positions(dut):
+async def multi_positions(dut):
     """Escreve em múltiplas posições diferentes e confere leituras."""
     cocotb.start_soon(Clock(dut.clk, 10, "ns").start())
     await init_dut(dut)
@@ -175,7 +175,7 @@ async def test_multi_positions(dut):
 
 
 @cocotb.test()
-async def test_overwrite_position(dut):
+async def overwrite_position(dut):
     """Escreve em uma posição, sobrescreve depois, e verifica se valor foi atualizado."""
     cocotb.start_soon(Clock(dut.clk, 10, "ns").start())
     await init_dut(dut)
@@ -196,7 +196,7 @@ async def test_overwrite_position(dut):
 
 
 @cocotb.test()
-async def test_crosscheck_positions(dut):
+async def crosscheck_positions(dut):
     """Escreve em várias posições e verifica que não houve contaminação cruzada."""
     cocotb.start_soon(Clock(dut.clk, 10, "ns").start())
     await init_dut(dut)

@@ -45,7 +45,7 @@ async def apply_and_check(dut, op, inp, expected, name):
 # === Testes separados ===
 
 @cocotb.test()
-async def test_extender_lw(dut):
+async def lw(dut):
     """Testa extensão LW (passa direto os 32 bits)."""
     inp = 0xCAFEBABE
     expected = inp
@@ -53,7 +53,7 @@ async def test_extender_lw(dut):
 
 
 @cocotb.test()
-async def test_extender_lh(dut):
+async def lh(dut):
     """Testa extensão LH (sign-extend de 16 bits)."""
     inp_neg = 0x00008001  # bit 15 = 1 (negativo)
     inp_pos = 0x00007FFF  # bit 15 = 0 (positivo)
@@ -63,7 +63,7 @@ async def test_extender_lh(dut):
 
 
 @cocotb.test()
-async def test_extender_lhu(dut):
+async def lhu(dut):
     """Testa extensão LHU (zero-extend de 16 bits)."""
     inp = 0x0000ABCD
     expected = zext(0xABCD, 16)
@@ -71,7 +71,7 @@ async def test_extender_lhu(dut):
 
 
 @cocotb.test()
-async def test_extender_lb(dut):
+async def lb(dut):
     """Testa extensão LB (sign-extend de 8 bits)."""
     inp_neg = 0x000000F6  # 0xF6 = -10
     inp_pos = 0x0000007F  # 0x7F = +127
@@ -81,7 +81,7 @@ async def test_extender_lb(dut):
 
 
 @cocotb.test()
-async def test_extender_lbu(dut):
+async def lbu(dut):
     """Testa extensão LBU (zero-extend de 8 bits)."""
     inp = 0x000000AB
     expected = zext(0xAB, 8)
