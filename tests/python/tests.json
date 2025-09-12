@@ -50,5 +50,13 @@
       "src/ExtenderRAM.vhd"
     ],
     "test_module": "tests.python.cocotb.ExtenderRAM"
+  },
+  "ExtenderImm": {
+    "toplevel": "extenderimm",
+    "sources": [
+      "src/rv32i_ctrl_consts.vhd",
+      "src/ExtenderImm.vhd"
+    ],
+  "test_module": "tests.python.cocotb.ExtenderImm"
   }
 }
