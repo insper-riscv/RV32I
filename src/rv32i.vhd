@@ -5,11 +5,13 @@ use work.rv32i_ctrl_consts.all;
 
 entity rv32i is
   generic ( 
-    simulacao : boolean := FALSE -- To test in FPGA, set to FALSE
+    simulacao : boolean := TRUE -- To test in FPGA, set to FALSE
   );
 
   port   (
     CLOCK_50 : in std_logic;
+	 HEX0, HEX1, HEX2, HEX3, HEX4, HEX5 : out std_logic_vector(6 downto 0);
+	 LEDR : out std_logic_vector(9 downto 0);
 	 FPGA_RESET_N : in std_logic
   );
 end entity;
@@ -165,5 +167,37 @@ MuxPc4ALU_out <= PC4                                                            
 					  ALU_out                                                         when ( std_logic_vector'(branch_flag & selMuxPc4ALU) = "01" ) else
 					  std_logic_vector(unsigned(ExtenderImm_out) + unsigned(PC_out))  when ( std_logic_vector'(branch_flag & selMuxPc4ALU) = "10" ) else
 					  (others => '0');
+					  
 
+					  
+DecoderDisplay0 :  entity work.conversorHex7Seg
+        port map(dadoHex => PC_out(3 downto 0),
+                 saida7seg => HEX0);
+
+DecoderDisplay1 :  entity work.conversorHex7Seg
+		  port map(dadoHex => PC_out(7 downto 4),
+					  saida7seg => HEX1);
+				
+DecoderDisplay2 :  entity work.conversorHex7Seg
+		  port map(dadoHex => ALU_out(3 downto 0),
+					  saida7seg => HEX2);
+					  
+DecoderDisplay3 :  entity work.conversorHex7Seg
+		  port map(dadoHex => ALU_out(7 downto 4),
+					  saida7seg => HEX3);
+					  
+DecoderDisplay4 :  entity work.conversorHex7Seg
+		  port map(dadoHex => ALU_out(11 downto 8),
+					  saida7seg => HEX4);
+					  
+DecoderDisplay5 :  entity work.conversorHex7Seg
+		  port map(dadoHex => ALU_out(15 downto 12),
+					  saida7seg => HEX5);
+
+
+example_blinky : entity work.Blinky
+			port map (
+				clk => CLOCK_50,      
+				led => LEDR(0)    
+			);
 end architecture;
