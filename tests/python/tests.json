@@ -1,25 +1,18 @@
 {
-  "example_and_gate": {
-    "toplevel": "and_gate",
-    "sources": [
-      "src/examples/and_gate.vhd"
-    ],
-    "test_module": "tests.python.cocotb.examples.and_gate"
-  },
   "bancoRegistradores": {
     "toplevel": "regfile",
     "sources": [
       "src/genericRegister.vhd",
       "src/RegFile.vhd"
     ],
-    "test_module": "tests.python.cocotb.bancoRegistradores"
+    "test_module": "tests.python.cocotb.entities.bancoRegistradores"
   },
   "ALU": {
     "toplevel": "alu",
     "sources": [
       "src/ALU.vhd"
     ],
-    "test_module": "tests.python.cocotb.ALU"
+    "test_module": "tests.python.cocotb.entities.ALU"
   },
   "InstructionDecoder": {
     "toplevel": "instructiondecoder",
@@ -27,14 +20,14 @@
     "src/rv32i_ctrl_consts.vhd",
       "src/InstructionDecoder.vhd"
     ],
-    "test_module": "tests.python.cocotb.instructionDecoder"
+    "test_module": "tests.python.cocotb.entities.instructionDecoder"
   },
   "RAM": {
     "toplevel": "ram",
     "sources": [
     "src/RAM.vhd"
     ],
-    "test_module": "tests.python.cocotb.RAM"
+    "test_module": "tests.python.cocotb.entities.RAM"
   },
   "ExtenderRAM": {
     "toplevel": "extenderram",
@@ -42,7 +35,7 @@
       "src/rv32i_ctrl_consts.vhd",
       "src/ExtenderRAM.vhd"
     ],
-    "test_module": "tests.python.cocotb.ExtenderRAM"
+    "test_module": "tests.python.cocotb.entities.ExtenderRAM"
   },
   "ExtenderImm": {
     "toplevel": "extenderimm",
@@ -50,23 +43,23 @@
       "src/rv32i_ctrl_consts.vhd",
       "src/ExtenderImm.vhd"
     ],
-  "test_module": "tests.python.cocotb.ExtenderImm"
+  "test_module": "tests.python.cocotb.entities.ExtenderImm"
   },
   "StoreManager": {
     "toplevel": "storemanager",
     "sources": [
       "src/StoreManager.vhd"
     ],
-  "test_module": "tests.python.cocotb.StoreManager"
+  "test_module": "tests.python.cocotb.entities.StoreManager"
   },
   "ROM": {
     "toplevel": "rom",
     "sources": [
       "src/ROM_cocotb.vhd"
     ],
-    "test_module": "tests.python.cocotb.ROM",
+    "test_module": "tests.python.cocotb.entities.ROM",
     "parameters": {
-      "ROM_FILE": "tests/python/cocotb/data/testROM.hex"
+      "ROM_FILE": "tests/python/cocotb/entities/data/testROM.hex"
     }
   }
 }
