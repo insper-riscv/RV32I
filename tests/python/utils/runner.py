@@ -15,7 +15,14 @@ def run_cocotb_test(toplevel: str, sources: list, test_module: str, parameters: 
 
     runner = get_runner(sim)
 
-    build_dir = tests_root / "sim_build" / toplevel
+    if ".entities." in test_module:
+        group = "entities"
+    elif ".instructions." in test_module:
+        group = "instructions"
+    else:
+        group = "misc"
+
+    build_dir = tests_root / "sim_build" / group / toplevel
     build_dir.mkdir(parents=True, exist_ok=True)
 
     if parameters:
@@ -34,17 +41,16 @@ def run_cocotb_test(toplevel: str, sources: list, test_module: str, parameters: 
         parameters=parameters or {}
     )
 
-
     wave_file = build_dir / "waves.ghw"
     plusargs = [f"--wave={wave_file}"]
 
     runner.test(
         hdl_toplevel=toplevel,
-        hdl_toplevel_lang="vhdl",       
+        hdl_toplevel_lang="vhdl",
         test_module=test_module,
         build_dir=build_dir,
         plusargs=plusargs,
-        test_args=["--std=08"],         
+        test_args=["--std=08"],
     )
 
     print(f"Waves: {wave_file} (gerado)")
