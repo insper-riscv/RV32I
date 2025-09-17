@@ -14,13 +14,6 @@
     ],
     "test_module": "tests.python.cocotb.bancoRegistradores"
   },
-  "ROM": {
-    "toplevel": "rom",
-    "sources": [
-      "src/ROM.vhd"
-    ],
-    "test_module": "tests.python.cocotb.ROM"
-  },
   "ALU": {
     "toplevel": "alu",
     "sources": [
@@ -65,5 +58,15 @@
       "src/StoreManager.vhd"
     ],
   "test_module": "tests.python.cocotb.StoreManager"
+  },
+  "ROM": {
+    "toplevel": "rom",
+    "sources": [
+      "src/ROM_cocotb.vhd"
+    ],
+    "test_module": "tests.python.cocotb.ROM",
+    "parameters": {
+      "ROM_FILE": "tests/python/cocotb/data/testROM.hex"
+    }
   }
 }

@@ -5,7 +5,7 @@ import argparse
 from pathlib import Path
 from cocotb.runner import get_runner, VHDL
 
-def run_cocotb_test(toplevel: str, sources: list, test_module: str):
+def run_cocotb_test(toplevel: str, sources: list, test_module: str, parameters: dict = None):
     tests_root = Path(__file__).resolve().parents[1]
     repo_root  = Path(__file__).resolve().parents[3]
     sys.path.append(str(repo_root))
@@ -18,13 +18,22 @@ def run_cocotb_test(toplevel: str, sources: list, test_module: str):
     build_dir = tests_root / "sim_build" / toplevel
     build_dir.mkdir(parents=True, exist_ok=True)
 
+    if parameters:
+        abs_params = {}
+        for k, v in parameters.items():
+            vpath = Path(v)
+            abs_params[k] = str(vpath.resolve())
+        parameters = abs_params
+
     runner.build(
         vhdl_sources=vhdl_sources,
         hdl_toplevel=toplevel,
         always=True,
         build_dir=build_dir,
-        build_args=[VHDL("--std=08")],  
+        build_args=[VHDL("--std=08")],
+        parameters=parameters or {}
     )
+
 
     wave_file = build_dir / "waves.ghw"
     plusargs = [f"--wave={wave_file}"]
