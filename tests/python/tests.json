@@ -58,5 +58,12 @@
       "src/ExtenderImm.vhd"
     ],
   "test_module": "tests.python.cocotb.ExtenderImm"
+  },
+  "StoreManager": {
+    "toplevel": "storemanager",
+    "sources": [
+      "src/StoreManager.vhd"
+    ],
+  "test_module": "tests.python.cocotb.StoreManager"
   }
 }

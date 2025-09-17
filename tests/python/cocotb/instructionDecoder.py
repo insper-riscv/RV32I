@@ -97,7 +97,8 @@ async def test_instruction_decoder(dut):
             "selMuxRS2Imm":         int(dut.selMuxRS2Imm.value),
             "selMUXPcRS1":          int(dut.selPCRS1.value),
             "opALU[4:0]":           int(dut.opALU.value),
-            "mask[3:0]":            int(dut.mask.value),
+            "reRAM":                int(dut.reRAM.value),
+            "eRAM":                 int(dut.eRAM.value),
             "weRAM":                int(dut.weRAM.value),
         }
 

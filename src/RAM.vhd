@@ -2,18 +2,22 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity RAM IS
-   generic (
-          dataWidth: natural := 32;
-          addrWidth: natural := 32;
-          memoryAddrWidth:  natural := 6 );   -- 64 posicoes de 32 bits cada
-   port ( clk      : IN  STD_LOGIC;
-          addr     : IN  STD_LOGIC_VECTOR (addrWidth-1 DOWNTO 0);
-          data_in  : in std_logic_vector(dataWidth-1 downto 0);
-          data_out : out std_logic_vector(dataWidth-1 downto 0);
-          we		   : in std_logic;
-          mask   : in  std_logic_vector(3 downto 0)
-        );
+entity RAM is
+  generic (
+    dataWidth: natural := 32;
+    addrWidth: natural := 32;
+    memoryAddrWidth: natural := 6   -- 64 posicoes de 32 bits cada
+  );
+  port (
+    clk      : in  std_logic;
+    addr     : in  std_logic_vector(addrWidth-1 downto 0);
+    data_in  : in  std_logic_vector(dataWidth-1 downto 0);
+    data_out : out std_logic_vector(dataWidth-1 downto 0);
+    weRAM    : in  std_logic;                     -- habilita escrita
+    reRAM    : in  std_logic;                     -- habilita leitura
+    eRAM     : in  std_logic;                     -- chip enable (RAM ativa)
+    mask     : in  std_logic_vector(3 downto 0)   -- byte enables
+  );
 end entity;
 
 architecture rtl of RAM is
@@ -26,10 +30,9 @@ begin
   widx <= addr(memoryAddrWidth+1 downto 2);
 
   process(clk)
-    variable i : integer;
   begin
     if rising_edge(clk) then
-      if we = '1' then
+      if (weRAM = '1' and eRAM = '1') then
         -- update selected bytes inside the 32-bit word
         if mask(0) = '1' then
           mem(to_integer(unsigned(widx)))(7 downto 0)   <= data_in(7 downto 0);
@@ -47,6 +50,8 @@ begin
     end if;
   end process;
 
-  -- asynchronous read (unchanged)
-  data_out <= mem(to_integer(unsigned(widx)));
+  -- leitura assíncrona, só ativa se reRAM=1 e eRAM=1
+  data_out <= mem(to_integer(unsigned(widx))) when (reRAM = '1' and eRAM = '1')
+              else (others => 'Z');
+
 end architecture;

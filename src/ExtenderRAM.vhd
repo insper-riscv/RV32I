@@ -1,34 +1,65 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 use work.rv32i_ctrl_consts.all;
 
 entity ExtenderRAM is 
   port(
-    signalIn  : in std_logic_vector(31 downto 0);
-	 opExRAM   : in std_logic_vector(2 downto 0);
-	 signalOut : out std_logic_vector(31 downto 0)
+    signalIn  : in  std_logic_vector(31 downto 0);
+    opExRAM   : in  std_logic_vector(2 downto 0);
+    EA        : in  std_logic_vector(1 downto 0);
+    signalOut : out std_logic_vector(31 downto 0)
   );
 end entity;
 
 architecture behaviour of ExtenderRAM is
-
-  -- add necessary signals here
-  
 begin
 
-process(signalIn, opExRAM)
+process(signalIn, opExRAM, EA)
+  variable byteVal  : std_logic_vector(7 downto 0);
+  variable halfVal  : std_logic_vector(15 downto 0);
 begin
+  case opExRAM is
+    when OPEXRAM_LW =>
+      signalOut <= signalIn;
 
-  if    (opExRAM = OPEXRAM_LW) then signalOut <= signalIn;                                                  -- LW: out = in[31:0]
-  elsif (opExRAM = OPEXRAM_LH) then signalOut <= (31 downto 16 => signalIn(15)) & signalIn(15 downto 0);    -- LH: out = sext(in[15:0])
-  elsif (opExRAM = OPEXRAM_LHU) then signalOut <= (31 downto 16 => '0') & signalIn(15 downto 0);            -- LHU: out = zext(in[15:0])
-  elsif (opExRAM = OPEXRAM_LB) then signalOut <= (31 downto 8 => signalIn(7)) & signalIn(7 downto 0);		   -- LB: out = sext(in[7:0])							  
-  elsif (opExRAM = OPEXRAM_LBU) then signalOut <= (31 downto 8 => '0') & signalIn(7 downto 0);              -- LBU: out = zext(in[7:0])
-  
-  else signalOut <= "00000000000000000000000000000000"; -- ERROR
-  end if;
+    when OPEXRAM_LH =>
+      if EA(1) = '0' then
+        halfVal := signalIn(15 downto 0);
+      else
+        halfVal := signalIn(31 downto 16);
+      end if;
+      signalOut <= (31 downto 16 => halfVal(15)) & halfVal;
 
+    when OPEXRAM_LHU =>
+      if EA(1) = '0' then
+        halfVal := signalIn(15 downto 0);
+      else
+        halfVal := signalIn(31 downto 16);
+      end if;
+      signalOut <= (31 downto 16 => '0') & halfVal;
+
+    when OPEXRAM_LB =>
+      case EA is
+        when "00" => byteVal := signalIn(7 downto 0);
+        when "01" => byteVal := signalIn(15 downto 8);
+        when "10" => byteVal := signalIn(23 downto 16);
+        when others => byteVal := signalIn(31 downto 24);
+      end case;
+      signalOut <= (31 downto 8 => byteVal(7)) & byteVal;
+
+    when OPEXRAM_LBU =>
+      case EA is
+        when "00" => byteVal := signalIn(7 downto 0);
+        when "01" => byteVal := signalIn(15 downto 8);
+        when "10" => byteVal := signalIn(23 downto 16);
+        when others => byteVal := signalIn(31 downto 24);
+      end case;
+      signalOut <= (31 downto 8 => '0') & byteVal;
+
+    when others =>
+      signalOut <= (others => '0');
+  end case;
 end process;
-
 
 end architecture;

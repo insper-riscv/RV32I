@@ -1,7 +1,7 @@
 import cocotb
 from cocotb.triggers import Timer
 
-# Constantes (iguais às do pacote VHDL)
+# Constantes iguais às do seu pacote VHDL rv32i_ctrl_consts
 OPEXRAM_LW  = 0b000
 OPEXRAM_LH  = 0b001
 OPEXRAM_LHU = 0b010
@@ -9,80 +9,57 @@ OPEXRAM_LB  = 0b011
 OPEXRAM_LBU = 0b100
 
 
-# === Helpers ===
-def sext(val, bits, width=32):
-    """Sign-extend de 'bits' para 'width' bits."""
-    mask = (1 << bits) - 1
-    val &= mask
-    if val & (1 << (bits - 1)):
-        val -= 1 << bits
-    return val & ((1 << width) - 1)
+async def apply_and_check(dut, opExRAM, EA, sig_in, expected, desc=""):
+    dut.signalIn.value = sig_in
+    dut.opExRAM.value = opExRAM
+    dut.EA.value = EA
 
+    await Timer(1, units="ns")
 
-def zext(val, bits, width=32):
-    """Zero-extend de 'bits' para 'width' bits."""
-    mask = (1 << bits) - 1
-    return val & mask
+    got = int(dut.signalOut.value.signed_integer) if opExRAM in (OPEXRAM_LH, OPEXRAM_LB) else int(dut.signalOut.value)
 
+    assert got == expected, f"{desc} falhou: esperado {expected:#010x}, obtido {got:#010x}"
 
-async def apply_and_check(dut, op, inp, expected, name):
-    width_in = len(dut.signalIn)
-    width_out = len(dut.signalOut)
-
-    dut.signalIn.value = inp & ((1 << width_in) - 1)
-    dut.opExRAM.value = op
-    await Timer(1, "ns")
-
-    got = int(dut.signalOut.value) & ((1 << width_out) - 1)
-    exp = expected & ((1 << width_out) - 1)
-
-    assert got == exp, (
-        f"{name} falhou: input={inp:#010x}, esperado={exp:#010x}, obtido={got:#010x}"
-    )
-    dut._log.info(f"{name} OK: in={inp:#010x} out={got:#010x}")
-
-
-# === Testes separados ===
 
 @cocotb.test()
 async def lw(dut):
-    """Testa extensão LW (passa direto os 32 bits)."""
-    inp = 0xCAFEBABE
-    expected = inp
-    await apply_and_check(dut, OPEXRAM_LW, inp, expected, "LW")
+    """Testa LW: deve retornar a word inteira."""
+    sig_in = 0xAABBCCDD
+    await apply_and_check(dut, OPEXRAM_LW, 0b00, sig_in, 0xAABBCCDD, "LW")
 
 
 @cocotb.test()
-async def lh(dut):
-    """Testa extensão LH (sign-extend de 16 bits)."""
-    inp_neg = 0x00008001  # bit 15 = 1 (negativo)
-    inp_pos = 0x00007FFF  # bit 15 = 0 (positivo)
+async def lh_lhu(dut):
+    """Testa LH e LHU com EA=0 e EA=2."""
+    sig_in = 0xAABBCCDD  # b0=DD, b1=CC, b2=BB, b3=AA
 
-    await apply_and_check(dut, OPEXRAM_LH, inp_neg, sext(0x8001, 16), "LH negativo")
-    await apply_and_check(dut, OPEXRAM_LH, inp_pos, sext(0x7FFF, 16), "LH positivo")
+    # LH EA=0 -> 0xCCDD sign-extend
+    half0 = 0xCCDD
+    signed_half0 = half0 if half0 < 0x8000 else half0 - 0x10000
+    await apply_and_check(dut, OPEXRAM_LH, 0b00, sig_in, signed_half0, "LH EA=0")
 
+    # LH EA=2 -> 0xAABB sign-extend
+    half2 = 0xAABB
+    signed_half2 = half2 if half2 < 0x8000 else half2 - 0x10000
+    await apply_and_check(dut, OPEXRAM_LH, 0b10, sig_in, signed_half2, "LH EA=2")
 
-@cocotb.test()
-async def lhu(dut):
-    """Testa extensão LHU (zero-extend de 16 bits)."""
-    inp = 0x0000ABCD
-    expected = zext(0xABCD, 16)
-    await apply_and_check(dut, OPEXRAM_LHU, inp, expected, "LHU")
+    # LHU EA=0 -> 0x0000CCDD
+    await apply_and_check(dut, OPEXRAM_LHU, 0b00, sig_in, 0x0000CCDD, "LHU EA=0")
 
-
-@cocotb.test()
-async def lb(dut):
-    """Testa extensão LB (sign-extend de 8 bits)."""
-    inp_neg = 0x000000F6  # 0xF6 = -10
-    inp_pos = 0x0000007F  # 0x7F = +127
-
-    await apply_and_check(dut, OPEXRAM_LB, inp_neg, sext(0xF6, 8), "LB negativo")
-    await apply_and_check(dut, OPEXRAM_LB, inp_pos, sext(0x7F, 8), "LB positivo")
+    # LHU EA=2 -> 0x0000AABB
+    await apply_and_check(dut, OPEXRAM_LHU, 0b10, sig_in, 0x0000AABB, "LHU EA=2")
 
 
 @cocotb.test()
-async def lbu(dut):
-    """Testa extensão LBU (zero-extend de 8 bits)."""
-    inp = 0x000000AB
-    expected = zext(0xAB, 8)
-    await apply_and_check(dut, OPEXRAM_LBU, inp, expected, "LBU")
+async def lb_lbu(dut):
+    """Testa LB e LBU com todos os valores de EA."""
+    sig_in = 0xAABBCCDD  # b0=DD, b1=CC, b2=BB, b3=AA
+
+    # LB com sign-extend
+    for ea, exp_byte in [(0b00, 0xDD), (0b01, 0xCC), (0b10, 0xBB), (0b11, 0xAA)]:
+        signed_val = exp_byte if exp_byte < 0x80 else exp_byte - 0x100
+        await apply_and_check(dut, OPEXRAM_LB, ea, sig_in, signed_val, f"LB EA={ea}")
+
+    # LBU com zero-extend
+    for ea, exp_byte in [(0b00, 0xDD), (0b01, 0xCC), (0b10, 0xBB), (0b11, 0xAA)]:
+        await apply_and_check(dut, OPEXRAM_LBU, ea, sig_in, exp_byte, f"LBU EA={ea}")

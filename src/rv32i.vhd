@@ -4,22 +4,19 @@ use ieee.numeric_std.all;
 use work.rv32i_ctrl_consts.all;
 
 entity rv32i is
-  generic ( 
-    simulacao : boolean := TRUE -- To test in FPGA, set to FALSE
-  );
-
   port   (
-    CLOCK_50 : in std_logic;
-	 HEX0, HEX1, HEX2, HEX3, HEX4, HEX5 : out std_logic_vector(6 downto 0);
-	 LEDR : out std_logic_vector(9 downto 0);
-	 FPGA_RESET_N : in std_logic
+    --CLOCK_50 : in std_logic;
+	 CLK : in std_logic
+	 --HEX0, HEX1, HEX2, HEX3, HEX4, HEX5 : out std_logic_vector(6 downto 0);
+	 --LEDR : out std_logic_vector(9 downto 0);
+	 --FPGA_RESET_N : in std_logic
   );
 end entity;
 
 architecture behaviour of rv32i is
 
   -- add necessary signals here
-  signal CLK : std_logic;
+  --signal CLK : std_logic;
   
   signal MuxPc4ALU_out : std_logic_vector(31 downto 0);
   signal PC_out : std_logic_vector(31 downto 0);
@@ -45,6 +42,7 @@ architecture behaviour of rv32i is
   
   signal ALU_out : std_logic_vector(31 downto 0);
   signal PC4 : std_logic_vector(31 downto 0);
+  signal addImmPC_out : std_logic_vector(31 downto 0);
   signal extenderRAM_out : std_logic_vector(31 downto 0);
   
   -- Created with ALU
@@ -54,12 +52,14 @@ architecture behaviour of rv32i is
   
   signal RAM_out : std_logic_vector(31 downto 0);
   
+  signal selMuxPc4ALU_ext : std_logic_vector(1 downto 0);
+  
   
 
 begin
 
-edgeDetectorKey : entity work.edgeDetector
-			port map (clk => CLOCK_50, entrada => NOT(FPGA_RESET_N), saida => CLK);
+--edgeDetectorKey : entity work.edgeDetector
+--			port map (clk => CLOCK_50, entrada => NOT(FPGA_RESET_N), saida => CLK);
 			
 			
 PC : entity work.genericRegister
@@ -120,12 +120,33 @@ RegFile : entity work.RegFile
 				d_rs1 => d_rs1,
 				d_rs2 => d_rs2
 			);
-MuxALUPc4RAM_out <= ALU_out         when SelMuxALUPc4RAM = "00" else
-                    PC4             when SelMuxALUPc4RAM = "01" else
-                    extenderRAM_out when SelMuxALUPc4RAM = "10" else
-                    (others => '0');
 			
-PC4 <= std_logic_vector(unsigned(PC_out) + 4);
+			
+ MuxALUPc4RAM : entity work.genericMux3x1
+    generic map ( dataWidth => 32 )
+    port map (
+        inputA_MUX => ALU_out,
+        inputB_MUX => PC4,
+        inputC_MUX => extenderRAM_out,
+        selector_MUX => selMuxALUPc4RAM,
+        output_MUX => MuxALUPc4RAM_out
+    );
+			
+Adder_PC4 : entity work.genericAdder
+    generic map ( dataWidth => 32 )
+    port map (
+        inputA => PC_out,
+        inputB => "00000000000000000000000000000100",
+        output => PC4
+    );
+	 
+Adder_ImmPC : entity work.genericAdder
+    generic map ( dataWidth => 32 )
+    port map (
+        inputA => ExtenderImm_out,
+        inputB => PC_out,
+        output => addImmPC_out
+    );
 
 ALU : entity work.ALU
 			port map(
@@ -136,13 +157,26 @@ ALU : entity work.ALU
 				dataOut => ALU_out,
 				branch => branch_flag
 			);
-MuxPCRS1_out <= PC_out   when selMuxPCRS1 = '0' else
-                d_rs1    when	selMuxPCRS1	= '1' else	
-		          (others => '0');			 
+			
+			
+MuxPCRS1 : entity work.genericMux2x1
+    generic map ( dataWidth => 32 )
+    port map (
+        inputA_MUX => PC_out,
+        inputB_MUX => d_rs1,
+        selector_MUX => selMuxPCRS1,
+        output_MUX => MuxPCRS1_out
+    );		 
 
-MuxRS2Imm_out <= d_rs2           when selMuxRS2Imm = '0' else
-                 ExtenderImm_out when selMuxRS2Imm = '1' else
-					  (others => '0');
+	 
+MuxRS2Imm : entity work.genericMux2x1
+    generic map ( dataWidth => 32 )
+    port map (
+        inputA_MUX => d_rs2,
+        inputB_MUX => ExtenderImm_out,
+        selector_MUX => selMuxRS2Imm,
+        output_MUX => MuxRS2Imm_out
+    );
 					  
 RAM : entity work.RAM
 			port map(
@@ -163,41 +197,49 @@ ExtenderRAM : entity work.ExtenderRAM
 				signalOut => extenderRAM_out
 			);
 			
-MuxPc4ALU_out <= PC4                                                             when ( std_logic_vector'(branch_flag & selMuxPc4ALU) = "00" ) else
-					  ALU_out                                                         when ( std_logic_vector'(branch_flag & selMuxPc4ALU) = "01" ) else
-					  std_logic_vector(unsigned(ExtenderImm_out) + unsigned(PC_out))  when ( std_logic_vector'(branch_flag & selMuxPc4ALU) = "10" ) else
-					  (others => '0');
+			
+selMuxPc4ALU_ext <= branch_flag & selMuxPc4ALU; 	
+
+MuxPc4ALU : entity work.genericMux3x1
+    generic map ( dataWidth => 32 )
+    port map (
+        inputA_MUX => PC4,
+        inputB_MUX => ALU_out,
+        inputC_MUX => addImmPC_out,
+        selector_MUX => selMuxPc4ALU_ext,
+        output_MUX => MuxPc4ALU_out
+    );
 					  
 
 					  
-DecoderDisplay0 :  entity work.conversorHex7Seg
-        port map(dadoHex => PC_out(3 downto 0),
-                 saida7seg => HEX0);
+--DecoderDisplay0 :  entity work.conversorHex7Seg
+--        port map(dadoHex => PC_out(3 downto 0),
+--                 saida7seg => HEX0);
 
-DecoderDisplay1 :  entity work.conversorHex7Seg
-		  port map(dadoHex => PC_out(7 downto 4),
-					  saida7seg => HEX1);
+--DecoderDisplay1 :  entity work.conversorHex7Seg
+--		  port map(dadoHex => PC_out(7 downto 4),
+--					  saida7seg => HEX1);
 				
-DecoderDisplay2 :  entity work.conversorHex7Seg
-		  port map(dadoHex => ALU_out(3 downto 0),
-					  saida7seg => HEX2);
+--DecoderDisplay2 :  entity work.conversorHex7Seg
+--		  port map(dadoHex => ALU_out(3 downto 0),
+--					  saida7seg => HEX2);
 					  
-DecoderDisplay3 :  entity work.conversorHex7Seg
-		  port map(dadoHex => ALU_out(7 downto 4),
-					  saida7seg => HEX3);
+--DecoderDisplay3 :  entity work.conversorHex7Seg
+--		  port map(dadoHex => ALU_out(7 downto 4),
+--					  saida7seg => HEX3);
 					  
-DecoderDisplay4 :  entity work.conversorHex7Seg
-		  port map(dadoHex => ALU_out(11 downto 8),
-					  saida7seg => HEX4);
+--DecoderDisplay4 :  entity work.conversorHex7Seg
+--		  port map(dadoHex => ALU_out(11 downto 8),
+--					  saida7seg => HEX4);
 					  
-DecoderDisplay5 :  entity work.conversorHex7Seg
-		  port map(dadoHex => ALU_out(15 downto 12),
-					  saida7seg => HEX5);
+--DecoderDisplay5 :  entity work.conversorHex7Seg
+--		  port map(dadoHex => ALU_out(15 downto 12),
+--					  saida7seg => HEX5);
 
 
-example_blinky : entity work.Blinky
-			port map (
-				clk => CLOCK_50,      
-				led => LEDR(0)    
-			);
+--example_blinky : entity work.Blinky
+--			port map (
+--				clk => CLOCK_50,      
+--				led => LEDR(0)    );
+
 end architecture;
