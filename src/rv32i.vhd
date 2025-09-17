@@ -4,6 +4,9 @@ use ieee.numeric_std.all;
 use work.rv32i_ctrl_consts.all;
 
 entity rv32i is
+  generic (
+    ROM_FILE : string := "default.hex"
+  );
   port   (
     --CLOCK_50 : in std_logic;
 	 CLK : in std_logic
@@ -32,13 +35,14 @@ architecture behaviour of rv32i is
   signal selMuxPCRS1 : std_logic;
   signal opALU : std_logic_vector(4 downto 0);
   signal mask : std_logic_vector(3 downto 0);
-  signal weRAM : std_logic;
+  signal weRAM, reRAM, eRAM : std_logic;
   
   signal ExtenderImm_out : std_logic_vector(31 downto 0);
   
   signal MuxALUPc4RAM_out : std_logic_vector(31 downto 0);
   signal d_rs1 : std_logic_vector(31 downto 0);
   signal d_rs2 : std_logic_vector(31 downto 0);
+  signal out_StoreManager : std_logic_vector(31 downto 0);
   
   signal ALU_out : std_logic_vector(31 downto 0);
   signal PC4 : std_logic_vector(31 downto 0);
@@ -74,6 +78,9 @@ PC : entity work.genericRegister
 			);
 			
 ROM : entity work.ROM
+			generic map (
+				ROM_FILE => ROM_FILE   -- repassa o generic do top para a ROM
+			)
 			port map (
 				addr => PC_out,
 				
@@ -94,8 +101,9 @@ InstructionDecoder : entity work.InstructionDecoder
 				selMuxRS2Imm => selMuxRS2Imm,
 				selPCRS1 => selMuxPCRS1,
 				opALU => opALU,
-				mask => mask,
-				weRAM => weRAM
+				weRAM => weRAM,
+				reRAM => reRAM,
+				eRAM => eRAM
 			);
 			
 ExtenderImm : entity work.ExtenderImm
@@ -177,26 +185,38 @@ MuxRS2Imm : entity work.genericMux2x1
         selector_MUX => selMuxRS2Imm,
         output_MUX => MuxRS2Imm_out
     );
-					  
+	 
+	 
+StoreManager : entity work.StoreManager
+			port map(
+				opcode => ROM_out(6 downto 0),
+				funct3 => ROM_out(14 downto 12),
+				EA => ALU_out(1 downto 0),
+				rs2Val => d_rs2,
+				data_out => out_StoreManager,
+				mask => mask
+			);
+			
+
 RAM : entity work.RAM
 			port map(
 				clk => CLK,
 				addr => ALU_out,
-				data_in => d_rs2,
-				we => weRAM,
-				mask => mask,
-				
-				data_out => RAM_out
+				data_in => out_StoreManager,
+				data_out => RAM_out,
+				weRAM => weRAM,
+				reRAM => reRAM,
+				eRAM => eRAM,
+				mask => mask
 			);
 
 ExtenderRAM : entity work.ExtenderRAM
 			port map(
 				signalIn => RAM_out,
 				opExRAM => opExImm,
-				
+				EA => ALU_out(1 downto 0),
 				signalOut => extenderRAM_out
 			);
-			
 			
 selMuxPc4ALU_ext <= branch_flag & selMuxPc4ALU; 	
 
