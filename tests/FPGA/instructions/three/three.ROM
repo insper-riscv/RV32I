@@ -1,19 +1,4 @@
-library IEEE;
-use IEEE.std_logic_1164.all;
-use ieee.numeric_std.all;
-
-entity ROM IS
-   generic (
-          dataWidth: natural := 32;
-          addrWidth: natural := 32;
-          memoryAddrWidth:  natural := 6 );   
-   port (
-          addr : in  std_logic_vector (addrWidth-1 downto 0);
-          data : out std_logic_vector (dataWidth-1 downto 0) );
-end entity;
-
-architecture rtl OF ROM IS
-  type blocoMemoria IS ARRAY(0 TO 2**memoryAddrWidth - 1) OF std_logic_vector(dataWidth-1 downto 0);
+type blocoMemoria is array (0 to 63) of std_logic_vector(31 downto 0);
 
 constant ROMDATA : blocoMemoria := (
   0  => x"000000B7",  -- lui   x1,0x0
@@ -49,14 +34,3 @@ constant ROMDATA : blocoMemoria := (
 
   25 to 63 => x"00000000"  -- restante zerado
 );
-
-
-
-
-  signal memROM : blocoMemoria := ROMDATA;
-
-  signal localAddress : std_logic_vector(memoryAddrWidth-1 downto 0);
-begin
-  localAddress <= addr(memoryAddrWidth+1 downto 2);
-  data <= memROM(to_integer(unsigned(localAddress)));
-end architecture;
