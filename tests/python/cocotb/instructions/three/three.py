@@ -15,7 +15,7 @@ async def test_r_type_example(dut):
 
     # Deixa rodar até depois do carregamento de x1 e x2
     # (li x1, ... ; li x2, ...) → 2 instruções + saltos iniciais
-    for _ in range(4):
+    for _ in range(14):
         dut.CLK.value = 1; await Timer(10, units="ns")
         dut.CLK.value = 0; await Timer(10, units="ns")
 

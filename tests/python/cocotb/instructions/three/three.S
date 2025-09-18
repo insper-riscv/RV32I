@@ -22,4 +22,16 @@ _start:
     slt   x11, x1, x2
     sltu  x12, x1, x2
 
+    # ---- expor resultados ----
+    add t3, x3,  x0
+    add t3, x4,  x0
+    add t3, x5,  x0
+    add t3, x6,  x0
+    add t3, x7,  x0
+    add t3, x8,  x0
+    add t3, x9,  x0
+    add t3, x10,  x0
+    add t3, x11,  x0
+    add t3, x12,  x0
+
 1:  j 1b
