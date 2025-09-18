@@ -38,6 +38,14 @@ begin
     -- JALR: sext(inst[31:20])  (mesmo slice do I-type)
     elsif (opExImm = OPEXIMM_JALR) then 
       signalOut <= (31 downto 12 => signalIn(24)) & signalIn(24 downto 13);
+
+    elsif (opExImm = OPEXIMM_B) then
+      signalOut <= (31 downto 13 => signalIn(24)) &  -- sign extend
+                  signalIn(24) &                    -- imm[12] = instr[31]
+                  signalIn(0) &                     -- imm[11] = instr[7]
+                  signalIn(23 downto 18) &          -- imm[10:5] = instr[30:25]
+                  signalIn(4 downto 1) &            -- imm[4:1]  = instr[11:8]
+                  '0';     
     
     -- S: sext(inst[31:25] & inst[11:7])
     elsif (opExImm = OPEXIMM_S) then 

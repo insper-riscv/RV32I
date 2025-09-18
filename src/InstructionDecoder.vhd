@@ -258,7 +258,7 @@ begin
   
   elsif (opcode = "1100011" and funct3 = "000") then -- BEQ
     selMuxPc4ALU    <= '0';
-    opExImm         <= "000";
+    opExImm         <= OPEXIMM_B;
     selMuxALUPc4RAM <= "00";
     weReg           <= '0';
     opExRAM         <= "000";
@@ -271,7 +271,7 @@ begin
      
   elsif (opcode = "1100011" and funct3 = "001") then -- BNE
     selMuxPc4ALU    <= '0';
-    opExImm         <= "000";
+    opExImm         <= OPEXIMM_B;
     selMuxALUPc4RAM <= "00";
     weReg           <= '0';
     opExRAM         <= "000";
@@ -284,7 +284,7 @@ begin
      
   elsif (opcode = "1100011" and funct3 = "100") then -- BLT
     selMuxPc4ALU    <= '0';
-    opExImm         <= "000";
+    opExImm         <= OPEXIMM_B;
     selMuxALUPc4RAM <= "00";
     weReg           <= '0';
     opExRAM         <= "000";
@@ -297,7 +297,7 @@ begin
      
   elsif (opcode = "1100011" and funct3 = "101") then -- BGE
     selMuxPc4ALU    <= '0';
-    opExImm         <= "000";
+    opExImm         <= OPEXIMM_B;
     selMuxALUPc4RAM <= "00";
     weReg           <= '0';
     opExRAM         <= "000";
@@ -310,7 +310,7 @@ begin
      
   elsif (opcode = "1100011" and funct3 = "110") then -- BLTU
     selMuxPc4ALU    <= '0';
-    opExImm         <= "000";
+    opExImm         <= OPEXIMM_B;
     selMuxALUPc4RAM <= "00";
     weReg           <= '0';
     opExRAM         <= "000";
@@ -323,7 +323,7 @@ begin
      
   elsif (opcode = "1100011" and funct3 = "111") then -- BGEU
     selMuxPc4ALU    <= '0';
-    opExImm         <= "000";
+    opExImm         <= OPEXIMM_B;
     selMuxALUPc4RAM <= "00";
     weReg           <= '0';
     opExRAM         <= "000";

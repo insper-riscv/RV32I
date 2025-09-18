@@ -24,6 +24,7 @@ def _parse_field(val: str, width: int) -> int:
         "JAL":     0b011,
         "JALR":    0b100,
         "S":       0b101,
+        "BRANCH":  0b110,
 
         # opExRAM[2:0]
         "LW":  0b000,

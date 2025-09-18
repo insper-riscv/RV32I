@@ -148,7 +148,7 @@ Adder_PC4 : entity work.genericAdder
         output => PC4
     );
 	 
-Adder_ImmPC : entity work.genericAdder
+Adder_ImmPC : entity work.genericAdderU
     generic map ( dataWidth => 32 )
     port map (
         inputA => ExtenderImm_out,

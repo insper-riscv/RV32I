@@ -136,6 +136,8 @@ async def sltu(dut):
 async def beq(dut):
     a, b = 10, 10
     await apply_and_check(dut, "BEQ", a, b, 0, 1)
+    a, b = 10, 5
+    await apply_and_check(dut, "BEQ", a, b, 0, 0)
 
 
 @cocotb.test()

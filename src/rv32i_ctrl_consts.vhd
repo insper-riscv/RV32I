@@ -12,6 +12,7 @@ package rv32i_ctrl_consts is
   constant OPEXIMM_JAL     : std_logic_vector(2 downto 0) := "011";
   constant OPEXIMM_JALR    : std_logic_vector(2 downto 0) := "100";
   constant OPEXIMM_S       : std_logic_vector(2 downto 0) := "101";
+  constant OPEXIMM_B       : std_logic_vector(2 downto 0) := "110";
 
   ------------------------------------------------------------------
   -- opExRAM[2:0]
