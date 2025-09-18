@@ -16,56 +16,28 @@ architecture rtl OF ROM IS
   type blocoMemoria IS ARRAY(0 TO 2**memoryAddrWidth - 1) OF std_logic_vector(dataWidth-1 downto 0);
   
 constant ROMDATA : blocoMemoria := (
-  0  => x"00500093",  -- addi x1, x0, 5
-  1  => x"00A00113",  -- addi x2, x0, 10
+  0  => x"00000093",  -- addi x1,x0,0
+  1  => x"AABBD137",  -- lui  x2,0xAABBD
+  2  => x"CDD10113",  -- addi x2,x2,-803  (0xAABBCCDD)
 
-  -- ==== BEQ ====
-  2  => x"00208463",  -- beq  x1, x2, Lbeq1 (não salta)
-  3  => x"00100193",  -- addi x3, x0, 1
-  4  => x"00108463",  -- beq  x1, x1, Lbeq2 (salta)
-  5  => x"00200193",  -- addi x3, x0, 2 (pulado)
-  6  => x"00300193",  -- addi x3, x0, 3 (destino)
+  -- Stores
+  3  => x"0020A023",  -- sw  x2,0(x1)
+  4  => x"00209223",  -- sh  x2,4(x1)
+  5  => x"00208323",  -- sb  x2,6(x1)
 
-  -- ==== BNE ====
-  7  => x"00209463",  -- bne  x1, x2, Lbne1 (salta)
-  8  => x"00100213",  -- addi x4, x0, 1 (pulado)
-  9  => x"00200213",  -- addi x4, x0, 2 (destino)
-  10 => x"00109463",  -- bne  x1, x1, Lbne2 (não salta)
-  11 => x"00300213",  -- addi x4, x0, 3 (cai aqui)
+  -- Loads
+  6  => x"0000A183",  -- lw  x3,0(x1)
+  7  => x"00409203",  -- lh  x4,4(x1)
+  8  => x"0040D283",  -- lhu x5,4(x1)
+  9  => x"00608303",  -- lb  x6,6(x1)
+  10 => x"0060C383",  -- lbu x7,6(x1)
 
-  -- ==== BLT ====
-  12 => x"0020C463",  -- blt  x1, x2, Lblt1 (salta)
-  13 => x"00100293",  -- addi x5, x0, 1 (pulado)
-  14 => x"00200293",  -- addi x5, x0, 2 (destino)
-  15 => x"00114463",  -- blt  x2, x1, Lblt2 (não salta)
-  16 => x"00300293",  -- addi x5, x0, 3 (cai aqui)
+  -- Loop infinito
+  11 => x"0000006F",  -- j 0
 
-  -- ==== BGE ====
-  17 => x"00115463",  -- bge  x2, x1, Lbge1 (salta)
-  18 => x"00100313",  -- addi x6, x0, 1 (pulado)
-  19 => x"00200313",  -- addi x6, x0, 2 (destino)
-  20 => x"0020D463",  -- bge  x1, x2, Lbge2 (não salta)
-  21 => x"00300313",  -- addi x6, x0, 3 (cai aqui)
-
-  -- ==== BLTU ====
-  22 => x"0020E463",  -- bltu x1, x2, Lbltu1 (salta)
-  23 => x"00100393",  -- addi x7, x0, 1 (pulado)
-  24 => x"00200393",  -- addi x7, x0, 2 (destino)
-  25 => x"00116463",  -- bltu x2, x1, Lbltu2 (não salta)
-  26 => x"00300393",  -- addi x7, x0, 3 (cai aqui)
-
-  -- ==== BGEU ====
-  27 => x"00117463",  -- bgeu x2, x1, Lbgeu1 (salta)
-  28 => x"00100413",  -- addi x8, x0, 1 (pulado)
-  29 => x"00200413",  -- addi x8, x0, 2 (destino)
-  30 => x"0020F463",  -- bgeu x1, x2, Lbgeu2 (não salta)
-  31 => x"00300413",  -- addi x8, x0, 3 (cai aqui)
-
-  -- Loop final
-  32 => x"0000006F",  -- j 0 (loop infinito)
-
-  33 to 63 => x"00000000"  -- restante zerado
+  12 to 63 => x"00000000"  -- restante zerado
 );
+
 
 
   signal memROM : blocoMemoria := ROMDATA;

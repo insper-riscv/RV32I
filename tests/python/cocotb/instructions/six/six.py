@@ -63,4 +63,4 @@ async def test_load_store_via_loads(dut):
     assert got_lbu == 0x000000DD, f"LBU registrador errado: {got_lbu:#x}"
 
 
-    dut._log.info("Todos os stores foram verificados via loads subsequentes ✅")
+    dut._log.info("Todos os stores foram verificados via loads subsequentes")
