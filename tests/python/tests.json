@@ -62,7 +62,7 @@
       "ROM_FILE": "tests/python/cocotb/entities/data/testROM.hex"
     }
   },
-  "LUI_instruction": {
+  "one": {
     "toplevel": "rv32i",               
     "sources": [
       "src/rv32i_ctrl_consts.vhd",
@@ -80,12 +80,12 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.cocotb.instructions.lui.lui",
+    "test_module": "tests.python.cocotb.instructions.one.one",
     "parameters": {
-      "ROM_FILE": "tests/python/cocotb/instructions/lui/lui.hex"
+      "ROM_FILE": "tests/python/cocotb/instructions/one/one.hex"
     }
   },
-  "AUIPC_instruction": {
+  "two": {
     "toplevel": "rv32i",               
     "sources": [
       "src/rv32i_ctrl_consts.vhd",
@@ -103,9 +103,9 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.cocotb.instructions.auipc.auipc",
+    "test_module": "tests.python.cocotb.instructions.two.two",
     "parameters": {
-      "ROM_FILE": "tests/python/cocotb/instructions/auipc/auipc.hex"
+      "ROM_FILE": "tests/python/cocotb/instructions/two/two.hex"
     }
   }
 }
