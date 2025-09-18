@@ -107,5 +107,28 @@
     "parameters": {
       "ROM_FILE": "tests/python/cocotb/instructions/two/two.hex"
     }
+  },
+  "three": {
+    "toplevel": "rv32i",               
+    "sources": [
+      "src/rv32i_ctrl_consts.vhd",
+      "src/ALU.vhd",
+      "src/RegFile.vhd",
+      "src/RAM.vhd",
+      "src/ROM_cocotb.vhd",
+      "src/InstructionDecoder.vhd",
+      "src/ExtenderImm.vhd",
+      "src/ExtenderRAM.vhd",
+      "src/StoreManager.vhd",
+      "src/genericAdder.vhd",
+      "src/genericMux2x1.vhd",
+      "src/genericMux3x1.vhd",
+      "src/genericRegister.vhd",
+      "src/rv32i.vhd"
+    ],
+    "test_module": "tests.python.cocotb.instructions.three.three",
+    "parameters": {
+      "ROM_FILE": "tests/python/cocotb/instructions/three/three.hex"
+    }
   }
 }
