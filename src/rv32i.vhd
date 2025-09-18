@@ -213,7 +213,7 @@ RAM : entity work.RAM
 ExtenderRAM : entity work.ExtenderRAM
 			port map(
 				signalIn => RAM_out,
-				opExRAM => opExImm,
+				opExRAM => opExRAM,
 				EA => ALU_out(1 downto 0),
 				signalOut => extenderRAM_out
 			);

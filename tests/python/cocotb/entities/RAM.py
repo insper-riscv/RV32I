@@ -83,7 +83,7 @@ async def all_masks(dut):
 
 @cocotb.test()
 async def disable_read(dut):
-    """Verifica que data_out vai para Z se reRAM=0 ou eRAM=0."""
+    """Verifica que data_out vai para 0 se reRAM=0 ou eRAM=0."""
     cocotb.start_soon(Clock(dut.clk, 10, "ns").start())
     await init_dut(dut)
 
@@ -95,13 +95,13 @@ async def disable_read(dut):
     dut.eRAM.value = 1
     dut.reRAM.value = 0
     await Timer(1, "ns")
-    assert str(dut.data_out.value).lower().startswith("zz"), "Esperado alta impedância quando reRAM=0"
+    assert str(dut.data_out.value).lower().startswith("00"), "Esperado alta impedância quando reRAM=0"
 
     # leitura com eRAM=0
     dut.reRAM.value = 1
     dut.eRAM.value = 0
     await Timer(1, "ns")
-    assert str(dut.data_out.value).lower().startswith("zz"), "Esperado alta impedância quando eRAM=0"
+    assert str(dut.data_out.value).lower().startswith("00"), "Esperado alta impedância quando eRAM=0"
 
 @cocotb.test()
 async def multi_positions(dut):

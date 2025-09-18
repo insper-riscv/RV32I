@@ -52,6 +52,6 @@ begin
 
   -- leitura assíncrona, só ativa se reRAM=1 e eRAM=1
   data_out <= mem(to_integer(unsigned(widx))) when (reRAM = '1' and eRAM = '1')
-              else (others => 'Z');
+              else (others => '0');
 
 end architecture;
