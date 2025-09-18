@@ -1,0 +1,9 @@
+constant ROMDATA : blocoMemoria := (
+  0  => x"008002EF",  -- jal   x5,8
+  1  => x"00000013",  -- addi  x6,x7,0   (NOP real, mas com dependência)
+  2  => x"00028333",  -- add   x6,x5,x0  (expõe link em x6)
+  3  => x"000283E7",  -- jalr  x7,x5,0   (volta para endereço salvo)
+  4  => x"00000013",  -- addi  x0,x0,0   (NOP após retorno)
+  5  => x"0000006F",  -- j     0 (loop infinito)
+  6 to 63 => x"00000000"  -- restante zerado
+);
