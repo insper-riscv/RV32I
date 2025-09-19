@@ -13,7 +13,9 @@ entity rv32i is
 	 mask_ram_cpu : out std_logic_vector(3 downto 0);
 	 weRAM_cpu : out std_logic;
 	 reRAM_cpu : out std_logic;
-	 eRAM_cpu : out std_logic
+	 eRAM_cpu : out std_logic;
+	 
+	 rs2 : out std_logic_vector(31 downto 0)
 	 
   );
 end entity;
@@ -235,7 +237,7 @@ mask_ram_cpu <= mask;
 weRAM_cpu <= weRAM;
 reRAM_cpu <= reRAM;
 eRAM_cpu <= eRAM; 				  
-
+rs2 <= d_rs2;
 
 
 end architecture;
