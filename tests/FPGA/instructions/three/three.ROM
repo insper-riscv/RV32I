@@ -1,0 +1,36 @@
+type blocoMemoria is array (0 to 63) of std_logic_vector(31 downto 0);
+
+constant ROMDATA : blocoMemoria := (
+  0  => x"000000B7",  -- lui   x1,0x0
+  1  => x"00108093",  -- addi  x1,x1,1
+  2  => x"80000137",  -- lui   x2,0x80000
+  3  => x"FFF10113",  -- addi  x2,x2,-1 (0x7FFFFFFF)
+
+  -- R-type
+  4  => x"002081B3",  -- add   x3,x1,x2
+  5  => x"40208233",  -- sub   x4,x1,x2
+  6  => x"0020C2B3",  -- xor   x5,x1,x2
+  7  => x"0020E333",  -- or    x6,x1,x2
+  8  => x"0020F3B3",  -- and   x7,x1,x2
+  9  => x"00209433",  -- sll   x8,x1,x2
+  10 => x"0020D4B3",  -- srl   x9,x1,x2
+  11 => x"4020D533",  -- sra   x10,x1,x2
+  12 => x"0020A5B3",  -- slt   x11,x1,x2
+  13 => x"0020B633",  -- sltu  x12,x1,x2
+
+  -- expor resultados em t3
+  14 => x"00018E33",  -- add t3,x3,x0
+  15 => x"00020E33",  -- add t3,x4,x0
+  16 => x"00028E33",  -- add t3,x5,x0
+  17 => x"00030E33",  -- add t3,x6,x0
+  18 => x"00038E33",  -- add t3,x7,x0
+  19 => x"00040E33",  -- add t3,x8,x0
+  20 => x"00048E33",  -- add t3,x9,x0
+  21 => x"00050E33",  -- add t3,x10,x0
+  22 => x"00058E33",  -- add t3,x11,x0
+  23 => x"00060E33",  -- add t3,x12,x0
+
+  24 => x"0000006F",  -- j 0 (loop)
+
+  25 to 63 => x"00000000"  -- restante zerado
+);

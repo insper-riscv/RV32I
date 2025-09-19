@@ -1,0 +1,24 @@
+constant ROMDATA : blocoMemoria := (
+  0  => x"0000F0B7",  -- lui   x1, 0x0000F
+  1  => x"0F008093",  -- addi  x1, x1, 0x0F0
+  2  => x"01008113",  -- addi  x2, x1, 0x10
+  3  => x"0FF0C193",  -- xori  x3, x1, 0xFF
+  4  => x"0F00E213",  -- ori   x4, x1, 0x0F0
+  5  => x"0F00F293",  -- andi  x5, x1, 0x0F0
+  6  => x"00409313",  -- slli  x6, x1, 4
+  7  => x"0040D393",  -- srli  x7, x1, 4
+  8  => x"4040D413",  -- srai  x8, x1, 4
+
+  -- expor resultados em t3
+  9  => x"00010E33",  -- add t3, x2, x0
+  10 => x"00018E33",  -- add t3, x3, x0
+  11 => x"00020E33",  -- add t3, x4, x0
+  12 => x"00028E33",  -- add t3, x5, x0
+  13 => x"00030E33",  -- add t3, x6, x0
+  14 => x"00038E33",  -- add t3, x7, x0
+  15 => x"00040E33",  -- add t3, x8, x0
+
+  16 => x"0000006F",  -- j loop
+
+  17 to 63 => x"00000000"  -- restante zerado
+);

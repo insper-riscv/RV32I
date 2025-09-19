@@ -14,27 +14,33 @@ end entity;
 
 architecture rtl OF ROM IS
   type blocoMemoria IS ARRAY(0 TO 2**memoryAddrWidth - 1) OF std_logic_vector(dataWidth-1 downto 0);
+  
+constant ROMDATA : blocoMemoria := (
+  0  => x"00000093",  -- addi x1,x0,0
+  1  => x"AABBD137",  -- lui  x2,0xAABBD
+  2  => x"CDD10113",  -- addi x2,x2,-803  (0xAABBCCDD)
 
-  constant ROMDATA : blocoMemoria := (
-    0  => x"00000000", -- addi ra, x0, 5
-    1  => x"00000001", -- addi sp, x0, 7
-    2  => x"00000002", -- add  gp, ra, sp
-    3  => x"00000003", -- sub  tp, sp, ra
-    4  => x"00000004", -- and  t0, ra, sp
-    5  => x"00000005", -- or   t1, ra, sp
-    6  => x"00000006", -- xor  t2, ra, sp
-    7  => x"00000007", -- sll  s0, ra, sp
-    8  => x"00000008", -- srl  s1, s0, sp
-    9  => x"00000009", -- slt  a0, ra, sp
-    10 => x"0000000A", -- addi a1, a1, 1
-    11 => x"0000000B", -- jal x0, loop
-    12 to 63 => x"00000000"  -- restante zerado
+  -- Stores
+  3  => x"0020A023",  -- sw  x2,0(x1)
+  4  => x"00209223",  -- sh  x2,4(x1)
+  5  => x"00208323",  -- sb  x2,6(x1)
+
+  -- Loads
+  6  => x"0000A183",  -- lw  x3,0(x1)
+  7  => x"00409203",  -- lh  x4,4(x1)
+  8  => x"0040D283",  -- lhu x5,4(x1)
+  9  => x"00608303",  -- lb  x6,6(x1)
+  10 => x"0060C383",  -- lbu x7,6(x1)
+
+  -- Loop infinito
+  11 => x"0000006F",  -- j 0
+
+  12 to 63 => x"00000000"  -- restante zerado
 );
 
-  -- (Para Quartus) mantenha o atributo; GHDL ignora.
+
+
   signal memROM : blocoMemoria := ROMDATA;
-  -- attribute ram_init_file : string;
-  -- attribute ram_init_file of memROM : signal is "initROM.mif";
 
   signal localAddress : std_logic_vector(memoryAddrWidth-1 downto 0);
 begin
