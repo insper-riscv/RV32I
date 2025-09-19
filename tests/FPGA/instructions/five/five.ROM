@@ -1,5 +1,3 @@
-type blocoMemoria is array (0 to 63) of std_logic_vector(31 downto 0);
-
 constant ROMDATA : blocoMemoria := (
   0  => x"00500093",  -- addi x1, x0, 5
   1  => x"00A00113",  -- addi x2, x0, 10

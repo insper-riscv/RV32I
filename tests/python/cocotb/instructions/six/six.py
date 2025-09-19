@@ -2,30 +2,20 @@ import cocotb
 from cocotb.triggers import Timer
 
 @cocotb.test()
-async def test_load_store_via_loads(dut):
-    """Testa SW, SH, SB verificando os valores através de loads subsequentes"""
+async def test_load_store_via_loads_and_regs(dut):
+    """Testa SW, SH, SB verificando loads + valores nos registradores via ADD t3,reg,x0"""
 
     async def step():
-        # sobe clock
         dut.CLK.value = 1
         await Timer(5, units="ns")
-
-        # word lida diretamente da RAM
+        alu_out = int(dut.ALU_out.value)
         ram_out = int(dut.RAM_out.value)
-
-        # dado já tratado pelo load (shift + sign/zero extend)
-        ex_ram_out = int(dut.extenderRAM_out.value)
-
-        # desce clock
+        ext_ram_out = int(dut.extenderRAM_out.value)
         dut.CLK.value = 0
         await Timer(10, units="ns")
-
-        # prepara próxima subida
         dut.CLK.value = 1
         await Timer(5, units="ns")
-
-        return ram_out, ex_ram_out
-
+        return alu_out, ram_out, ext_ram_out
 
     # ===== Inicialização =====
     await step()  # addi x1,0,0
@@ -37,30 +27,25 @@ async def test_load_store_via_loads(dut):
     await step()  # sh
     await step()  # sb
 
-    # ===== LOADS e verificações =====
-    ram, got_lw = await step()
-    assert ram == 0xAABBCCDD, f"LW RAM errado: {ram:#x}"
-    assert got_lw == 0xAABBCCDD, f"LW registrador errado: {got_lw:#x}"
+    # ===== LOADS + exposições =====
+    _, _, _ = await step()       # lw
+    alu, _, _ = await step()     # add t3,x3,x0
+    assert alu == 0xAABBCCDD, f"LW falhou no reg: {alu:#x}"
 
-    # LH (half aligned, 0x4)
-    ram, got_lh = await step()
-    assert (ram & 0xFFFF) == 0xCCDD, f"LH RAM errado: {ram:#x}"
-    assert got_lh == 0xFFFFCCDD, f"LH registrador errado: {got_lh:#x}"
+    _, _, _ = await step()       # lh
+    alu, _, _ = await step()     # add t3,x4,x0
+    assert alu == 0xFFFFCCDD & 0xFFFFFFFF, f"LH falhou no reg: {alu:#x}"
 
-    # LHU
-    ram, got_lhu = await step()
-    assert (ram & 0xFFFF) == 0xCCDD, f"LHU RAM errado: {ram:#x}"
-    assert got_lhu == 0x0000CCDD, f"LHU registrador errado: {got_lhu:#x}"
+    _, _, _ = await step()       # lhu
+    alu, _, _ = await step()     # add t3,x5,x0
+    assert alu == 0x0000CCDD, f"LHU falhou no reg: {alu:#x}"
 
-    # LB
-    ram, got_lb = await step()
-    assert (ram & 0xFF) == 0xDD, f"LB RAM errado: {ram:#x}"
-    assert got_lb == 0xFFFFFFDD, f"LB registrador errado: {got_lb:#x}"
+    _, _, _ = await step()       # lb
+    alu, _, _ = await step()     # add t3,x6,x0
+    assert alu == 0xFFFFFFDD & 0xFFFFFFFF, f"LB falhou no reg: {alu:#x}"
 
-    # LBU
-    ram, got_lbu = await step()
-    assert (ram & 0xFF) == 0xDD, f"LBU RAM errado: {ram:#x}"
-    assert got_lbu == 0x000000DD, f"LBU registrador errado: {got_lbu:#x}"
+    _, _, _ = await step()       # lbu
+    alu, _, _ = await step()     # add t3,x7,x0
+    assert alu == 0x000000DD, f"LBU falhou no reg: {alu:#x}"
 
-
-    dut._log.info("Todos os stores foram verificados via loads subsequentes")
+    dut._log.info("Todos os loads/stores + registradores passaram")

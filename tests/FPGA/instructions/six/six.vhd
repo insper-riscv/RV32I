@@ -231,23 +231,23 @@ DecoderDisplay0 :  entity work.conversorHex7Seg
                  saida7seg => HEX0);
 
 DecoderDisplay1 :  entity work.conversorHex7Seg
-		  port map(dadoHex => extenderRAM_out(3 downto 0),
+		  port map(dadoHex => ALU_out(3 downto 0),
 					  saida7seg => HEX1);
 				
 DecoderDisplay2 :  entity work.conversorHex7Seg
-		  port map(dadoHex => extenderRAM_out(7 downto 4),
+		  port map(dadoHex => ALU_out(7 downto 4),
 					  saida7seg => HEX2);
 					  
 DecoderDisplay3 :  entity work.conversorHex7Seg
-		  port map(dadoHex => extenderRAM_out(11 downto 8),
+		  port map(dadoHex => ALU_out(11 downto 8),
 					  saida7seg => HEX3);
 					  
 DecoderDisplay4 :  entity work.conversorHex7Seg
-		  port map(dadoHex => extenderRAM_out(15 downto 12),
+		  port map(dadoHex => ALU_out(15 downto 12),
 					  saida7seg => HEX4);
 					  
 DecoderDisplay5 :  entity work.conversorHex7Seg
-		  port map(dadoHex => extenderRAM_out(19 downto 16),
+		  port map(dadoHex => ALU_out(19 downto 16),
 					  saida7seg => HEX5);
 
 
