@@ -108,7 +108,7 @@ InstructionDecoder : entity work.InstructionDecoder
 			
 ExtenderImm : entity work.ExtenderImm
 			port map (
-				signalIn => ROM_out(31 downto 7),
+				Inst31downto7 => ROM_out(31 downto 7),
 				opExImm => opExImm,
 				
 				signalOut => ExtenderImm_out

@@ -6,10 +6,9 @@ import random
 OPEXIMM_U       = 0b000
 OPEXIMM_I       = 0b001
 OPEXIMM_I_SHAMT = 0b010
-OPEXIMM_JAL     = 0b011
-OPEXIMM_JALR    = 0b100
-OPEXIMM_S       = 0b101
-
+OPEXIMM_J       = 0b011
+OPEXIMM_S       = 0b100
+OPEXIMM_B       = 0b101
 
 # === Helpers ===
 def sext(val, bits, width=32):
@@ -28,7 +27,7 @@ def zext(val, bits, width=32):
 
 
 async def apply_and_check(dut, op, inp, expected, name):
-    dut.signalIn.value = inp & ((1 << len(dut.signalIn)) - 1)
+    dut.Inst31downto7.value = inp & ((1 << len(dut.Inst31downto7)) - 1)
     dut.opExImm.value = op
     await Timer(1, "ns")
 
@@ -75,7 +74,7 @@ async def jal(dut):
     imm19_12 = (inp >> 5) & 0xFF
     offset = (imm20 << 20) | (imm19_12 << 12) | (imm11 << 11) | (imm10_1 << 1)
     expected = sext(offset, 21)
-    await apply_and_check(dut, OPEXIMM_JAL, inp, expected, "JAL")
+    await apply_and_check(dut, OPEXIMM_J, inp, expected, "JAL")
 
 
 @cocotb.test()
@@ -84,7 +83,7 @@ async def jalr(dut):
     inp = random.getrandbits(25)
     imm12 = (inp >> 13) & 0xFFF
     expected = sext(imm12, 12)
-    await apply_and_check(dut, OPEXIMM_JALR, inp, expected, "JALR")
+    await apply_and_check(dut, OPEXIMM_I, inp, expected, "JALR")
 
 
 @cocotb.test()

@@ -474,7 +474,7 @@ begin
 
   elsif (opcode = "1101111") then -- JAL
     selMuxPc4ALU    <= '1';
-    opExImm         <= OPEXIMM_JAL;
+    opExImm         <= OPEXIMM_J;
     selMuxALUPc4RAM <= "01";
     weReg           <= '1';
     opExRAM         <= "000";
@@ -487,7 +487,7 @@ begin
      
   elsif (opcode = "1100111") then -- JALR
     selMuxPc4ALU    <= '1';
-    opExImm         <= OPEXIMM_JALR;
+    opExImm         <= OPEXIMM_I;
     selMuxALUPc4RAM <= "01";
     weReg           <= '1';
     opExRAM         <= "000";
