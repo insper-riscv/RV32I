@@ -90,6 +90,10 @@ begin
 	 
     branch <= '0';
 
+  elsif (op = OPALU_JALR) then
+    dataOut <= std_logic_vector( (unsigned(dA) + unsigned(dB)) and x"FFFFFFFE" );
+    branch <= '0';
+
   elsif (op = OPALU_BEQ) then
     -- BEQ
     dataOut <= (others => '0');

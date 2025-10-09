@@ -21,6 +21,7 @@ OPCODES = {
     "BGE":    "01110",
     "BLTU":   "01111",
     "BGEU":   "10000",
+    "JALR":   "10001"
 }
 
 
@@ -168,3 +169,25 @@ async def bltu(dut):
 async def bgeu(dut):
     a, b = 2, 1
     await apply_and_check(dut, "BGEU", a, b, 0, 1)
+
+    
+@cocotb.test()
+async def jalr(dut):
+    """
+    Testa JALR: target = (rs1 + imm) with least-significant bit cleared.
+    Verifica dois casos: LSB já zero e LSB = 1 (deve ser forçado a 0).
+    Espera branch = 1 (ajuste se seu ALU usar outro comportamento).
+    """
+    # caso 1: soma com LSB já zero
+    a = 0x1003   # rs1
+    b = 0x0005   # imm (exemplo)
+    sum_res = (a + b) & ~1
+    await apply_and_check(dut, "JALR", a, b, sum_res, 0)
+
+    # caso 2: soma com LSB = 1 -> deve ficar com LSB = 0
+    a = 0x1002
+    b = 0x0001
+    sum_res = (a + b) & ~1   # força bit 0 = 0
+    await apply_and_check(dut, "JALR", a, b, sum_res, 0)
+
+    dut._log.info("JALR tests OK")

@@ -9,6 +9,8 @@ entity InstructionDecoder is
     funct3  : in  std_logic_vector(2 downto 0);
     funct7  : in  std_logic_vector(6 downto 0);
 
+
+    -- Os seletore do mux tem este nome selMuxXYZ, o que singifica que quando el tem o valor 0 sai o dado X, valor 1 o dadoY, valor 3 o dado Z e assim por diante.
     selMuxPc4ALU    : out std_logic;
     opExImm         : out std_logic_vector(2 downto 0);
     selMuxALUPc4RAM : out std_logic_vector(1 downto 0);
@@ -493,7 +495,7 @@ begin
     opExRAM         <= "000";
     selMuxRS2Imm    <= '1';
     selPCRS1        <= '1';
-    opALU           <= OPALU_ADD;
+    opALU           <= OPALU_JALR;
     weRAM           <= '0';
     reRAM           <= '0';
     eRAM            <= '0';

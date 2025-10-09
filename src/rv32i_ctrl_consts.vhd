@@ -42,5 +42,6 @@ package rv32i_ctrl_consts is
   constant OPALU_BGE    : std_logic_vector(4 downto 0) := "01110";
   constant OPALU_BLTU   : std_logic_vector(4 downto 0) := "01111";
   constant OPALU_BGEU   : std_logic_vector(4 downto 0) := "10000";
+  constant OPALU_JALR   : std_logic_vector(4 downto 0) := "10001";
 
 end package rv32i_ctrl_consts;

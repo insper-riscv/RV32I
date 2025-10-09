@@ -50,6 +50,7 @@ constant ROMDATA : blocoMemoria := (
 
 
 
+
   signal memROM : blocoMemoria := ROMDATA;
 
   signal localAddress : std_logic_vector(memoryAddrWidth-1 downto 0);

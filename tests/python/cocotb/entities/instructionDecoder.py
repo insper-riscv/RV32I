@@ -50,6 +50,7 @@ def _parse_field(val: str, width: int) -> int:
         "BGE":    0b01110,
         "BLTU":   0b01111,
         "BGEU":   0b10000,
+        "JALR":   0b10001
     }
 
     if val in symbol_map:

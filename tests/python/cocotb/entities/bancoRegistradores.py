@@ -1,4 +1,4 @@
-# tests/bancoRegistradores.py
+# tests/RegFIle.py
 import random
 import cocotb
 from cocotb.clock import Clock
