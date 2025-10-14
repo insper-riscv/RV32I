@@ -6,7 +6,7 @@ entity RAM is
   generic (
     dataWidth: natural := 32;
     addrWidth: natural := 32;
-    memoryAddrWidth: natural := 6   -- 64 posicoes de 32 bits cada
+    memoryAddrWidth: natural := 9   -- 64 posicoes de 32 bits cada
   );
   port (
     clk      : in  std_logic;

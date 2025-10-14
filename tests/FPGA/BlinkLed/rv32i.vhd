@@ -3,20 +3,23 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.rv32i_ctrl_consts.all;
 
-entity two is
+entity rv32i is
   port   (
-    CLOCK_50 : in std_logic;
-	 --CLK : in std_logic
-	 HEX0, HEX1, HEX2, HEX3, HEX4, HEX5 : out std_logic_vector(6 downto 0);
-	 LEDR : out std_logic_vector(9 downto 0);
-	 FPGA_RESET_N : in std_logic
+	CLK : in std_logic;
+	inst_addr : out std_logic_vector(31 downto 0);
+	inst : in std_logic_vector(31 downto 0);
+	weRAM, reRAM, eRAM : out std_logic;
+	data_addr : out std_logic_vector(31 downto 0);
+	byte_enable : out std_logic_vector(3 downto 0);
+	data_in  : in std_logic_vector(31 downto 0);
+	data_out : out std_logic_vector(31 downto 0)
   );
 end entity;
 
-architecture behaviour of two is
+architecture behaviour of rv32i is
 
   -- add necessary signals here
-  signal CLK : std_logic;
+  --signal CLK : std_logic;
   
   signal MuxPc4ALU_out : std_logic_vector(31 downto 0);
   signal PC_out : std_logic_vector(31 downto 0);
@@ -32,7 +35,7 @@ architecture behaviour of two is
   signal selMuxPCRS1 : std_logic;
   signal opALU : std_logic_vector(4 downto 0);
   signal mask : std_logic_vector(3 downto 0);
-  signal weRAM, reRAM, eRAM : std_logic;
+  signal weR, reR, eR : std_logic;
   
   signal ExtenderImm_out : std_logic_vector(31 downto 0);
   
@@ -59,9 +62,17 @@ architecture behaviour of two is
 
 begin
 
-edgeDetectorKey : entity work.edgeDetector
-			port map (clk => CLOCK_50, entrada => NOT(FPGA_RESET_N), saida => CLK);
-			
+inst_addr <= PC_out;
+ROM_out <= inst;
+weRAM <= weR;
+reRAM <= reR;
+eRAM <= eR;
+data_addr <= ALU_out;
+byte_enable <= mask;
+RAM_out <= data_in;
+data_out <= out_StoreManager;
+
+
 			
 PC : entity work.genericRegister
 			generic map ( data_width => 32 )
@@ -72,13 +83,6 @@ PC : entity work.genericRegister
 				source => MuxPc4ALU_out,
 				
 				destination => PC_out
-			);
-			
-ROM : entity work.ROM
-			port map (
-				addr => PC_out,
-				
-				data => ROM_out
 			);
 
 InstructionDecoder : entity work.InstructionDecoder
@@ -95,9 +99,9 @@ InstructionDecoder : entity work.InstructionDecoder
 				selMuxRS2Imm => selMuxRS2Imm,
 				selPCRS1 => selMuxPCRS1,
 				opALU => opALU,
-				weRAM => weRAM,
-				reRAM => reRAM,
-				eRAM => eRAM
+				weRAM => weR,
+				reRAM => reR,
+				eRAM => eR
 			);
 			
 ExtenderImm : entity work.ExtenderImm
@@ -190,19 +194,6 @@ StoreManager : entity work.StoreManager
 				data_out => out_StoreManager,
 				mask => mask
 			);
-			
-
-RAM : entity work.RAM
-			port map(
-				clk => CLK,
-				addr => ALU_out,
-				data_in => out_StoreManager,
-				data_out => RAM_out,
-				weRAM => weRAM,
-				reRAM => reRAM,
-				eRAM => eRAM,
-				mask => mask
-			);
 
 ExtenderRAM : entity work.ExtenderRAM
 			port map(
@@ -224,36 +215,5 @@ MuxPc4ALU : entity work.genericMux3x1
         output_MUX => MuxPc4ALU_out
     );
 					  
-
-					  
-DecoderDisplay0 :  entity work.conversorHex7Seg
-        port map(dadoHex => PC_out(3 downto 0),
-                 saida7seg => HEX0);
-
-DecoderDisplay1 :  entity work.conversorHex7Seg
-		  port map(dadoHex => PC_out(7 downto 4),
-					  saida7seg => HEX1);
-				
-DecoderDisplay2 :  entity work.conversorHex7Seg
-		  port map(dadoHex => ALU_out(3 downto 0),
-					  saida7seg => HEX2);
-					  
-DecoderDisplay3 :  entity work.conversorHex7Seg
-		  port map(dadoHex => ALU_out(7 downto 4),
-					  saida7seg => HEX3);
-					  
-DecoderDisplay4 :  entity work.conversorHex7Seg
-		  port map(dadoHex => ALU_out(11 downto 8),
-					  saida7seg => HEX4);
-					  
-DecoderDisplay5 :  entity work.conversorHex7Seg
-		  port map(dadoHex => ALU_out(15 downto 12),
-					  saida7seg => HEX5);
-
-
-example_blinky : entity work.Blinky
-			port map (
-				clk => CLOCK_50,      
-				led => LEDR(0)    );
 
 end architecture;

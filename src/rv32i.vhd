@@ -4,9 +4,9 @@ use ieee.numeric_std.all;
 use work.rv32i_ctrl_consts.all;
 
 entity rv32i is
-  generic (
-    ROM_FILE : string := "default.hex"
-  );
+ -- generic (
+ --   ROM_FILE : string := "default.hex"
+ -- );
   port   (
     --CLOCK_50 : in std_logic;
 	 CLK : in std_logic
@@ -78,9 +78,9 @@ PC : entity work.genericRegister
 			);
 			
 ROM : entity work.ROM
-			generic map (
-				ROM_FILE => ROM_FILE   -- repassa o generic do top para a ROM
-			)
+	--		generic map (
+	--			ROM_FILE => ROM_FILE   -- repassa o generic do top para a ROM
+	--		)
 			port map (
 				addr => PC_out,
 				

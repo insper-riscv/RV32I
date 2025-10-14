@@ -3,7 +3,7 @@
 
 _start:
     # Base address em x1 = 0
-    addi x1, x0, 0
+    addi x1, x0, 15
 
     # Valor a ser armazenado: 0xAABBCCDD
     lui  x2, 0xAABBD
