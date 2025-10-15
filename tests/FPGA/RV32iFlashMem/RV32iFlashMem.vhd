@@ -3,28 +3,34 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.rv32i_ctrl_consts.all;
 
-entity rv32i is
-  generic (
-    ROM_FILE : string := "default.hex"
-  );
+entity RV32iFlashMem is
   port   (
-    --CLOCK_50 : in std_logic;
-	 CLK : in std_logic
-	 --HEX0, HEX1, HEX2, HEX3, HEX4, HEX5 : out std_logic_vector(6 downto 0);
-	 --LEDR : out std_logic_vector(9 downto 0);
-	 --FPGA_RESET_N : in std_logic
+    CLOCK_50 : in std_logic;
+	 --CLK : in std_logic
+	 HEX0, HEX1, HEX2, HEX3, HEX4, HEX5 : out std_logic_vector(6 downto 0);
+	 LEDR : out std_logic_vector(9 downto 0);
+	 SW : in std_logic_vector(9 downto 0);
+	 FPGA_RESET_N : in std_logic
   );
 end entity;
 
-architecture behaviour of rv32i is
+architecture behaviour of RV32iFlashMem is
 
   -- add necessary signals here
-  --signal CLK : std_logic;
+  signal CLK : std_logic;
   
   signal MuxPc4ALU_out : std_logic_vector(31 downto 0);
   signal PC_out : std_logic_vector(31 downto 0);
+  signal PC_out0 : std_logic_vector(31 downto 0);
   
   signal ROM_out : std_logic_vector(31 downto 0);
+  
+  signal MuxBubbleOut : std_logic_vector(31 downto 0);
+  signal FFBubbleSelOut : std_logic;
+  signal bubble_condition : std_logic;
+  signal instruction_is_jmp: std_logic;
+  constant JALR_OP : std_logic_vector(6 downto 0) := "1100111";
+  constant JAL_OP  : std_logic_vector(6 downto 0) := "1101111";
   
   signal selMuxPc4ALU : std_logic;
   signal opExImm : std_logic_vector(2 downto 0);
@@ -45,6 +51,7 @@ architecture behaviour of rv32i is
   signal out_StoreManager : std_logic_vector(31 downto 0);
   
   signal ALU_out : std_logic_vector(31 downto 0);
+  signal PC40 : std_logic_vector(31 downto 0);
   signal PC4 : std_logic_vector(31 downto 0);
   signal addImmPC_out : std_logic_vector(31 downto 0);
   signal extenderRAM_out : std_logic_vector(31 downto 0);
@@ -57,41 +64,77 @@ architecture behaviour of rv32i is
   signal RAM_out : std_logic_vector(31 downto 0);
   
   signal selMuxPc4ALU_ext : std_logic_vector(1 downto 0);
+ 
   
   
 
 begin
 
---edgeDetectorKey : entity work.edgeDetector
---			port map (clk => CLOCK_50, entrada => NOT(FPGA_RESET_N), saida => CLK);
+edgeDetectorKey : entity work.edgeDetector
+    port map (
+        clk    => CLOCK_50 and (not SW(0)),
+        entrada=> not FPGA_RESET_N,
+        saida  => CLK
+    );
 			
+			
+PC0 : entity work.genericRegister
+			generic map ( data_width => 32 )
+			port map (
+				clock => CLK,
+				clear => SW(0),
+				enable => '1',
+				source => MuxPc4ALU_out,
+				destination => PC_out0
+			);
 			
 PC : entity work.genericRegister
 			generic map ( data_width => 32 )
 			port map (
 				clock => CLK,
-				clear => '0',
+				clear => SW(0),
 				enable => '1',
-				source => MuxPc4ALU_out,
-				
+				source => PC_out0,
 				destination => PC_out
 			);
 			
-ROM : entity work.ROM
-			generic map (
-				ROM_FILE => ROM_FILE   -- repassa o generic do top para a ROM
-			)
+ROM : entity work.room
 			port map (
-				addr => PC_out,
-				
-				data => ROM_out
+				address => PC_out0(10 downto 2), /* Ignora os dois bits menos significativos pois a room ´e word addressable*/
+				clock => CLK,
+				q => ROM_out
 			);
+			
+instruction_is_jmp <= '1' when ((MuxBubbleOut(6 downto 0) = JALR_OP) or (MuxBubbleOut(6 downto 0) = JAL_OP)) else '0';
+bubble_condition <=(instruction_is_jmp or branch_flag);
+
+LEDR(1) <= instruction_is_jmp;
+LEDR(2) <= branch_flag;
+LEDR(3) <= bubble_condition;
+			
+BubbleSel : entity work.FlipFlop
+			port map (
+				clock => CLK,
+				clear => SW(0),
+				enable => '1',
+				source => bubble_condition,
+				destination => FFBubbleSelOut
+			);
+			
+MuxBubble : entity work.genericMux2x1
+    generic map ( dataWidth => 32 )
+    port map (
+        inputA_MUX => ROM_out,
+        inputB_MUX => "00000000000000000000000000010011", /* addi x0, x0, 0 <- nao altera nada no programa (nop)*/ 
+        selector_MUX => FFBubbleSelOut,
+        output_MUX => MuxBubbleOut
+    );
 
 InstructionDecoder : entity work.InstructionDecoder
 			port map (
-				opcode => ROM_out(6 downto 0),
-				funct3 => ROM_out(14 downto 12),
-				funct7 => ROM_out(31 downto 25),
+				opcode => MuxBubbleOut(6 downto 0),
+				funct3 => MuxBubbleOut(14 downto 12),
+				funct7 => MuxBubbleOut(31 downto 25),
 				
 				selMuxPc4ALU => selMuxPc4ALU,
 				opExImm => opExImm,
@@ -108,7 +151,7 @@ InstructionDecoder : entity work.InstructionDecoder
 			
 ExtenderImm : entity work.ExtenderImm
 			port map (
-				Inst31downto7 => ROM_out(31 downto 7),
+				Inst31downto7 => MuxBubbleOut(31 downto 7),
 				opExImm => opExImm,
 				
 				signalOut => ExtenderImm_out
@@ -120,9 +163,9 @@ RegFile : entity work.RegFile
 				clk => CLK,
 				clear => '0',
 				we => weReg,
-				rs1 => ROM_out(19 downto 15),
-				rs2 => ROM_out(24 downto 20),
-				rd => ROM_out(11 downto 7),
+				rs1 => MuxBubbleOut(19 downto 15),
+				rs2 => MuxBubbleOut(24 downto 20),
+				rd => MuxBubbleOut(11 downto 7),
 				data_in => MuxALUPc4RAM_out,
 				
 				d_rs1 => d_rs1,
@@ -140,13 +183,23 @@ RegFile : entity work.RegFile
         output_MUX => MuxALUPc4RAM_out
     );
 			
-Adder_PC4 : entity work.genericAdder
+Adder_PC40 : entity work.genericAdder
     generic map ( dataWidth => 32 )
     port map (
-        inputA => PC_out,
+        inputA => PC_out0,
         inputB => "00000000000000000000000000000100",
-        output => PC4
+        output => PC40
     );
+	 
+PC4Reg : entity work.genericRegister
+			generic map ( data_width => 32 )
+			port map (
+				clock => CLK,
+				clear => SW(0),
+				enable => '1',
+				source => PC40,
+				destination => PC4
+			);
 	 
 Adder_ImmPC : entity work.genericAdderU
     generic map ( dataWidth => 32 )
@@ -189,8 +242,8 @@ MuxRS2Imm : entity work.genericMux2x1
 	 
 StoreManager : entity work.StoreManager
 			port map(
-				opcode => ROM_out(6 downto 0),
-				funct3 => ROM_out(14 downto 12),
+				opcode => MuxBubbleOut(6 downto 0),
+				funct3 => MuxBubbleOut(14 downto 12),
 				EA => ALU_out(1 downto 0),
 				rs2Val => d_rs2,
 				data_out => out_StoreManager,
@@ -223,7 +276,7 @@ selMuxPc4ALU_ext <= branch_flag & selMuxPc4ALU;
 MuxPc4ALU : entity work.genericMux3x1
     generic map ( dataWidth => 32 )
     port map (
-        inputA_MUX => PC4,
+        inputA_MUX => PC40,
         inputB_MUX => ALU_out,
         inputC_MUX => addImmPC_out,
         selector_MUX => selMuxPc4ALU_ext,
@@ -233,33 +286,57 @@ MuxPc4ALU : entity work.genericMux3x1
 
 					  
 --DecoderDisplay0 :  entity work.conversorHex7Seg
---        port map(dadoHex => PC_out(3 downto 0),
+--        port map(dadoHex => PC_out(5 downto 2),
 --                 saida7seg => HEX0);
-
+--
 --DecoderDisplay1 :  entity work.conversorHex7Seg
---		  port map(dadoHex => PC_out(7 downto 4),
+--		  port map(dadoHex => MuxBubbleOut(3 downto 0),
 --					  saida7seg => HEX1);
-				
+--				
 --DecoderDisplay2 :  entity work.conversorHex7Seg
---		  port map(dadoHex => ALU_out(3 downto 0),
+--		  port map(dadoHex => MuxBubbleOut(7 downto 4),
 --					  saida7seg => HEX2);
-					  
+--					  
 --DecoderDisplay3 :  entity work.conversorHex7Seg
---		  port map(dadoHex => ALU_out(7 downto 4),
+--		  port map(dadoHex => MuxBubbleOut(11 downto 8),
 --					  saida7seg => HEX3);
-					  
+--					  
 --DecoderDisplay4 :  entity work.conversorHex7Seg
---		  port map(dadoHex => ALU_out(11 downto 8),
+--		  port map(dadoHex => MuxBubbleOut(15 downto 12),
 --					  saida7seg => HEX4);
-					  
+--					  
 --DecoderDisplay5 :  entity work.conversorHex7Seg
---		  port map(dadoHex => ALU_out(15 downto 12),
+--		  port map(dadoHex => MuxBubbleOut(19 downto 16),
 --					  saida7seg => HEX5);
 
+DecoderDisplay0 :  entity work.conversorHex7Seg
+        port map(dadoHex => PC_out(3 downto 0),
+                 saida7seg => HEX0);
 
---example_blinky : entity work.Blinky
---			port map (
---				clk => CLOCK_50,      
---				led => LEDR(0)    );
+DecoderDisplay1 :  entity work.conversorHex7Seg
+		  port map(dadoHex => ALU_out(3 downto 0),
+					  saida7seg => HEX1);
+				
+DecoderDisplay2 :  entity work.conversorHex7Seg
+		  port map(dadoHex => ALU_out(7 downto 4),
+					  saida7seg => HEX2);
+					  
+DecoderDisplay3 :  entity work.conversorHex7Seg
+		  port map(dadoHex => ALU_out(11 downto 8),
+					  saida7seg => HEX3);
+					  
+DecoderDisplay4 :  entity work.conversorHex7Seg
+		  port map(dadoHex => ALU_out(15 downto 12),
+					  saida7seg => HEX4);
+					  
+DecoderDisplay5 :  entity work.conversorHex7Seg
+		  port map(dadoHex => ALU_out(19 downto 16),
+					  saida7seg => HEX5);
+
+
+example_blinky : entity work.Blinky
+			port map (
+				clk => CLOCK_50,      
+				led => LEDR(0)    );
 
 end architecture;

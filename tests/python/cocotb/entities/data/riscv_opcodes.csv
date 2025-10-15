@@ -19,7 +19,7 @@ SRA,x[rd] = x[rs1] >>s x[rs2],0110011,101,0100000,0,XXX,00,1,XXX,0,1,SRA,0,0,0
 SLT,x[rd] = (x[rs1] <s x[rs2]) ? 1:0,0110011,010,0000000,0,XXX,00,1,XXX,0,1,SLT,0,0,0
 SLTU,x[rd] = (x[rs1] <u x[rs2]) ? 1:0,0110011,011,0000000,0,XXX,00,1,XXX,0,1,SLTU,0,0,0
 JAL,x[rd] = pc+4; pc=pc+off,1101111,-,-,1,J,01,1,XXX,1,0,ADD,0,0,0
-JALR,t=pc+4; pc=(x[rs1]+off)&~1; x[rd]=t,1100111,-,-,1,I,01,1,XXX,1,1,JALR,0,0,0
+JALR,x[rd]=pc+4; pc=(x[rs1]+off)&~1,1100111,-,-,1,I,01,1,XXX,1,1,JALR,0,0,0
 BEQ,if(x[rs1]==x[rs2]) pc+=off,1100011,000,-,0,B,XX,0,XXX,0,1,BEQ,0,0,0
 BNE,if(x[rs1]!=x[rs2]) pc+=off,1100011,001,-,0,B,XX,0,XXX,0,1,BNE,0,0,0
 BLT,if(x[rs1]<s x[rs2]) pc+=off,1100011,100,-,0,B,XX,0,XXX,0,1,BLT,0,0,0

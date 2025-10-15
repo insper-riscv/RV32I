@@ -39,4 +39,4 @@ _start:
     add t3, x6, x0
     add t3, x7, x0
 
-1:  j 1b
+1:  jal x0, _start
