@@ -208,7 +208,7 @@
     }
   },
   "compliance_rv32i": {
-    "toplevel": "SeuTopLevelVHDL",
+    "toplevel": "rv32i",
     "sources": [
       "src/rv32i_ctrl_consts.vhd",
       "src/ALU.vhd",
