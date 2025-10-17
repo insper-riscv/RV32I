@@ -48,59 +48,31 @@ Brings together two verification fronts:
 
   > To learn more about the simulated tests, check the [README in `tests/python/`](tests/python/README.md)
 
-## Dependencies
 
-### System (Ubuntu/Debian)
+## Development Environment (Dev Container)
 
-```bash
-sudo apt update
-sudo apt install ghdl gtkwave
-```
+This project ships with a ready-to-use VS Code **Dev Container** so you don’t have to install cocotb, GHDL, or Python manually.
 
-* **GHDL**: VHDL simulator — compiles and runs `.vhd` files for Cocotb tests.
-* **GTKWave**: waveform viewer — opens `.ghw` files generated in simulation (useful for debugging signals).
+### Prerequisites
+1. [Docker](https://docs.docker.com/get-docker/) (Desktop on Mac/Windows, Engine on Linux)
+2. [Visual Studio Code](https://code.visualstudio.com/)
+3. VS Code extension: **Dev Containers** (ms-vscode-remote.remote-containers)
 
-### Python
+### First time setup
+1. Open the folder in VS Code.
+2. VS Code will detect automatically `.devcontainer/devcontainer.json` and prompt:
+    
+    **“Reopen in Container?”** → click **Yes**.
 
-Use a virtual environment to isolate dependencies:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-The `requirements.txt` includes **Cocotb** (Python test framework for HDL projects).
-
-> Summary: **GHDL** runs the simulation, **Cocotb** writes/verifies tests, **GTKWave** shows the waveforms.
-
-
-## Running a Simulated Test
-
-Tests are launched by the runner:
-
-```bash
-# from the repository root (with the venv active)
-python3 tests/python/utils/runner.py           # runs all tests in the catalog
-python3 tests/python/utils/runner.py bancoRegistradores   # runs a specific test
-```
-
-* The runner reads `tests/python/tests.json`, compiles the indicated **sources**, and runs the **Cocotb tests**.
-* The output of each *toplevel* goes to `tests/python/sim_build/<toplevel>/`, including:
-
-  * `results.xml`: xUnit report
-  * `waves.ghw`: **simulation waveforms** (open with `gtkwave`)
-
-Example of a test log (bancoRegistradores):
-![Test log example](docs/exemplo_log_teste.png)
-
-Example to open waveforms:
-
-```bash
-gtkwave tests/python/sim_build/bancoregistradores/waves.ghw
-```
-
-Example of test waveforms (bancoRegistradores):
-![Test waveforms example](docs/todos_testes.png)
-
-> To **create new tests** (such as adding entries in `tests.json`, folder patterns),
+### Usage inside the container
+- Run all tests:
+    
+    ```bash
+    make test
+    ```
+    
+- Open waveforms (`.vcd`) with GTKWave:
+    
+    ```bash
+    gtkwave <file>.ghw
+    ```
