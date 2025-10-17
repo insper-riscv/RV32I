@@ -1,0 +1,47 @@
+# --- VCS / editor / devcontainer ---
+.git
+.gitignore
+.vscode/
+.idea/
+.devcontainer/
+
+# --- Python caches & build artifacts ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+pip-wheel-metadata/
+*.log
+
+# --- Cocotb / simulator outputs ---
+python/sim_build/
+*.vcd
+*.wlf
+*.ghw
+*.fst
+results.xml
+
+# --- Quartus temporary/output dirs & files ---
+**/output_files/
+**/db/
+**/incremental_db/
+*.cdf
+*.rpt
+*.srf
+*.bak
+*.bkp
+*.qip
+
+# Keep project configs (needed): DO NOT ignore .qpf/.qsf
+# *.qpf
+# *.qsf
+
+# --- OS noise ---
+.DS_Store
+Thumbs.db
+
+# --- Env / secrets (if any) ---
+.env
+.env.*

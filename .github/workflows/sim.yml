@@ -5,7 +5,6 @@ on:
   push:
     branches: [ main ]
 
-# Cancel older in-flight runs on the same branch/PR
 concurrency:
   group: sim-${{ github.ref }}
   cancel-in-progress: true
@@ -15,26 +14,34 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: read      # needed to pull from GHCR
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Build the same image you use locally (from .devcontainer/Dockerfile)
-      - name: Build sim image
-        run: |
-          docker build -f .devcontainer/Dockerfile -t riscv-sim .
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Run tests exactly like you do locally
+      # Pull your published multi-arch image instead of building
+      - name: Pull dev image
+        run: |
+          docker pull ghcr.io/pedropcventura/riscv-dev_tools:dev
+
+      # Run tests inside the prebuilt image (identical to local setup)
       - name: Run tests
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/work" \
             -w /work \
             -u root \
-            riscv-sim \
+            ghcr.io/pedropcventura/riscv-dev_tools:dev \
             make test
 
-      # Always try to upload waveforms if they were produced
+      # Upload waveform artifacts if present
       - name: Upload waveforms
         if: always()
         uses: actions/upload-artifact@v4
