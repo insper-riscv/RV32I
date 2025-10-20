@@ -4,12 +4,12 @@ use ieee.numeric_std.all;
 use std.textio.all;
 use ieee.std_logic_textio.all;
 
-entity ROM is
+entity ROM_simulation is
   generic (
     dataWidth: natural := 32;
     addrWidth: natural := 32;
-    memoryAddrWidth: natural := 6;
-    ROM_FILE: string := "initROM.hex"   -- novo generic
+    memoryAddrWidth: natural := 9;
+    ROM_FILE: string := "initROM.hex"
   );
   port (
     addr : in  std_logic_vector (addrWidth-1 downto 0);
@@ -17,7 +17,7 @@ entity ROM is
   );
 end entity;
 
-architecture rtl of ROM is
+architecture rtl of ROM_simulation is
   type blocoMemoria is array(0 to 2**memoryAddrWidth - 1)
     of std_logic_vector(dataWidth-1 downto 0);
 

@@ -32,8 +32,12 @@ def run_cocotb_test(toplevel: str, sources: list, test_module: str, parameters: 
     if parameters:
         abs_params = {}
         for k, v in parameters.items():
-            vpath = Path(v)
-            abs_params[k] = str(vpath.resolve())
+            # Se o valor for booleano, converte para "true"/"false"
+            if isinstance(v, bool):
+                abs_params[k] = "true" if v else "false"
+            else:
+                vpath = Path(v)
+                abs_params[k] = str(vpath.resolve()) if vpath.exists() else str(v)
         parameters = abs_params
 
     runner.build(

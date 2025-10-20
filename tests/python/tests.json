@@ -54,9 +54,9 @@
   "test_module": "tests.python.cocotb.entities.StoreManager"
   },
   "ROM": {
-    "toplevel": "rom",
+    "toplevel": "rom_simulation",
     "sources": [
-      "src/ROM_cocotb.vhd"
+      "src/ROM_simulation.vhd"
     ],
     "test_module": "tests.python.cocotb.entities.ROM",
     "parameters": {
@@ -70,7 +70,7 @@
       "src/ALU.vhd",
       "src/RegFile.vhd",
       "src/RAM.vhd",
-      "src/ROM_cocotb.vhd",
+      "src/ROM_simulation.vhd",
       "src/InstructionDecoder.vhd",
       "src/ExtenderImm.vhd",
       "src/ExtenderRAM.vhd",
@@ -84,6 +84,7 @@
     ],
     "test_module": "tests.python.cocotb.instructions.one.one",
     "parameters": {
+      "SIMULATION" : true,
       "ROM_FILE": "tests/python/cocotb/instructions/one/one.hex"
     }
   },
@@ -94,7 +95,7 @@
       "src/ALU.vhd",
       "src/RegFile.vhd",
       "src/RAM.vhd",
-      "src/ROM_cocotb.vhd",
+      "src/ROM_simulation.vhd",
       "src/InstructionDecoder.vhd",
       "src/ExtenderImm.vhd",
       "src/ExtenderRAM.vhd",
@@ -108,6 +109,7 @@
     ],
     "test_module": "tests.python.cocotb.instructions.two.two",
     "parameters": {
+      "SIMULATION" : true,
       "ROM_FILE": "tests/python/cocotb/instructions/two/two.hex"
     }
   },
@@ -118,7 +120,7 @@
       "src/ALU.vhd",
       "src/RegFile.vhd",
       "src/RAM.vhd",
-      "src/ROM_cocotb.vhd",
+      "src/ROM_simulation.vhd",
       "src/InstructionDecoder.vhd",
       "src/ExtenderImm.vhd",
       "src/ExtenderRAM.vhd",
@@ -132,6 +134,7 @@
     ],
     "test_module": "tests.python.cocotb.instructions.three.three",
     "parameters": {
+      "SIMULATION" : true,
       "ROM_FILE": "tests/python/cocotb/instructions/three/three.hex"
     }
   },
@@ -142,7 +145,7 @@
       "src/ALU.vhd",
       "src/RegFile.vhd",
       "src/RAM.vhd",
-      "src/ROM_cocotb.vhd",
+      "src/ROM_simulation.vhd",
       "src/InstructionDecoder.vhd",
       "src/ExtenderImm.vhd",
       "src/ExtenderRAM.vhd",
@@ -156,6 +159,7 @@
     ],
     "test_module": "tests.python.cocotb.instructions.four.four",
     "parameters": {
+      "SIMULATION" : true,
       "ROM_FILE": "tests/python/cocotb/instructions/four/four.hex"
     }
   },
@@ -166,7 +170,7 @@
       "src/ALU.vhd",
       "src/RegFile.vhd",
       "src/RAM.vhd",
-      "src/ROM_cocotb.vhd",
+      "src/ROM_simulation.vhd",
       "src/InstructionDecoder.vhd",
       "src/ExtenderImm.vhd",
       "src/ExtenderRAM.vhd",
@@ -180,6 +184,7 @@
     ],
     "test_module": "tests.python.cocotb.instructions.five.five",
     "parameters": {
+      "SIMULATION" : true,
       "ROM_FILE": "tests/python/cocotb/instructions/five/five.hex"
     }
   },
@@ -190,7 +195,7 @@
       "src/ALU.vhd",
       "src/RegFile.vhd",
       "src/RAM.vhd",
-      "src/ROM_cocotb.vhd",
+      "src/ROM_simulation.vhd",
       "src/InstructionDecoder.vhd",
       "src/ExtenderImm.vhd",
       "src/ExtenderRAM.vhd",
@@ -204,6 +209,7 @@
     ],
     "test_module": "tests.python.cocotb.instructions.six.six",
     "parameters": {
+      "SIMULATION" : true,
       "ROM_FILE": "tests/python/cocotb/instructions/six/six.hex"
     }
   }
