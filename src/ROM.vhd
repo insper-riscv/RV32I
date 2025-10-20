@@ -13,7 +13,8 @@ entity ROM IS
 end entity;
 
 architecture rtl OF ROM IS
-  type blocoMemoria IS ARRAY(0 TO 2**memoryAddrWidth - 1) OF std_logic_vector(dataWidth-1 downto 0);
+  type blocoMemoria IS ARRAY(0 TO 2**memoryAddrWidth - 1) 
+  OF std_logic_vector(dataWidth-1 downto 0);
   
 constant ROMDATA : blocoMemoria := (
   0   => x"20000293",
@@ -25,9 +26,6 @@ constant ROMDATA : blocoMemoria := (
   6 to 255 => x"00000000"  -- restante zerado
 );
 
-
-
-
   signal memROM : blocoMemoria := ROMDATA;
 
   signal localAddress : std_logic_vector(memoryAddrWidth-1 downto 0);
@@ -35,3 +33,7 @@ begin
   localAddress <= addr(memoryAddrWidth+1 downto 2);
   data <= memROM(to_integer(unsigned(localAddress)));
 end architecture;
+
+
+
+

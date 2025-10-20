@@ -31,7 +31,7 @@ LH,x[rd] = sext(M[x[rs1]+off][15:0]),0000011,001,-,0,I,10,1,LH,1,1,ADD,1,1,0
 LHU,x[rd] = zeroext(M[x[rs1]+off][15:0]),0000011,101,-,0,I,10,1,LHU,1,1,ADD,1,1,0
 LB,x[rd] = sext(M[x[rs1]+off][7:0]),0000011,000,-,0,I,10,1,LB,1,1,ADD,1,1,0
 LBU,x[rd] = zeroext(M[x[rs1]+off][7:0]),0000011,100,-,0,I,10,1,LBU,1,1,ADD,1,1,0
-SW,M[x[rs1]+off] = x[rs2][31:0],0100011,010,-,0,S,XX,0,XXX,1,1,PASS_B,0,1,1
-SH,M[x[rs1]+off] = x[rs2][15:0],0100011,001,-,0,S,XX,0,XXX,1,1,PASS_B,0,1,1
-SB,M[x[rs1]+off] = x[rs2][7:0],0100011,000,-,0,S,XX,0,XXX,1,1,PASS_B,0,1,1
+SW,M[x[rs1]+off] = x[rs2][31:0],0100011,010,-,0,S,XX,0,XXX,1,1,ADD,0,1,1
+SH,M[x[rs1]+off] = x[rs2][15:0],0100011,001,-,0,S,XX,0,XXX,1,1,ADD,0,1,1
+SB,M[x[rs1]+off] = x[rs2][7:0],0100011,000,-,0,S,XX,0,XXX,1,1,ADD,0,1,1
 NOP,-,0000000,XXX,XXXXXXX,X,XXX,XX,0,XXX,X,X,X,XXXX,0,0

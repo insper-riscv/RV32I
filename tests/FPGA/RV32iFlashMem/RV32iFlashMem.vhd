@@ -64,6 +64,10 @@ architecture behaviour of RV32iFlashMem is
   signal RAM_out : std_logic_vector(31 downto 0);
   
   signal selMuxPc4ALU_ext : std_logic_vector(1 downto 0);
+  
+  signal enable_led : std_logic;
+  
+  signal CLKbtn : std_logic;
  
   
   
@@ -74,8 +78,10 @@ edgeDetectorKey : entity work.edgeDetector
     port map (
         clk    => CLOCK_50 and (not SW(0)),
         entrada=> not FPGA_RESET_N,
-        saida  => CLK
+        saida  => CLKbtn
     );
+
+CLK <= CLOCK_50 when SW(1) else CLKbtn;
 			
 			
 PC0 : entity work.genericRegister
@@ -107,10 +113,6 @@ ROM : entity work.room
 			
 instruction_is_jmp <= '1' when ((MuxBubbleOut(6 downto 0) = JALR_OP) or (MuxBubbleOut(6 downto 0) = JAL_OP)) else '0';
 bubble_condition <=(instruction_is_jmp or branch_flag);
-
-LEDR(1) <= instruction_is_jmp;
-LEDR(2) <= branch_flag;
-LEDR(3) <= bubble_condition;
 			
 BubbleSel : entity work.FlipFlop
 			port map (
@@ -254,13 +256,28 @@ StoreManager : entity work.StoreManager
 RAM : entity work.RAM
 			port map(
 				clk => CLK,
-				addr => ALU_out,
+				addr => ALU_out(31 downto 2), -- word addressable (alu out ´e byte, entao ignora os dois bits menos significativos)
 				data_in => out_StoreManager,
 				data_out => RAM_out,
 				weRAM => weRAM,
 				reRAM => reRAM,
-				eRAM => eRAM,
+				eRAM => eRAM and (not(ALU_out(31))),
 				mask => mask
+			);
+			
+enable_led <= '1'
+  when (eRAM = '1' and weRAM = '1' and
+        unsigned(ALU_out(31 downto 2)) = to_unsigned(512, 30))
+  else '0';
+			
+leds : entity work.genericRegister
+			generic map ( data_width => 8 )
+			port map (
+				clock => CLK,
+				clear => SW(0),
+				enable => enable_led,
+				source => out_StoreManager(7 downto 0),
+				destination => LEDR(7 downto 0)
 			);
 
 ExtenderRAM : entity work.ExtenderRAM
@@ -314,29 +331,29 @@ DecoderDisplay0 :  entity work.conversorHex7Seg
                  saida7seg => HEX0);
 
 DecoderDisplay1 :  entity work.conversorHex7Seg
-		  port map(dadoHex => ALU_out(3 downto 0),
+		  port map(dadoHex => PC_out(7 downto 4),
 					  saida7seg => HEX1);
 				
 DecoderDisplay2 :  entity work.conversorHex7Seg
-		  port map(dadoHex => ALU_out(7 downto 4),
+		  port map(dadoHex => ALU_out(3 downto 0),
 					  saida7seg => HEX2);
 					  
 DecoderDisplay3 :  entity work.conversorHex7Seg
-		  port map(dadoHex => ALU_out(11 downto 8),
+		  port map(dadoHex => ALU_out(7 downto 4),
 					  saida7seg => HEX3);
 					  
 DecoderDisplay4 :  entity work.conversorHex7Seg
-		  port map(dadoHex => ALU_out(15 downto 12),
+		  port map(dadoHex => ALU_out(11 downto 8),
 					  saida7seg => HEX4);
 					  
 DecoderDisplay5 :  entity work.conversorHex7Seg
-		  port map(dadoHex => ALU_out(19 downto 16),
+		  port map(dadoHex => ALU_out(15 downto 12),
 					  saida7seg => HEX5);
 
 
-example_blinky : entity work.Blinky
-			port map (
-				clk => CLOCK_50,      
-				led => LEDR(0)    );
+--example_blinky : entity work.Blinky
+--			port map (
+--				clk => CLOCK_50,      
+--				led => LEDR(0)    );
 
 end architecture;

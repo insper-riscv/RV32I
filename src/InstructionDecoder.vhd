@@ -413,7 +413,7 @@ begin
     opExRAM         <= "000";
     selMuxRS2Imm    <= '1';
     selPCRS1        <= '1';
-    opALU           <= OPALU_PASS_B;
+    opALU           <= OPALU_ADD;
     weRAM           <= '1';
     reRAM           <= '0';
     eRAM            <= '1';
@@ -426,7 +426,7 @@ begin
     opExRAM         <= "000";
     selMuxRS2Imm    <= '1';
     selPCRS1        <= '1';
-    opALU           <= OPALU_PASS_B;
+    opALU           <= OPALU_ADD;
     weRAM           <= '1';
     reRAM           <= '0';
     eRAM            <= '1';
@@ -439,7 +439,7 @@ begin
     opExRAM         <= "000";
     selMuxRS2Imm    <= '1';
     selPCRS1        <= '1';
-    opALU           <= OPALU_PASS_B;
+    opALU           <= OPALU_ADD;
     weRAM           <= '1';
     reRAM           <= '0';
     eRAM            <= '1';

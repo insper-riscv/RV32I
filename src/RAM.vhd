@@ -5,8 +5,8 @@ use ieee.numeric_std.all;
 entity RAM is
   generic (
     dataWidth: natural := 32;
-    addrWidth: natural := 32;
-    memoryAddrWidth: natural := 9   -- 64 posicoes de 32 bits cada
+    addrWidth: natural := 30;
+    memoryAddrWidth: natural := 9   -- 0 - 511 posicoes de 32 bits cada
   );
   port (
     clk      : in  std_logic;
@@ -27,7 +27,7 @@ architecture rtl of RAM is
   -- word index (32-bit aligned)
   signal widx : std_logic_vector(memoryAddrWidth-1 downto 0);
 begin
-  widx <= addr(memoryAddrWidth+1 downto 2);
+  widx <= addr(8 downto 0);
 
   process(clk)
   begin

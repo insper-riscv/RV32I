@@ -201,7 +201,7 @@ StoreManager : entity work.StoreManager
 RAM : entity work.RAM
 			port map(
 				clk => CLK,
-				addr => ALU_out,
+				addr => ALU_out(31 downto 2),
 				data_in => out_StoreManager,
 				data_out => RAM_out,
 				weRAM => weRAM,
