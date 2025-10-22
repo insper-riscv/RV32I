@@ -39,36 +39,9 @@ async def rom_leitura_basica(dut):
     exp = parse_hex(hex_path, depth=64)
 
     for word_idx in [0, 1, 2, 3, 4, 5, 6, 7, 10, 14, 21, 22, 63]:
-        byte_addr = word_idx << 2
+        byte_addr = word_idx
         got = await read_rom(dut, byte_addr)
         assert got == exp[word_idx], (
             f"ROM[{word_idx}] esperado={exp[word_idx]:#010x}, lido={got:#010x}"
         )
 
-@cocotb.test()
-async def rom_alias_byte_addresses(dut):
-    """
-    Confere que endereços byte-alinhados dentro da mesma word (k*4+{0,1,2,3})
-    retornam o mesmo dado.
-    """
-    for word_idx in [0, 1, 9, 21, 31, 63]:
-        base = word_idx << 2
-        vals = [await read_rom(dut, base + off) for off in [0, 1, 2, 3]]
-        assert len(set(vals)) == 1, (
-            f"Byte-alias falhou em idx {word_idx}: leituras={[f'{v:#010x}' for v in vals]}"
-        )
-
-@cocotb.test()
-async def rom_limites(dut):
-    """
-    Testa limites de endereço:
-    - menor byte address (0) -> idx 0
-    - maior byte address que ainda indexa a última word: (63<<2)+{0..3} -> idx 63
-    """
-    low = await read_rom(dut, 0)
-    low_again = await read_rom(dut, 3)
-    assert low == low_again, "Endereços 0 e 3 devem mapear para a mesma word (idx 0)."
-
-    top_base = 63 << 2
-    top_vals = [await read_rom(dut, top_base + off) for off in [0, 1, 2, 3]]
-    assert len(set(top_vals)) == 1, "Os quatro bytes finais devem ler a mesma word (idx 63)."

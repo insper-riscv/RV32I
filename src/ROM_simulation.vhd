@@ -9,7 +9,7 @@ entity ROM_simulation is
     dataWidth: natural := 32;
     addrWidth: natural := 32;
     memoryAddrWidth: natural := 9;
-    ROM_FILE: string := "initROM.hex"
+    ROM_FILE: string := "initROM.hex"   -- novo generic
   );
   port (
     addr : in  std_logic_vector (addrWidth-1 downto 0);
@@ -43,7 +43,9 @@ begin
     wait;  -- processo só roda uma vez
   end process;
 
-  localAddress <= addr(memoryAddrWidth+1 downto 2);
+  -- WORD-addressable: 'addr' é interpretado como índice de palavra,
+  -- portanto usamos os bits menos-significativos necessários para indexar memROM.
+  localAddress <= addr(memoryAddrWidth-1 downto 0);
   data <= memROM(to_integer(unsigned(localAddress)));
 
 end architecture;
