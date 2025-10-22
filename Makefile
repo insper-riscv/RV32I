@@ -5,7 +5,7 @@ SHELL := /bin/bash
 
 # Run all tests (no args)
 test:
-	python3 -m tests.python.utils.runner
+	python3 tests/python/runner.py
 
 # Run a single test by name
 # Usage: make run TEST=<test_name>
@@ -13,7 +13,7 @@ run:
 ifndef TEST
 	$(error Usage: make run TEST=<test_name>)
 endif
-	python3 -m tests.python.utils.runner $(TEST)
+	python3 tests/python/runner.py $(TEST)
 
 # Remove generated waveforms
 clean:

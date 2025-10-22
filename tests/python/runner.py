@@ -7,7 +7,7 @@ from cocotb.runner import get_runner, VHDL
 
 def run_cocotb_test(toplevel: str, sources: list, test_module: str, parameters: dict = None):
     tests_root = Path(__file__).resolve().parents[1]
-    repo_root  = Path(__file__).resolve().parents[3]
+    repo_root  = Path(__file__).resolve().parents[2] 
     sys.path.append(str(repo_root))
 
     sim = os.getenv("SIM", "ghdl")
@@ -65,7 +65,7 @@ def run_cocotb_test(toplevel: str, sources: list, test_module: str, parameters: 
 
 if __name__ == "__main__":
     tests_root = Path(__file__).resolve().parents[1]
-    json_path  = tests_root / "tests.json"
+    json_path  = tests_root / "python/tests.json"
 
     try:
         with open(json_path, "r") as f:

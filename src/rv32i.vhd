@@ -58,6 +58,8 @@ architecture behaviour of rv32i is
   signal RAM_out : std_logic_vector(31 downto 0);
   
   signal selMuxPc4ALU_ext : std_logic_vector(1 downto 0);
+
+  signal addr_word : std_logic_vector(31 downto 0);
   
   
 
@@ -78,23 +80,33 @@ begin
 			destination => PC_out
 	);
 
-	rom_choice : if SIMULATION generate
-	ROM : entity work.ROM_simulation
-		generic map (ROM_FILE => ROM_FILE)   -- repassa o generic do top para a ROM
-		port map (
-			addr => PC_out,
-			data => ROM_out
-		);
-	end generate rom_choice;
+	-- rom_choice : if SIMULATION generate
+	-- ROM : entity work.ROM_simulation
+	-- 	generic map (ROM_FILE => ROM_FILE)   -- repassa o generic do top para a ROM
+	-- 	port map (
+	-- 		addr => PC_out,
+	-- 		data => ROM_out
+	-- 	);
+	-- end generate rom_choice;
 
-	rom_choice_synth : if not SIMULATION generate
+	-- rom_choice_synth : if not SIMULATION generate
+	-- ROM : entity work.ROM_simulation
+	-- 	generic map (ROM_FILE => ROM_FILE)   -- repassa o generic do top para a ROM
+	-- 	port map (
+	-- 		addr => PC_out,
+	-- 		data => ROM_out
+	-- 	);
+	-- end generate rom_choice_synth;
+
+	addr_word <= "00" & PC_out(31 downto 2);
+
+
 	ROM : entity work.ROM_simulation
 		generic map (ROM_FILE => ROM_FILE)   -- repassa o generic do top para a ROM
 		port map (
-			addr => PC_out,
+			addr => addr_word,
 			data => ROM_out
 		);
-	end generate rom_choice_synth;
 
 	InstructionDecoder : entity work.InstructionDecoder
 				port map (
