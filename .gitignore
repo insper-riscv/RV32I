@@ -80,6 +80,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+!tests/python/unittests/instructions/codes/build/
 develop-eggs/
 dist/
 downloads/
