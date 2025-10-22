@@ -202,7 +202,7 @@ def _normalize_one_name(arch_isa_dir: Path, one: str) -> str:
     return m[0].stem  # ex.: 'add-01'
 
 def run_archtest_suite(one=None):
-    repo_root    = Path(__file__).resolve().parents[3]
+    repo_root    = Path(__file__).resolve().parents[2]
     arch_env_dir = (repo_root / "tests/third_party/riscv-arch-test/riscv-test-suite/env").resolve()
     arch_isa_dir = (repo_root / "tests/third_party/riscv-arch-test/riscv-test-suite/rv32i_m/I/src").resolve()
     arch_glue_dir = (repo_root / "tests/third_party/archtest-utils").resolve()
@@ -216,7 +216,7 @@ def run_archtest_suite(one=None):
         "src/ALU.vhd",
         "src/RegFile.vhd",
         "src/RAM.vhd",
-        "src/ROM_cocotb.vhd",
+        "src/ROM_simulation.vhd",
         "src/InstructionDecoder.vhd",
         "src/ExtenderImm.vhd",
         "src/ExtenderRAM.vhd",
@@ -239,7 +239,7 @@ def run_archtest_suite(one=None):
 
     passed = failed = 0
     for t in tests:
-        print(f"\n============ COMPLIANCE: {t} ============")
+        print(f"\n=================== COMPLIANCE: {t} ===================")
         meta = build_archtest_one(
             repo_root,
             t,
@@ -302,7 +302,7 @@ if __name__ == "__main__":
                 print(f"{'-'*20} TESTE {name.upper()} FINALIZADO COM SUCESSO {'-'*20}")
             except Exception as e:
                 print(f"[ERRO] O teste '{name}' falhou: {e}")
-        print("\n=== Iniciando COMPLIANCE (rv32i_m) ===")
+        print("\n{'='*10} Iniciando COMPLIANCE (rv32i_m) {'='*10}")
         run_archtest_suite(one=arch_one)
         print(f"{'-'*20} TESTE COMPLIANCE FINALIZADO COM SUCESSO {'-'*20}")
         print("\nTodos os testes foram executados.")
