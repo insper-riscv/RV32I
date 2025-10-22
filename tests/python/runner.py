@@ -24,9 +24,9 @@ def run_cocotb_test(toplevel: str, sources: list, test_module: str, parameters: 
 
     if group == "instructions":
         test_name = test_module.split(".")[-2]
-        build_dir = tests_root / "sim_build" / group / test_name
+        build_dir = tests_root / "python/sim_build" / group / test_name
     else:
-        build_dir = tests_root / "sim_build" / group / toplevel
+        build_dir = tests_root / "python/sim_build" / group / toplevel
     build_dir.mkdir(parents=True, exist_ok=True)
 
     if parameters:
