@@ -54,9 +54,9 @@
   "test_module": "tests.python.unittests.entities.StoreManager"
   },
   "ROM": {
-    "toplevel": "rom",
+    "toplevel": "rom_simulation",
     "sources": [
-      "src/ROM_cocotb.vhd"
+      "src/ROM_simulation.vhd"
     ],
     "test_module": "tests.python.unittests.entities.ROM",
     "parameters": {
@@ -70,7 +70,7 @@
       "src/ALU.vhd",
       "src/RegFile.vhd",
       "src/RAM.vhd",
-      "src/ROM_cocotb.vhd",
+      "src/ROM_simulation.vhd",
       "src/InstructionDecoder.vhd",
       "src/ExtenderImm.vhd",
       "src/ExtenderRAM.vhd",
@@ -82,9 +82,10 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.unittests.instructions.one.one",
+    "test_module": "tests.python.unittests.instructions.one",
     "parameters": {
-      "ROM_FILE": "tests/python/unittests/instructions/one/one.hex"
+      "SIMULATION" : true,
+      "ROM_FILE": "tests/python/unittests/instructions/codes/build/one.hex"
     }
   },
   "two": {
@@ -94,7 +95,7 @@
       "src/ALU.vhd",
       "src/RegFile.vhd",
       "src/RAM.vhd",
-      "src/ROM_cocotb.vhd",
+      "src/ROM_simulation.vhd",
       "src/InstructionDecoder.vhd",
       "src/ExtenderImm.vhd",
       "src/ExtenderRAM.vhd",
@@ -106,9 +107,10 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.unittests.instructions.two.two",
+    "test_module": "tests.python.unittests.instructions.two",
     "parameters": {
-      "ROM_FILE": "tests/python/unittests/instructions/two/two.hex"
+      "SIMULATION" : true,
+      "ROM_FILE": "tests/python/unittests/instructions/codes/build/two.hex"
     }
   },
   "three": {
@@ -118,7 +120,7 @@
       "src/ALU.vhd",
       "src/RegFile.vhd",
       "src/RAM.vhd",
-      "src/ROM_cocotb.vhd",
+      "src/ROM_simulation.vhd",
       "src/InstructionDecoder.vhd",
       "src/ExtenderImm.vhd",
       "src/ExtenderRAM.vhd",
@@ -130,9 +132,10 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.unittests.instructions.three.three",
+    "test_module": "tests.python.unittests.instructions.three",
     "parameters": {
-      "ROM_FILE": "tests/python/unittests/instructions/three/three.hex"
+      "SIMULATION" : true,
+      "ROM_FILE": "tests/python/unittests/instructions/codes/build/three.hex"
     }
   },
   "four": {
@@ -142,7 +145,7 @@
       "src/ALU.vhd",
       "src/RegFile.vhd",
       "src/RAM.vhd",
-      "src/ROM_cocotb.vhd",
+      "src/ROM_simulation.vhd",
       "src/InstructionDecoder.vhd",
       "src/ExtenderImm.vhd",
       "src/ExtenderRAM.vhd",
@@ -154,9 +157,10 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.unittests.instructions.four.four",
+    "test_module": "tests.python.unittests.instructions.four",
     "parameters": {
-      "ROM_FILE": "tests/python/unittests/instructions/four/four.hex"
+      "SIMULATION" : true,
+      "ROM_FILE": "tests/python/unittests/instructions/codes/build/four.hex"
     }
   },
   "five": {
@@ -166,7 +170,7 @@
       "src/ALU.vhd",
       "src/RegFile.vhd",
       "src/RAM.vhd",
-      "src/ROM_cocotb.vhd",
+      "src/ROM_simulation.vhd",
       "src/InstructionDecoder.vhd",
       "src/ExtenderImm.vhd",
       "src/ExtenderRAM.vhd",
@@ -178,9 +182,10 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.unittests.instructions.five.five",
+    "test_module": "tests.python.unittests.instructions.five",
     "parameters": {
-      "ROM_FILE": "tests/python/unittests/instructions/five/five.hex"
+      "SIMULATION" : true,
+      "ROM_FILE": "tests/python/unittests/instructions/codes/build/five.hex"
     }
   },
   "six": {
@@ -190,7 +195,7 @@
       "src/ALU.vhd",
       "src/RegFile.vhd",
       "src/RAM.vhd",
-      "src/ROM_cocotb.vhd",
+      "src/ROM_simulation.vhd",
       "src/InstructionDecoder.vhd",
       "src/ExtenderImm.vhd",
       "src/ExtenderRAM.vhd",
@@ -202,9 +207,10 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.unittests.instructions.six.six",
+    "test_module": "tests.python.unittests.instructions.six",
     "parameters": {
-      "ROM_FILE": "tests/python/unittests/instructions/six/six.hex"
+      "SIMULATION" : true,
+      "ROM_FILE": "tests/python/unittests/instructions/codes/build/six.hex"
     }
   }
 }

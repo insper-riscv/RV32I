@@ -70,15 +70,15 @@ Run with the virtual environment active, from the **root of the repo**:
 * **All tests** in the catalog:
 
   ```bash
-  python3 tests/python/utils/runner.py
+  python3 tests/python/runner.py
   # or
-  python3 tests/python/utils/runner.py all
+  python3 tests/python/runner.py all
   ```
 
 * **A specific test**:
 
   ```bash
-  python3 tests/python/utils/runner.py my_module
+  python3 tests/python/runner.py my_module
   ```
 
 Output (per test):  

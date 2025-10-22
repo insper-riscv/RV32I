@@ -38,7 +38,7 @@ def run_cocotb_test(
     build_suffix: str | None = None,
 ):
     tests_root = Path(__file__).resolve().parents[1]
-    repo_root  = Path(__file__).resolve().parents[3]
+    repo_root  = Path(__file__).resolve().parents[2] 
     sys.path.append(str(repo_root))
 
     sim = os.getenv("SIM", "ghdl")
@@ -60,14 +60,30 @@ def run_cocotb_test(
 
     if group == "instructions":
         test_name = test_module.split(".")[-2]
-        build_dir = tests_root / "sim_build" / group / test_name
+        build_dir = tests_root / "python/sim_build" / group / test_name
     else:
-        base = toplevel if build_suffix is None else f"{toplevel}_{build_suffix}"
-        build_dir = tests_root / "sim_build" / group / base
+        build_dir = tests_root / "python/sim_build" / group / toplevel
     build_dir.mkdir(parents=True, exist_ok=True)
 
     if parameters:
-        parameters = {k: str(Path(v).resolve()) for k, v in parameters.items()}
+        abs_params = {}
+        for k, v in parameters.items():
+            if isinstance(v, bool):
+                abs_params[k] = "true" if v else "false"
+            else:
+                # tenta resolver como caminho absoluto relativo ao ambiente atual
+                vpath = Path(v)
+                if vpath.exists():
+                    abs_params[k] = str(vpath.resolve())
+                else:
+                    # se não existe no cwd atual, tente relative ao repo_root
+                    candidate = repo_root / v
+                    if candidate.exists():
+                        abs_params[k] = str(candidate.resolve())
+                    else:
+                        # fallback: mantenha o original (para flags não-caminho)
+                        abs_params[k] = str(v)
+        parameters = abs_params
 
     runner.build(
         vhdl_sources=vhdl_sources,
@@ -257,7 +273,7 @@ def run_archtest_suite(one=None):
 # ------------------------------ main ------------------------------
 if __name__ == "__main__":
     tests_root = Path(__file__).resolve().parents[1]
-    json_path  = tests_root / "tests.json"
+    json_path  = tests_root / "python/tests.json"
 
     try:
         with open(json_path, "r") as f:

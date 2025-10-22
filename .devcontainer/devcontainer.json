@@ -1,53 +1,34 @@
 {
-  "name": "riscv-core (cocotb+ghdl)",
-  "build": { "dockerfile": "Dockerfile", "context": ".." },
+  "name": "riscv-core",
+  "image": "ghcr.io/pedropcventura/riscv-dev_tools:dev",
 
-  // Use the non-root user created in the Dockerfile
+  // Use the non-root user created in the image
   "remoteUser": "dev",
 
-  // Mount your repo into /work inside the container
+  // Folder mapping: mount local project to /work
   "workspaceFolder": "/work",
   "workspaceMount": "source=${localWorkspaceFolder},target=/work,type=bind,consistency=cached",
 
+  // Optional: GUI waveform viewer support (can remove if unused)
+  "containerEnv": {
+    "DISPLAY": "host.docker.internal:0"
+  },
+  "runArgs": [
+    "-e", "DISPLAY=host.docker.internal:0"
+  ],
+
+  // Optional feature: allows this devcontainer to run other Docker commands
+  // (needed only if you'll later use Quartus or any sidecar container)
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+
+  // Simple command to confirm environment on first startup
+  "postCreateCommand": "python3 -m pip list",
+
+  // Recommend essential VSCode extensions (auto-suggests to the user)
   "customizations": {
     "vscode": {
-      "settings": {
-        // --- VHDL ergonomics (from your friend) ---
-        "[vhdl]": {
-          "editor.defaultFormatter": "teros-technology.teroshdl"
-        },
-        "explorer.fileNesting.enabled": true,
-        "explorer.fileNesting.patterns": {
-          "*.vhd": "${capture}_*.vhd",
-          "*S.vhd": "${capture}_*.vhd",
-          "*_package.py": "${capture}_*.py",
-          "*S_package.py": "${capture}_*.py"
-        },
-
-        // Optional icon theme associations (works if you install that icon theme)
-        "material-icon-theme.folders.associations": {
-          "quartus": "tools",
-          "sim_build": "temp",
-          "src": "core"
-        },
-        "material-icon-theme.files.associations": {
-          "*.py": "test-jsx",
-          "config.yml": "settings",
-          "top_level.qsf": "3d"
-        },
-
-        // Python analysis & optional pytest UI discovery
-        "python.analysis.autoImportCompletions": true,
-        "python.analysis.typeCheckingMode": "standard",
-
-        // If you later expose pytest tests, VSCode's Test UI can discover them.
-        // For now your entrypoint is `make test`, so this is optional.
-        "python.testing.pytestEnabled": true,
-        "python.testing.unittestEnabled": false,
-        "python.testing.pytestArgs": [
-          "tests"
-        ]
-      },
       "extensions": [
         "ms-python.python",
         "ms-python.vscode-pylance",
@@ -56,8 +37,5 @@
         "ms-python.black-formatter"
       ]
     }
-  },
-
-  // After container is created, show pip list (quick sanity)
-  "postCreateCommand": "python3 -m pip list"
+  }
 }

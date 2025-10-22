@@ -25,7 +25,7 @@ begin
     --! Durante a borda de subida de `clock`, caso `enable` esteja habilitado,
     --! atribui `source` a `destination` se `clear` não estiver habilitado, caso
     --! contrário atribui vetor baixo a `destination`.
-    UPDATE : process(clock)
+    UPDATE : process(clock, clear)
     begin
         if clear = '1' then
                 destination <= (others => '0');
