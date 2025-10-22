@@ -304,6 +304,7 @@ if __name__ == "__main__":
                 print(f"[ERRO] O teste '{name}' falhou: {e}")
         print("\n=== Iniciando COMPLIANCE (rv32i_m) ===")
         run_archtest_suite(one=arch_one)
+        print(f"{'-'*20} TESTE COMPLIANCE FINALIZADO COM SUCESSO {'-'*20}")
         print("\nTodos os testes foram executados.")
 
     elif args.test_name == "compliance":
