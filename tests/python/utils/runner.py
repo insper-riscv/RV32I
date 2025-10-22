@@ -219,7 +219,7 @@ def run_archtest_suite(one=None):
         tests = [Path(p).stem for p in glob.glob(str(arch_isa_dir / "*.S"))]
         tests.sort()
 
-    test_module = "tests.python.cocotb.archtest.test_archtest"
+    test_module = "tests.python.unittests.archtest.test_archtest"
 
     passed = failed = 0
     for t in tests:

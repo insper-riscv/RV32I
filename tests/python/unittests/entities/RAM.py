@@ -138,3 +138,57 @@ async def overwrite(dut):
     await write_word(dut, 0, second, 0b1111)
     got2 = await read_word(dut, 0)
     assert got2 == second
+
+# ==== Helpers para o archtest (backdoor read) ==========================
+# O test_archtest.py procura por read32 / read_mem_range aqui.
+
+def _get_mem_signal(dut):
+    """
+    Retorna o array da RAM (std_logic_vector array) em ambos os cenários:
+    - Teste de entidade:    dut é a RAM  -> usar dut.mem
+    - Teste do topo (CPU):  dut é rv32i  -> usar dut.RAM.mem
+    """
+    # 1) Caso o próprio dut seja a RAM
+    if hasattr(dut, "mem"):
+        return dut.mem
+    # 2) Caso a RAM esteja instanciada no topo como 'RAM'
+    if hasattr(dut, "RAM") and hasattr(dut.RAM, "mem"):
+        return dut.RAM.mem
+    raise RuntimeError(
+        "Não achei o array de memória. "
+        "Confirme o nome da instância (RAM) e do sinal interno (mem)."
+    )
+
+async def read32(dut, addr: int) -> int:
+    """
+    Lê 32 bits (little-endian) do endereço 'addr' (em bytes).
+    Sua RAM é indexada por palavra, então usamos addr >> 2.
+    """
+    mem = _get_mem_signal(dut)
+    widx = addr >> 2
+    depth = len(mem)
+    if widx < 0 or widx >= depth:
+        raise RuntimeError(
+            f"Endereço fora da RAM: addr=0x{addr:08x} (index={widx}, depth={depth})"
+        )
+    return int(mem[widx].value)
+
+async def read_mem_range(dut, start: int, length: int) -> bytes:
+    """
+    Lê 'length' bytes a partir de 'start' via backdoor,
+    montando a sequência em little-endian a partir de words de 32 bits.
+    """
+    if length <= 0:
+        return b""
+
+    first = start & ~0x3
+    last  = (start + length + 3) & ~0x3
+    out   = bytearray()
+
+    for addr in range(first, last, 4):
+        w = await read32(dut, addr)
+        out += int(w).to_bytes(4, "little")
+
+    off = start & 0x3
+    return bytes(out[off: off + length])
+# ======================================================================

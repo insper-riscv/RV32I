@@ -41,7 +41,7 @@ Brings together two verification fronts:
 * `tests/FPGA/`: **support Quartus projects** to test **isolated modules** directly on the FPGA (useful for debugging blocks outside the complete processor).
 * `tests/python/`: where the **Cocotb testbenches** (Python), the **runner**, and **simulation artifacts** are located.
 
-  * `cocotb/`: **Python tests** (each file tests a VHDL module/entity).
+  * `unittests/`: **Python tests** (each file tests a VHDL module/entity).
   * `utils/runner.py`: **orchestrates** compilation and simulation (reads the `tests.json` catalog).
   * `tests.json`: **test catalog**, mapping each test to the VHDL *toplevel* and required modules/entities.
   * `sim_build/<toplevel>/`: **simulation output** for the respective *toplevel* test (e.g., `results.xml`, `waves.ghw` to open in GTKWave).

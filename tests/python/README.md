@@ -6,7 +6,7 @@ Here are the **simulation tests** written in **Python** using **Cocotb** and the
 
 ```
 tests/python/
-├── cocotb/           # Python tests (one file per VHDL module)
+├── unittests/           # Python tests (one file per VHDL module)
 │   └── ...           # e.g.: bancoRegistradores.py, examples/and_gate.py, etc.
 ├── utils/
 │   └── runner.py     # script that compiles VHDL + runs tests
@@ -15,19 +15,19 @@ tests/python/
     └── <toplevel>/   # simulation outputs (results.xml, waves.ghw, etc.)
 ```
 
-* **`cocotb/`**: each `.py` contains one or more `@cocotb.test()`.
+* **`unittests/`**: each `.py` contains one or more `@cocotb.test()`.
 * **`tests.json`**: registers *test name* → (*VHDL toplevel*, *VHDL files*, *Python module*).
 * **`sim_build/<toplevel>/`**: simulation output; this is where `waves.ghw` is generated.
 
 
 ## Creating a new test
 
-### 1) Write the testbench in `cocotb/`
+### 1) Write the testbench in `unittests/`
 
-Create `tests/python/cocotb/my_module.py`:
+Create `tests/python/unittests/my_module.py`:
 
 ```python
-# tests/python/cocotb/my_module.py
+# tests/python/unittests/my_module.py
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
@@ -50,7 +50,7 @@ Open `tests/python/tests.json` and add a block:
       "src/DependencyB.vhd",
       "src/MyEntity.vhd"
     ],
-    "test_module": "tests.python.cocotb.my_module"          
+    "test_module": "tests.python.unittests.my_module"          
   }
 }
 ```
@@ -61,7 +61,7 @@ Open `tests/python/tests.json` and add a block:
 * `sources`: **all** required `.vhd` files (the entity + dependencies).
 
   > Use paths **relative to the repository root** (e.g.: `src/...`).
-* `test_module`: Python path to the file, relative to the project root, separated by dots (e.g.: `tests.python.cocotb.my_module`).
+* `test_module`: Python path to the file, relative to the project root, separated by dots (e.g.: `tests.python.unittests.my_module`).
 
 ## Running
 

@@ -5,7 +5,7 @@
       "src/genericRegister.vhd",
       "src/RegFile.vhd"
     ],
-    "test_module": "tests.python.cocotb.entities.bancoRegistradores"
+    "test_module": "tests.python.unittests.entities.bancoRegistradores"
   },
   "ALU": {
     "toplevel": "alu",
@@ -13,7 +13,7 @@
       "src/rv32i_ctrl_consts.vhd",
       "src/ALU.vhd"
     ],
-    "test_module": "tests.python.cocotb.entities.ALU"
+    "test_module": "tests.python.unittests.entities.ALU"
   },
   "InstructionDecoder": {
     "toplevel": "instructiondecoder",
@@ -21,14 +21,14 @@
     "src/rv32i_ctrl_consts.vhd",
       "src/InstructionDecoder.vhd"
     ],
-    "test_module": "tests.python.cocotb.entities.instructionDecoder"
+    "test_module": "tests.python.unittests.entities.instructionDecoder"
   },
   "RAM": {
     "toplevel": "ram",
     "sources": [
     "src/RAM.vhd"
     ],
-    "test_module": "tests.python.cocotb.entities.RAM"
+    "test_module": "tests.python.unittests.entities.RAM"
   },
   "ExtenderRAM": {
     "toplevel": "extenderram",
@@ -36,7 +36,7 @@
       "src/rv32i_ctrl_consts.vhd",
       "src/ExtenderRAM.vhd"
     ],
-    "test_module": "tests.python.cocotb.entities.ExtenderRAM"
+    "test_module": "tests.python.unittests.entities.ExtenderRAM"
   },
   "ExtenderImm": {
     "toplevel": "extenderimm",
@@ -44,23 +44,23 @@
       "src/rv32i_ctrl_consts.vhd",
       "src/ExtenderImm.vhd"
     ],
-  "test_module": "tests.python.cocotb.entities.ExtenderImm"
+  "test_module": "tests.python.unittests.entities.ExtenderImm"
   },
   "StoreManager": {
     "toplevel": "storemanager",
     "sources": [
       "src/StoreManager.vhd"
     ],
-  "test_module": "tests.python.cocotb.entities.StoreManager"
+  "test_module": "tests.python.unittests.entities.StoreManager"
   },
   "ROM": {
     "toplevel": "rom",
     "sources": [
       "src/ROM_cocotb.vhd"
     ],
-    "test_module": "tests.python.cocotb.entities.ROM",
+    "test_module": "tests.python.unittests.entities.ROM",
     "parameters": {
-      "ROM_FILE": "tests/python/cocotb/entities/data/testROM.hex"
+      "ROM_FILE": "tests/python/unittests/entities/data/testROM.hex"
     }
   },
   "one": {
@@ -82,9 +82,9 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.cocotb.instructions.one.one",
+    "test_module": "tests.python.unittests.instructions.one.one",
     "parameters": {
-      "ROM_FILE": "tests/python/cocotb/instructions/one/one.hex"
+      "ROM_FILE": "tests/python/unittests/instructions/one/one.hex"
     }
   },
   "two": {
@@ -106,9 +106,9 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.cocotb.instructions.two.two",
+    "test_module": "tests.python.unittests.instructions.two.two",
     "parameters": {
-      "ROM_FILE": "tests/python/cocotb/instructions/two/two.hex"
+      "ROM_FILE": "tests/python/unittests/instructions/two/two.hex"
     }
   },
   "three": {
@@ -130,9 +130,9 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.cocotb.instructions.three.three",
+    "test_module": "tests.python.unittests.instructions.three.three",
     "parameters": {
-      "ROM_FILE": "tests/python/cocotb/instructions/three/three.hex"
+      "ROM_FILE": "tests/python/unittests/instructions/three/three.hex"
     }
   },
   "four": {
@@ -154,9 +154,9 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.cocotb.instructions.four.four",
+    "test_module": "tests.python.unittests.instructions.four.four",
     "parameters": {
-      "ROM_FILE": "tests/python/cocotb/instructions/four/four.hex"
+      "ROM_FILE": "tests/python/unittests/instructions/four/four.hex"
     }
   },
   "five": {
@@ -178,9 +178,9 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.cocotb.instructions.five.five",
+    "test_module": "tests.python.unittests.instructions.five.five",
     "parameters": {
-      "ROM_FILE": "tests/python/cocotb/instructions/five/five.hex"
+      "ROM_FILE": "tests/python/unittests/instructions/five/five.hex"
     }
   },
   "six": {
@@ -202,9 +202,9 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.cocotb.instructions.six.six",
+    "test_module": "tests.python.unittests.instructions.six.six",
     "parameters": {
-      "ROM_FILE": "tests/python/cocotb/instructions/six/six.hex"
+      "ROM_FILE": "tests/python/unittests/instructions/six/six.hex"
     }
   }
 }

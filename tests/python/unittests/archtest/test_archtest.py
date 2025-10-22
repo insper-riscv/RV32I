@@ -14,9 +14,9 @@ POST_HIT_WAIT   = int(os.getenv("ARCHTEST_POST_HIT_WAIT", "2"))   # ciclos extra
 def _try_import_helpers():
     helpers = {}
     for modpath in [
-        "tests.python.cocotb.entities.utils",
-        "tests.python.cocotb.entities.RAM",
-        "tests.python.cocotb.entities.ROM",
+        "tests.python.unittests.entities.utils",
+        "tests.python.unittests.entities.RAM",
+        "tests.python.unittests.entities.ROM",
     ]:
         try:
             mod = __import__(modpath, fromlist=["*"])
