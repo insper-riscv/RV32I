@@ -82,10 +82,10 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.unittests.instructions.one.one",
+    "test_module": "tests.python.unittests.instructions.one",
     "parameters": {
       "SIMULATION" : true,
-      "ROM_FILE": "tests/python/unittests/instructions/one/one.hex"
+      "ROM_FILE": "tests/python/unittests/instructions/codes/build/one.hex"
     }
   },
   "two": {
@@ -107,10 +107,10 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.unittests.instructions.two.two",
+    "test_module": "tests.python.unittests.instructions.two",
     "parameters": {
       "SIMULATION" : true,
-      "ROM_FILE": "tests/python/unittests/instructions/two/two.hex"
+      "ROM_FILE": "tests/python/unittests/instructions/codes/build/two.hex"
     }
   },
   "three": {
@@ -132,10 +132,10 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.unittests.instructions.three.three",
+    "test_module": "tests.python.unittests.instructions.three",
     "parameters": {
       "SIMULATION" : true,
-      "ROM_FILE": "tests/python/unittests/instructions/three/three.hex"
+      "ROM_FILE": "tests/python/unittests/instructions/codes/build/three.hex"
     }
   },
   "four": {
@@ -157,10 +157,10 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.unittests.instructions.four.four",
+    "test_module": "tests.python.unittests.instructions.four",
     "parameters": {
       "SIMULATION" : true,
-      "ROM_FILE": "tests/python/unittests/instructions/four/four.hex"
+      "ROM_FILE": "tests/python/unittests/instructions/codes/build/four.hex"
     }
   },
   "five": {
@@ -182,10 +182,10 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.unittests.instructions.five.five",
+    "test_module": "tests.python.unittests.instructions.five",
     "parameters": {
       "SIMULATION" : true,
-      "ROM_FILE": "tests/python/unittests/instructions/five/five.hex"
+      "ROM_FILE": "tests/python/unittests/instructions/codes/build/five.hex"
     }
   },
   "six": {
@@ -207,10 +207,10 @@
       "src/genericRegister.vhd",
       "src/rv32i.vhd"
     ],
-    "test_module": "tests.python.unittests.instructions.six.six",
+    "test_module": "tests.python.unittests.instructions.six",
     "parameters": {
       "SIMULATION" : true,
-      "ROM_FILE": "tests/python/unittests/instructions/six/six.hex"
+      "ROM_FILE": "tests/python/unittests/instructions/codes/build/six.hex"
     }
   }
 }
