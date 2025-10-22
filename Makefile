@@ -1,20 +1,27 @@
-# Make sure /bin/bash is used for the 'find' in clean
 SHELL := /bin/bash
 
-.PHONY: test run clean
+.PHONY: test run clean compliance compliance-one
 
-# Run all tests (no args)
+RISCV_PREFIX := $(abspath toolchain/xpack-riscv-none-elf-gcc-14.2.0-3/bin/riscv-none-elf-)
+export RISCV_PREFIX
+
 test:
-	python3 -m tests.python.utils.runner
+	python3 tests/python/utils/runner.py all
 
-# Run a single test by name
-# Usage: make run TEST=<test_name>
 run:
 ifndef TEST
-	$(error Usage: make run TEST=<test_name>)
+	$(error Use: make run TEST=<test_name>)
 endif
-	python3 -m tests.python.utils.runner $(TEST)
+	python3 tests/python/utils/runner.py $(TEST)
 
-# Remove generated waveforms
+compliance:
+	python3 tests/python/utils/runner.py compliance
+
+compliance-one:
+ifndef TEST
+	$(error Use: make compliance-one TEST=<add|sub|and|...>)
+endif
+	python3 tests/python/utils/runner.py compliance $(TEST)
+
 clean:
-	find . -type f \( -name '*.vcd' -o -name '*.ghw' \) -print -delete
+	rm -rf build/archtest tests/python/sim_build
