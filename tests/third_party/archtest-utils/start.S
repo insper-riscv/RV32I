@@ -8,7 +8,14 @@ RVTEST_CODE_BEGIN:
 
     .globl RVTEST_CODE_END
 RVTEST_CODE_END:
-1:  j 1b
+    .option push
+    .option norvc
+    lui  t0, %hi(tohost)
+    addi t0, t0, %lo(tohost)
+    li   t1, 1
+    sw   t1, 0(t0)
+1:  j    1b
+    .option pop
 
     .section .signature,"aw",@progbits
     .globl begin_signature

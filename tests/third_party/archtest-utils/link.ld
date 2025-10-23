@@ -12,6 +12,11 @@ SECTIONS {
   .data : { *(.data .data.* .sdata .sdata.*) } > RAM AT> ROM
   .bss (NOLOAD) : { *(.bss .bss.* .sbss .sbss.*) *(COMMON) } > RAM
 
+  .tohost (NOLOAD) : {
+    PROVIDE(tohost = .);
+    . = . + 4;
+  } > RAM
+
   .signature ALIGN(16) : {
     PROVIDE(begin_signature = .);
     *(.test_signature)

@@ -1,7 +1,10 @@
-import os, sys, json, argparse, subprocess, shlex, glob
+import os, sys, json, argparse, subprocess, shlex, glob, shutil
 from pathlib import Path
 from cocotb.runner import get_runner, VHDL
 from xml.etree import ElementTree as ET
+
+PLUSARGS_ENV = os.getenv("COCOTB_PLUSARGS", "")
+plusargs = [a for a in PLUSARGS_ENV.split() if a.strip()]
 
 def _sh(cmd, cwd=None):
     r = subprocess.run(shlex.split(cmd), cwd=cwd, capture_output=True, text=True)
@@ -11,10 +14,29 @@ def _sh(cmd, cwd=None):
 
 def _junit_fail_error_counts(xml_path: Path) -> tuple[int, int]:
     if not xml_path.exists():
-        return 0, 1  # considere erro se não gerou xml
+        # Se não gerou XML, considere 1 erro (para marcar FAIL no agregador)
+        return 0, 1
+
     root = ET.parse(xml_path).getroot()
-    def gi(n, k): return int(n.attrib.get(k, "0"))
-    failures = errors = 0
+
+    failures = 0
+    errors = 0
+
+    # Conta em todos os <testcase>
+    for tc in root.findall(".//testcase"):
+        if tc.find("failure") is not None:
+            failures += 1
+        if tc.find("error") is not None:
+            errors += 1
+
+    # Ainda tenta pegar atributos agregados, caso existam:
+    def gi(n, k): 
+        try:
+            return int(n.attrib.get(k, "0"))
+        except Exception:
+            return 0
+
+    # Soma (sem duplicar) — se os attrs faltarem, isso adiciona 0.
     if root.tag == "testsuite":
         failures += gi(root, "failures")
         errors   += gi(root, "errors")
@@ -22,11 +44,7 @@ def _junit_fail_error_counts(xml_path: Path) -> tuple[int, int]:
         for ts in root.findall("testsuite"):
             failures += gi(ts, "failures")
             errors   += gi(ts, "errors")
-    else:
-        # fallback: conta <testcase> com <failure>/<error>
-        for tc in root.findall(".//testcase"):
-            if tc.find("failure") is not None: failures += 1
-            if tc.find("error")   is not None: errors   += 1
+
     return failures, errors
 
 def run_cocotb_test(
@@ -85,17 +103,34 @@ def run_cocotb_test(
                         abs_params[k] = str(v)
         parameters = abs_params
 
+    if build_dir.exists():
+        shutil.rmtree(build_dir)
+    build_dir.mkdir(parents=True, exist_ok=True)
+
     runner.build(
         vhdl_sources=vhdl_sources,
         hdl_toplevel=toplevel,
         always=True,
         build_dir=build_dir,
-        build_args=[VHDL("--std=08")],
+        build_args=[VHDL("--std=08"), VHDL("--work=top")],
         parameters=parameters or {},
     )
 
-    wave_file = build_dir / "waves.ghw"
-    plusargs = [f"--wave={wave_file}"]
+    # --- SANITIZAÇÃO DE AMBIENTE / WAVES ---
+    _base_env = {} if extra_env is None else dict(extra_env)
+
+    # Remova gatilhos de VCD/waves do shell e do env do filho
+    _block = [
+        "WAVES", "GHDL_DUMP_VCD", "GHDL_DUMP_FST", "GHDL_DUMP_GHW",
+        "COCOTB_VCD_FILE", "COCOTB_WAVEFORM", "COCOTB_WAVES",
+        "GHDL_TRACE_FORMAT", "TRACEFILE", "TRACE_FILE",
+    ]
+    for k in _block:
+        os.environ.pop(k, None)
+        _base_env.pop(k, None)
+
+    # Por padrão, rode sem waveform (estável)
+    _base_env["WAVES"] = "0"    
 
     runner.test(
         hdl_toplevel=toplevel,
@@ -103,15 +138,19 @@ def run_cocotb_test(
         test_module=test_module,
         build_dir=build_dir,
         plusargs=plusargs,
-        test_args=["--std=08"],
-        extra_env=extra_env or {},
+        test_args=["--std=08","--work=top"],
+        extra_env=_base_env,
     )
 
     results = build_dir / "results.xml"
     failures, errors = _junit_fail_error_counts(results)
 
-    print(f"Waves: {wave_file} (gerado)")
-    return failures, errors, build_dir
+    wave = build_dir / "waves.fst"
+    if wave.exists():
+        print(f"Waves: {wave} (gerado)")
+
+    ok = (failures == 0 and errors == 0)
+    return ok, failures, errors, build_dir
 
 # -------------------- build de 1 teste --------------------
 def build_archtest_one(repo_root, test_name, arch_env_dir, arch_isa_dir, arch_glue_dir, arch_out_dir, riscv_prefix):
@@ -252,7 +291,7 @@ def run_archtest_suite(one=None):
         hex_path = meta["hex"]
         extra_env = {"ARCHTEST_META": json.dumps(meta)}
         try:
-            failures, errors, _ = run_cocotb_test(
+            ok, failures, errors, _ = run_cocotb_test(
                 toplevel=TOPLEVEL,
                 sources=SOURCES,
                 test_module=test_module,
@@ -260,13 +299,15 @@ def run_archtest_suite(one=None):
                 extra_env=extra_env,
                 build_suffix=f"arch_{t}",
             )
-            if failures or errors:
-                failed += 1
-            else:
+            if ok:
                 passed += 1
+                print(f"[PASS {t}]")
+            else:
+                failed += 1
+                print(f"[FAIL {t}] junit: failures={failures} errors={errors}")
         except Exception as e:
-            print(f"[FAIL {t}] {e}")
             failed += 1
+            print(f"[FAIL {t}] exception: {e}")
 
     print(f"\nCompliance RV32I_m: PASS={passed} FAIL={failed} TOTAL={passed+failed}")
 

@@ -15,7 +15,7 @@ entity rv32i is
 	 --LEDR : out std_logic_vector(9 downto 0);
 	 --FPGA_RESET_N : in std_logic
   );
-end entity;
+end entity rv32i;
 
 architecture behaviour of rv32i is
 
