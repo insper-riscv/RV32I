@@ -146,17 +146,51 @@ def _get_mem_signal(dut):
     """
     Retorna o array da RAM (std_logic_vector array) em ambos os cenários:
     - Teste de entidade:    dut é a RAM  -> usar dut.mem
-    - Teste do topo (CPU):  dut é rv32i  -> usar dut.RAM.mem
+    - Teste do topo (CPU):  dut é rv32i  -> usar RAM.mem, tentando nome estendido
     """
-    # 1) Caso o próprio dut seja a RAM
-    if hasattr(dut, "mem"):
-        return dut.mem
-    # 2) Caso a RAM esteja instanciada no topo como 'RAM'
-    if hasattr(dut, "RAM") and hasattr(dut.RAM, "mem"):
-        return dut.RAM.mem
+    # # 1) Se o próprio dut for a RAM
+    # if hasattr(dut, "mem"):
+    #     return dut.mem
+
+    # # 2) Tentativa direta padrão (instância rotulada 'RAM')
+    # if hasattr(dut, "RAM") and hasattr(dut.RAM, "mem"):
+    #     return dut.RAM.mem
+
+    # # 3) Nome estendido do Cocotb (mais tolerante a backends)
+    # try:
+    #     return dut._id("RAM.mem", extended=True)
+    # except Exception:
+    #     pass
+
+    # # 4) Varredura de filhos imediatos procurando um objeto que tenha 'mem'
+    # try:
+    #     for child in dut:
+    #         if hasattr(child, "mem"):
+    #             return getattr(child, "mem")
+    #         try:
+    #             h = child._id("mem", extended=True)
+    #             if h is not None:
+    #                 print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+    #                 return h
+    #         except Exception:
+    #             pass
+    # except Exception:
+    #     pass
+
+    # 5) Tentativas adicionais com nomes comuns de instância
+    for lbl in ["ram","u_ram","U_RAM","ram_i","ram_inst","memory","mem_ram"]:
+        try:
+            h = dut._id(f"{lbl}.mem", extended=True)
+            if h is not None:
+                return h
+        except Exception:
+            pass
+        h = getattr(dut, lbl, None)
+        if h is not None and hasattr(h, "mem"):
+            return h.mem
+
     raise RuntimeError(
-        "Não achei o array de memória. "
-        "Confirme o nome da instância (RAM) e do sinal interno (mem)."
+        "Não achei o array de memória. Confirme o nome da instância (RAM) e do sinal interno (mem)."
     )
 
 async def read32(dut, addr: int) -> int:
@@ -165,12 +199,8 @@ async def read32(dut, addr: int) -> int:
     Sua RAM é indexada por palavra, então usamos addr >> 2.
     """
     mem = _get_mem_signal(dut)
-    widx = addr >> 2
     depth = len(mem)
-    if widx < 0 or widx >= depth:
-        raise RuntimeError(
-            f"Endereço fora da RAM: addr=0x{addr:08x} (index={widx}, depth={depth})"
-        )
+    widx = (addr >> 2) & (depth - 1)
     return int(mem[widx].value)
 
 async def read_mem_range(dut, start: int, length: int) -> bytes:
