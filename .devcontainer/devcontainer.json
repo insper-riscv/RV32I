@@ -1,6 +1,6 @@
 {
   "name": "riscv-core",
-  "image": "ghcr.io/pedropcventura/riscv-dev_tools:dev",
+  "image": "ghcr.io/pedropcventura/riscv-dev_tools:yosys-fixed",
 
   // Use the non-root user created in the image
   "remoteUser": "dev",
@@ -24,7 +24,7 @@
   },
 
   // Simple command to confirm environment on first startup
-  "postCreateCommand": "python3 -m pip list",
+  // "postCreateCommand": "sudo apt-get update && (sudo apt-get install -y ghdl ghdl-yosys-plugin || sudo apt-get install -y ghdl yosys-plugin-ghdl) && yosys -m ghdl -p 'help' || true", 
 
   // Recommend essential VSCode extensions (auto-suggests to the user)
   "customizations": {
