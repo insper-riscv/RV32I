@@ -1,183 +1,103 @@
-import os
-import json
-import pathlib
-import cocotb
+import os, json, pathlib, cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 
-# Forçar falha sintética para checar contador/infra
-# para testar, rode com "ARCHTEST_FORCE_FAIL=1 make compliance-one TEST=..." (ou so make compliance com essa var)
 _FORCE_FAIL = os.getenv("ARCHTEST_FORCE_FAIL", "0") == "1"
 
-# ===================== Parâmetros via ambiente =====================
-CLK_PERIOD_NS     = float(os.getenv("ARCHTEST_CLK_NS", "10"))         # 100 MHz
-WATCHDOG_MAX      = int(os.getenv("ARCHTEST_MAX_CYCLES", "200000"))   # timeout de polling
-POST_HIT_WAIT     = int(os.getenv("ARCHTEST_POST_HIT_WAIT", "2"))
-PASS_CODE         = int(os.getenv("ARCHTEST_PASS_CODE", "1"))
-ARCHTEST_WAIT_PC  = os.getenv("ARCHTEST_WAIT_PC", "0") == "1"         # off por padrão
-
-# ===================== Helpers opcionais (RAM/ROM) =====================
-def _try_import_helpers():
-    helpers = {}
-    for modpath in [
-        "tests.python.unittests.entities.utils",
-        "tests.python.unittests.entities.RAM",
-        "tests.python.unittests.entities.ROM",
-    ]:
-        try:
-            mod = __import__(modpath, fromlist=["*"])
-            if hasattr(mod, "load_hex_into_imem"):
-                helpers["load_hex"] = getattr(mod, "load_hex_into_imem")
-            if hasattr(mod, "read_mem_range"):
-                helpers["read_mem_range"] = getattr(mod, "read_mem_range")
-            if hasattr(mod, "read32"):
-                helpers["read_word32"] = getattr(mod, "read32")
-        except Exception:
-            pass
-    return helpers
+CLK_PERIOD_NS = float(os.getenv("ARCHTEST_CLK_NS", "10"))
+WATCHDOG_MAX  = int(os.getenv("ARCHTEST_MAX_CYCLES", "200000"))
+POST_HIT_WAIT = int(os.getenv("ARCHTEST_POST_HIT_WAIT", "2"))
+PASS_CODE     = int(os.getenv("ARCHTEST_PASS_CODE", "1"))
 
 def _detect_clk(dut):
-    return getattr(dut, "clk", None) or getattr(dut, "CLK", None)
-
-def _detect_pc_signal(dut):
-    for name in ["PC_out", "pc", "PC", "pc_q", "pc_reg", "if_pc", "pc_current"]:
+    for name in ("clk","CLK","CLOCK_50"):
         if hasattr(dut, name):
             return getattr(dut, name)
     return None
 
-async def _apply_reset(dut):
-    clk = _detect_clk(dut)
-    rst_n = getattr(dut, "reset_n", None)
-    rst   = getattr(dut, "reset", None)
+def _read32(dut, addr, helpers):
+    if helpers.get("read32"):
+        return helpers["read32"](dut, addr)
+    raise RuntimeError("Sem read32 implementado em helpers; ajuste seu testbench.")
 
-    if rst_n is not None:
-        rst_n.value = 0
-        for _ in range(5 if clk is not None else 0):
-            await RisingEdge(clk)
-        rst_n.value = 1
-        for _ in range(2 if clk is not None else 0):
-            await RisingEdge(clk)
-        if clk is None:
-            await Timer(20, units="ns")
-        return
+def _read_signature_bytes(dut, begin, end, helpers):
+    out = bytearray()
+    addr = begin
+    while addr < end:
+        w = _read32(dut, addr, helpers)
+        out += int(w).to_bytes(4, byteorder="little", signed=False)
+        addr += 4
+    return bytes(out[: max(0, end - begin)])
 
-    if rst is not None:
-        rst.value = 1
-        for _ in range(5 if clk is not None else 0):
-            await RisingEdge(clk)
-        rst.value = 0
-        for _ in range(2 if clk is not None else 0):
-            await RisingEdge(clk)
-        if clk is None:
-            await Timer(20, units="ns")
-        return
+def _save_signature(path, data: bytes):
+    pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "wb") as f:
+        f.write(data)
 
-    # Sem reset explícito
-    if clk is not None:
-        for _ in range(5):
-            await RisingEdge(clk)
-    else:
-        await Timer(100, units="ns")
-
-def _save_signature(out_path: pathlib.Path, data: bytes):
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_bytes(data)
-
-async def _read_signature_bytes(dut, begin, end, helpers) -> bytes:
-    length = end - begin
-    if length <= 0:
-        raise RuntimeError(f"Intervalo inválido: begin=0x{begin:08x}, end=0x{end:08x}")
-    if "read_mem_range" in helpers:
-        return await helpers["read_mem_range"](dut, begin, length)
-    if "read_word32" in helpers:
-        out = bytearray()
-        addr = begin
-        while addr < end:
-            w = await helpers["read_word32"](dut, addr)
-            out += int(w).to_bytes(4, "little")
-            addr += 4
-        return bytes(out[:length])
-    raise RuntimeError("Sem adaptador para ler RAM: implemente read_mem_range/read32.")
-
-# ===================== Teste principal =====================
 @cocotb.test()
 async def archtest_compliance(dut):
-    # Clock
-    clk = _detect_clk(dut)
-    assert clk is not None, "Não achei sinal de clock (clk/CLK) no DUT."
+    clk = _detect_clk(dut); assert clk is not None, "Clock não encontrado (clk/CLK)."
     cocotb.start_soon(Clock(clk, CLK_PERIOD_NS, units="ns").start())
 
-    # Metadados do runner
     try:
         META = json.loads(os.environ["ARCHTEST_META"])
     except KeyError:
         raise RuntimeError("ARCHTEST_META ausente. Rode via runner em modo compliance.")
 
-    hex_path = META["hex"]
     begin_sig = int(META["symbols"]["begin_signature"])
     end_sig   = int(META["symbols"]["end_signature"])
-    rv_end    = META["symbols"]["rvtest_code_end"]
     tohost    = META["symbols"].get("tohost")
     test_name = META["test"]
 
-    if tohost is None:
-        raise AssertionError(
-            "Ambiente sem 'tohost'. Sem reference_output, validar exige 'tohost' definido e escrito pelo firmware."
-        )
+    assert tohost is not None, "Ambiente sem 'tohost' – exigido para validar PASS/FAIL."
 
-    build_root = pathlib.Path(hex_path).resolve().parent
-    out_sig = build_root / f"{test_name}.dut.signature.bin"
+    # helpers do teu TB – adapte se necessário
+    helpers = {}
+    if hasattr(dut, "tohost"):
+        helpers["read32"] = lambda _dut, a: int(getattr(_dut, "RAM").mem[a>>2]) if hasattr(_dut,"RAM") else int(getattr(_dut,"tohost").value)
 
-    helpers = _try_import_helpers()
-
-    # Reset
-    await _apply_reset(dut)
-
-    # (Opcional) Espera por PC==RVTEST_CODE_END
-    pc_sig = _detect_pc_signal(dut)
-    if ARCHTEST_WAIT_PC and (rv_end is not None) and (pc_sig is not None):
-        dut._log.info("Aguardando PC == RVTEST_CODE_END (WAIT_PC=1).")
-        pc_hit = False
-        for cycle in range(WATCHDOG_MAX):
-            await RisingEdge(clk)
-            try:
-                pc_val = int(pc_sig.value)
-            except Exception:
-                pc_val = None
-            if pc_val == rv_end:
-                dut._log.info(
-                    f"PC == RVTEST_CODE_END em {cycle} ciclos; aguardando {POST_HIT_WAIT} ciclo(s) e parando."
-                )
-                for _ in range(POST_HIT_WAIT):
-                    await RisingEdge(clk)
-                pc_hit = True
-                break
-        if not pc_hit:
-            dut._log.warning(f"Watchdog PC ({WATCHDOG_MAX} ciclos) sem bater no RVTEST_CODE_END.")
-    else:
-        dut._log.info("Não aguardando PC==RVTEST_CODE_END (validação por polling em 'tohost').")
-
-    # ===== Polling de 'tohost' até PASS ou timeout =====
+    # aguarda tohost != 0
     got_code = 0
-    for cycle in range(WATCHDOG_MAX):
-        # lê 32 bits em 'tohost'
-        word = await _read_signature_bytes(dut, tohost, tohost + 4, helpers)
-        got_code = int.from_bytes(word, "little")
+    for _ in range(WATCHDOG_MAX):
+        await RisingEdge(clk)
+        got_code = int(getattr(dut, "tohost").value)
         if got_code != 0:
             break
-        await RisingEdge(clk)  # avança um ciclo antes de checar de novo
+    for _ in range(POST_HIT_WAIT):
+        await RisingEdge(clk)
 
-    if got_code == 0:
-        raise AssertionError(f"Timeout aguardando 'tohost' != 0 (WATCHDOG_MAX={WATCHDOG_MAX}).")
-    if got_code != PASS_CODE:
-        raise AssertionError(f"FAIL via .tohost: got=0x{got_code:08x}, expected=0x{PASS_CODE:08x}")
-
+    assert got_code != 0, f"Timeout aguardando 'tohost' (WATCHDOG_MAX={WATCHDOG_MAX})."
+    assert got_code == PASS_CODE, f"FAIL via .tohost: got=0x{got_code:08x} exp=0x{PASS_CODE:08x}"
     if _FORCE_FAIL:
-        raise AssertionError("FAIL forçado para validar pipeline de testes/contadores.")
+        raise AssertionError("FAIL forçado para validar pipeline.")
 
-    dut._log.info(f"✅ PASS via .tohost (0x{got_code:08x})")
-
-    # Salva assinatura do DUT para debug (opcional, mas útil)
-    sig_bytes = await _read_signature_bytes(dut, begin_sig, end_sig, helpers)
+    # dump assinatura do DUT
+    out_dir = pathlib.Path(os.getenv("ARCHTEST_OUT_SIG_DIR", "build/archtest/signatures"))
+    out_sig = out_dir / f"{test_name}.dut.sig"
+    sig_bytes = _read_signature_bytes(dut, begin_sig, end_sig, helpers)
     _save_signature(out_sig, sig_bytes)
-    dut._log.info(f"Signature salva: {out_sig}")
+    dut._log.info(f"Signature do DUT salva em: {out_sig}")
+
+    # comparação com referência
+    ref_dir = pathlib.Path(os.getenv("ARCHTEST_REF_DIR", "tests/third_party/riscv-arch-test/tools/reference_outputs"))
+    ref_sig = ref_dir / f"{test_name}.sig"
+    policy  = os.getenv("ARCHTEST_REF_POLICY", "auto").lower()
+
+    if policy == "skip":
+        dut._log.warning("ARCHTEST_REF_POLICY=skip – pulando comparação de assinatura.")
+        return
+
+    if not ref_sig.exists():
+        raise AssertionError(
+            f"Arquivo de referência ausente: {ref_sig}\n"
+            f"Dica: rode 'make refs' ou use ARCHTEST_REF_POLICY=auto no runner para autogerar."
+        )
+
+    ref_bytes = ref_sig.read_bytes()
+    if sig_bytes != ref_bytes:
+        # Salva diff auxiliar
+        diff_dir = pathlib.Path("build/archtest/diffs"); diff_dir.mkdir(parents=True, exist_ok=True)
+        (diff_dir / f"{test_name}.ref.sig").write_bytes(ref_bytes)
+        (diff_dir / f"{test_name}.dut.sig").write_bytes(sig_bytes)
+        raise AssertionError(f"Assinatura difere do reference output para '{test_name}'. Veja {diff_dir}.")
+    dut._log.info("✅ Assinatura confere com a referência.")

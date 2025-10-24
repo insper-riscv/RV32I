@@ -23,5 +23,12 @@ ifndef TEST
 endif
 	python3 tests/python/runner.py compliance $(TEST)
 
+refs:
+	ARCHTEST_REF_POLICY=regen python3 tests/third_party/riscv-arch-test/tools/gen_reference_outputs.py
+
+build-refs:
+	python3 tests/python/runner.py compliance
+	$(MAKE) refs
+
 clean:
 	rm -rf build/archtest tests/python/sim_build

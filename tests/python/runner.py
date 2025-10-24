@@ -12,6 +12,31 @@ def _sh(cmd, cwd=None):
         raise RuntimeError(f"cmd failed: {cmd}\nstdout:\n{r.stdout}\nstderr:\n{r.stderr}")
     return r.stdout
 
+def _ensure_reference_signature(meta: dict):
+    """Gera assinatura de referência com Spike conforme política."""
+    isa        = os.getenv("ARCHTEST_ISA", "rv32i")
+    tools_dir  = Path(os.getenv("ARCHTEST_TOOLS_DIR", "tests/third_party/riscv-arch-test/tools")).resolve()
+    ref_dir    = Path(os.getenv("ARCHTEST_REF_DIR", str(tools_dir / "reference_outputs"))).resolve()
+    logs_dir   = ref_dir / "spike-logs"
+    policy     = os.getenv("ARCHTEST_REF_POLICY", "auto").lower()
+
+    elf        = Path(meta["elf"])
+    test_name  = meta["test"]
+    ref_dir.mkdir(parents=True, exist_ok=True); logs_dir.mkdir(parents=True, exist_ok=True)
+    ref_sig = ref_dir / f"{test_name}.sig"
+    logf    = logs_dir / f"{test_name}.log"
+
+    if policy == "skip":
+        return  # runner não garante nada; teste vai reclamar se faltar
+
+    if policy != "regen" and ref_sig.exists():
+        return  # cache
+
+    # Usa símbolo por nome (mais portátil com Spike)
+    cmd = f"spike --isa={isa} -m0:0x800000 +signature={ref_sig} +signature-granularity=4 {elf}"
+
+    logf.write_text(out)
+
 def _junit_fail_error_counts(xml_path: Path) -> tuple[int, int]:
     if not xml_path.exists():
         # Se não gerou XML, considere 1 erro (para marcar FAIL no agregador)
@@ -288,6 +313,12 @@ def run_archtest_suite(one=None):
             arch_out_dir,
             riscv_prefix
         )
+
+        try:
+            _ensure_reference_signature(meta)
+        except Exception as e:
+            print(f"[WARN] Não foi possível gerar referência via Spike para {t}: {e}")
+            
         hex_path = meta["hex"]
         extra_env = {"ARCHTEST_META": json.dumps(meta)}
         try:
