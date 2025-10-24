@@ -4,6 +4,7 @@ SHELL := /bin/bash
 
 RISCV_PREFIX := $(abspath toolchain/xpack-riscv-none-elf-gcc-14.2.0-3/bin/riscv-none-elf-)
 export RISCV_PREFIX
+export PYTHONPATH := $(PWD)
 
 test:
 	python3 tests/python/runner.py

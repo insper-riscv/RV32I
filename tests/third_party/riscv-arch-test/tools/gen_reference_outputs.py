@@ -14,23 +14,36 @@ def main():
     ap.add_argument("--isa", default=os.getenv("ARCHTEST_ISA","rv32i"))
     ap.add_argument("--build-dir", default=os.getenv("ARCHTEST_ELF_DIR","build/archtest"))
     ap.add_argument("--ref-dir", default=os.getenv("ARCHTEST_REF_DIR","tests/third_party/riscv-arch-test/tools/reference_outputs"))
+    ap.add_argument("--spike-mem", default=os.getenv("ARCHTEST_SPIKE_MEM","-m0:0x800000"))
     args = ap.parse_args()
 
-    build = Path(args.build_dir); ref = Path(args.ref_dir)
-    ref.mkdir(parents=True, exist_ok=True); (ref/"spike-logs").mkdir(exist_ok=True)
+    build = Path(args.build_dir)
+    ref   = Path(args.ref_dir).resolve()
+    logs  = ref / "spike-logs"
+    ref.mkdir(parents=True, exist_ok=True)
+    logs.mkdir(parents=True, exist_ok=True)
 
     metas = sorted(build.glob("*.meta.json"))
     if not metas:
-        raise SystemExit(f"Nada em {build}. Rode 'make compliance' ou 'runner.py compliance' para compilar os .elf antes.")
+        raise SystemExit(f"Nada em {build}. Rode 'make compliance' para compilar os .elf antes.")
 
     for meta_path in metas:
         meta = json.loads(meta_path.read_text())
-        elf = meta["elf"]; test = meta["test"]
-        sig = ref / f"{test}.sig"
-        log = ref / "spike-logs" / f"{test}.log"
-        out = _sh(f"spike --isa={args.isa} -m0:0x800000 +signature={sig} +signature-granularity=4 {elf}")
-        log.write_text(out)
-        print(f"[ok] {test}")
+        elf = meta["elf"]
+        test = meta["test"]
+        syms = meta.get("symbols", {})
+
+        try:
+            b = int(syms["begin_signature"], 0)
+            e = int(syms["end_signature"],   0)
+        except Exception:
+            raise SystemExit(f"{test}: símbolos de assinatura ausentes no meta {meta_path.name}")
+
+        sig_file = ref / f"{test}.sig"
+        spike    = f"spike --isa={args.isa} {args.spike-mem} +sigstart=0x{b:x} +sigend=0x{e:x} +signature={sig_file} +signature-granularity=4 {elf}"
+        out = _sh(spike)
+        (logs / f"{test}.log").write_text(out)
+        print(f"[ok] {test} → {sig_file}")
 
 if __name__ == "__main__":
     main()

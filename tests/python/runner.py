@@ -5,12 +5,27 @@ from xml.etree import ElementTree as ET
 
 PLUSARGS_ENV = os.getenv("COCOTB_PLUSARGS", "")
 plusargs = [a for a in PLUSARGS_ENV.split() if a.strip()]
+REPO = Path(__file__).resolve().parents[2]
+os.environ.setdefault("PYTHONPATH", str(REPO))
 
-def _sh(cmd, cwd=None):
-    r = subprocess.run(shlex.split(cmd), cwd=cwd, capture_output=True, text=True)
+def _sh(cmd, cwd=None, env=None):
+    r = subprocess.run(shlex.split(cmd), cwd=cwd, env=env, capture_output=True, text=True)
     if r.returncode != 0:
         raise RuntimeError(f"cmd failed: {cmd}\nstdout:\n{r.stdout}\nstderr:\n{r.stderr}")
     return r.stdout
+
+def _try_generate_ref_with_spike(build_dir: str):
+    """
+    Opcional: alguns fluxos tentam gerar .sig 'on the fly' p/ o primeiro teste.
+    Mantemos isso robusto, sem variável 'out' em escopos errados.
+    """
+    env = os.environ.copy()
+    env.setdefault("ARCHTEST_REF_POLICY", "regen")
+    cmd = f"python3 tests/third_party/riscv-arch-test/tools/gen_reference_outputs.py --build-dir {build_dir}"
+    try:
+        _sh(cmd, env=env)
+    except Exception as e:
+        print(f"[WARN] Não foi possível gerar referência via Spike agora: {e}")
 
 def _ensure_reference_signature(meta: dict):
     """Gera assinatura de referência com Spike conforme política."""
@@ -22,20 +37,30 @@ def _ensure_reference_signature(meta: dict):
 
     elf        = Path(meta["elf"])
     test_name  = meta["test"]
-    ref_dir.mkdir(parents=True, exist_ok=True); logs_dir.mkdir(parents=True, exist_ok=True)
+    ref_dir.mkdir(parents=True, exist_ok=True)
+    logs_dir.mkdir(parents=True, exist_ok=True)
     ref_sig = ref_dir / f"{test_name}.sig"
     logf    = logs_dir / f"{test_name}.log"
 
     if policy == "skip":
-        return  # runner não garante nada; teste vai reclamar se faltar
+        return
 
     if policy != "regen" and ref_sig.exists():
-        return  # cache
+        return
 
-    # Usa símbolo por nome (mais portátil com Spike)
-    cmd = f"spike --isa={isa} -m0:0x800000 +signature={ref_sig} +signature-granularity=4 {elf}"
+    # pega os símbolos do meta e chama o Spike mapeando ROM e RAM reais
+    b = int(meta["symbols"]["begin_signature"])
+    e = int(meta["symbols"]["end_signature"])
 
-    logf.write_text(out)
+    # ROM: 0x00000000 .. 0x00020000 (128 KiB)
+    # RAM: 0x20000000 .. 0x20010000 (64 KiB)
+    cmd = (
+        "spike --isa={isa} "
+        "-m0:0x20000 "
+        "-m0x20000000:0x10000 "
+        "+sigstart=0x{b:x} +sigend=0x{e:x} "
+        "+signature={sig} +signature-granularity=4 {elf}"
+    ).format(isa=isa, b=b, e=e, sig=ref_sig, elf=elf)
 
 def _junit_fail_error_counts(xml_path: Path) -> tuple[int, int]:
     if not xml_path.exists():
@@ -155,7 +180,8 @@ def run_cocotb_test(
         _base_env.pop(k, None)
 
     # Por padrão, rode sem waveform (estável)
-    _base_env["WAVES"] = "0"    
+    _base_env["WAVES"] = "0"
+    _base_env["PYTHONPATH"] = os.environ.get("PYTHONPATH", str(repo_root)) 
 
     runner.test(
         hdl_toplevel=toplevel,

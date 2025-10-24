@@ -1,103 +1,76 @@
-import os, json, pathlib, cocotb
-from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, Timer
+import os,json,importlib,inspect,asyncio,pathlib
+import cocotb
+from cocotb.triggers import RisingEdge,Timer
 
-_FORCE_FAIL = os.getenv("ARCHTEST_FORCE_FAIL", "0") == "1"
+def _load_meta():
+    m=os.environ["ARCHTEST_META"]
+    if m.strip().startswith("{"): return json.loads(m)
+    p=pathlib.Path(m)
+    return json.loads(p.read_text())
 
-CLK_PERIOD_NS = float(os.getenv("ARCHTEST_CLK_NS", "10"))
-WATCHDOG_MAX  = int(os.getenv("ARCHTEST_MAX_CYCLES", "200000"))
-POST_HIT_WAIT = int(os.getenv("ARCHTEST_POST_HIT_WAIT", "2"))
-PASS_CODE     = int(os.getenv("ARCHTEST_PASS_CODE", "1"))
+def _load_ext_reader(dut):
+    spec=os.getenv("ARCHTEST_READ32","").strip()
+    if not spec: return None
+    mod,func=spec.split(":")
+    f=getattr(importlib.import_module(mod),func)
+    if inspect.iscoroutinefunction(f):
+        async def r(addr): return await f(dut,addr)
+    else:
+        async def r(addr): return f(dut,addr)
+    return r
 
-def _detect_clk(dut):
-    for name in ("clk","CLK","CLOCK_50"):
-        if hasattr(dut, name):
-            return getattr(dut, name)
-    return None
+def _hasattr(d,name):
+    try: getattr(d,name); return True
+    except: return False
 
-def _read32(dut, addr, helpers):
-    if helpers.get("read32"):
-        return helpers["read32"](dut, addr)
-    raise RuntimeError("Sem read32 implementado em helpers; ajuste seu testbench.")
+def _mk_dbg_reader(dut):
+    if not all(_hasattr(dut,n) for n in ["dbg_addr","dbg_read","dbg_rdata","dbg_ready"]): return None
+    async def r(addr):
+        dut.dbg_addr.value=addr
+        dut.dbg_read.value=1
+        await RisingEdge(dut.CLK) if _hasattr(dut,"CLK") else Timer(1,"ns")
+        while int(dut.dbg_ready.value)==0:
+            await RisingEdge(dut.CLK) if _hasattr(dut,"CLK") else Timer(1,"ns")
+        val=int(dut.dbg_rdata.value)&0xFFFFFFFF
+        dut.dbg_read.value=0
+        return val
+    return r
 
-def _read_signature_bytes(dut, begin, end, helpers):
-    out = bytearray()
-    addr = begin
-    while addr < end:
-        w = _read32(dut, addr, helpers)
-        out += int(w).to_bytes(4, byteorder="little", signed=False)
-        addr += 4
-    return bytes(out[: max(0, end - begin)])
+async def _await_pass_via_tohost(read32,tohost,cycles,clk):
+    c=0
+    while c<cycles:
+        v=await read32(tohost)
+        if v!=0: return v
+        if clk: await RisingEdge(clk)
+        else: await Timer(10,"ns")
+        c+=1
+    raise TimeoutError("tohost não sinalizou dentro do limite")
 
-def _save_signature(path, data: bytes):
-    pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "wb") as f:
-        f.write(data)
+async def _read_signature(read32,beg,end):
+    n=end-beg
+    out=bytearray(n)
+    for off in range(0,n,4):
+        w=await read32(beg+off)
+        out[off:off+4]=int(w).to_bytes(4,"little",signed=False)
+    return bytes(out)
+
+def _as_int(x):
+    return int(x, 0) if isinstance(x, str) else int(x)
 
 @cocotb.test()
-async def archtest_compliance(dut):
-    clk = _detect_clk(dut); assert clk is not None, "Clock não encontrado (clk/CLK)."
-    cocotb.start_soon(Clock(clk, CLK_PERIOD_NS, units="ns").start())
-
-    try:
-        META = json.loads(os.environ["ARCHTEST_META"])
-    except KeyError:
-        raise RuntimeError("ARCHTEST_META ausente. Rode via runner em modo compliance.")
-
-    begin_sig = int(META["symbols"]["begin_signature"])
-    end_sig   = int(META["symbols"]["end_signature"])
-    tohost    = META["symbols"].get("tohost")
-    test_name = META["test"]
-
-    assert tohost is not None, "Ambiente sem 'tohost' – exigido para validar PASS/FAIL."
-
-    # helpers do teu TB – adapte se necessário
-    helpers = {}
-    if hasattr(dut, "tohost"):
-        helpers["read32"] = lambda _dut, a: int(getattr(_dut, "RAM").mem[a>>2]) if hasattr(_dut,"RAM") else int(getattr(_dut,"tohost").value)
-
-    # aguarda tohost != 0
-    got_code = 0
-    for _ in range(WATCHDOG_MAX):
-        await RisingEdge(clk)
-        got_code = int(getattr(dut, "tohost").value)
-        if got_code != 0:
-            break
-    for _ in range(POST_HIT_WAIT):
-        await RisingEdge(clk)
-
-    assert got_code != 0, f"Timeout aguardando 'tohost' (WATCHDOG_MAX={WATCHDOG_MAX})."
-    assert got_code == PASS_CODE, f"FAIL via .tohost: got=0x{got_code:08x} exp=0x{PASS_CODE:08x}"
-    if _FORCE_FAIL:
-        raise AssertionError("FAIL forçado para validar pipeline.")
-
-    # dump assinatura do DUT
-    out_dir = pathlib.Path(os.getenv("ARCHTEST_OUT_SIG_DIR", "build/archtest/signatures"))
-    out_sig = out_dir / f"{test_name}.dut.sig"
-    sig_bytes = _read_signature_bytes(dut, begin_sig, end_sig, helpers)
-    _save_signature(out_sig, sig_bytes)
-    dut._log.info(f"Signature do DUT salva em: {out_sig}")
-
-    # comparação com referência
-    ref_dir = pathlib.Path(os.getenv("ARCHTEST_REF_DIR", "tests/third_party/riscv-arch-test/tools/reference_outputs"))
-    ref_sig = ref_dir / f"{test_name}.sig"
-    policy  = os.getenv("ARCHTEST_REF_POLICY", "auto").lower()
-
-    if policy == "skip":
-        dut._log.warning("ARCHTEST_REF_POLICY=skip – pulando comparação de assinatura.")
-        return
-
-    if not ref_sig.exists():
-        raise AssertionError(
-            f"Arquivo de referência ausente: {ref_sig}\n"
-            f"Dica: rode 'make refs' ou use ARCHTEST_REF_POLICY=auto no runner para autogerar."
-        )
-
-    ref_bytes = ref_sig.read_bytes()
-    if sig_bytes != ref_bytes:
-        # Salva diff auxiliar
-        diff_dir = pathlib.Path("build/archtest/diffs"); diff_dir.mkdir(parents=True, exist_ok=True)
-        (diff_dir / f"{test_name}.ref.sig").write_bytes(ref_bytes)
-        (diff_dir / f"{test_name}.dut.sig").write_bytes(sig_bytes)
-        raise AssertionError(f"Assinatura difere do reference output para '{test_name}'. Veja {diff_dir}.")
-    dut._log.info("✅ Assinatura confere com a referência.")
+async def archtest(dut):
+    META=_load_meta()
+    begin_sig=_as_int(META["symbols"]["begin_signature"])
+    end_sig=_as_int(META["symbols"]["end_signature"])
+    tohost=_as_int(META["symbols"]["tohost"])
+    test_name=META["test"]
+    max_cycles=int(os.getenv("ARCHTEST_MAX_CYCLES","200000"))
+    clk=getattr(dut,"CLK",None) if _hasattr(dut,"CLK") else None
+    ext=_load_ext_reader(dut)
+    read32=ext if ext else _mk_dbg_reader(dut)
+    if read32 is None: raise RuntimeError("defina ARCHTEST_READ32=mod:func ou exponha dbg_addr/dbg_read/dbg_rdata/dbg_ready no DUT")
+    await _await_pass_via_tohost(read32,tohost,max_cycles,clk)
+    sig_dut=await _read_signature(read32,begin_sig,end_sig)
+    ref_dir=pathlib.Path(os.getenv("ARCHTEST_REF_DIR","tests/third_party/riscv-arch-test/tools/reference_outputs"))
+    sig_ref=(ref_dir/f"{test_name}.sig").read_bytes()
+    assert sig_dut==sig_ref,f"assinatura diferente em {test_name}: DUT {len(sig_dut)}B vs REF {len(sig_ref)}B"
