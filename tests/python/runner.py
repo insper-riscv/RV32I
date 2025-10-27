@@ -28,39 +28,32 @@ def _try_generate_ref_with_spike(build_dir: str):
         print(f"[WARN] Não foi possível gerar referência via Spike agora: {e}")
 
 def _ensure_reference_signature(meta: dict):
-    """Gera assinatura de referência com Spike conforme política."""
-    isa        = os.getenv("ARCHTEST_ISA", "rv32i")
-    tools_dir  = Path(os.getenv("ARCHTEST_TOOLS_DIR", "tests/third_party/riscv-arch-test/tools")).resolve()
-    ref_dir    = Path(os.getenv("ARCHTEST_REF_DIR", str(tools_dir / "reference_outputs"))).resolve()
-    logs_dir   = ref_dir / "spike-logs"
-    policy     = os.getenv("ARCHTEST_REF_POLICY", "auto").lower()
+    isa = os.getenv("ARCHTEST_ISA", "rv32i")
+    tools_dir = Path(os.getenv("ARCHTEST_TOOLS_DIR", "tests/third_party/riscv-arch-test/tools")).resolve()
+    ref_dir = Path(os.getenv("ARCHTEST_REF_DIR", str(tools_dir / "reference_outputs"))).resolve()
+    logs_dir = ref_dir / "spike-logs"
+    policy = os.getenv("ARCHTEST_REF_POLICY", "auto").lower()
 
-    elf        = Path(meta["elf"])
-    test_name  = meta["test"]
+    elf = Path(meta["elf"])
+    test_name = meta["test"]
     ref_dir.mkdir(parents=True, exist_ok=True)
     logs_dir.mkdir(parents=True, exist_ok=True)
     ref_sig = ref_dir / f"{test_name}.sig"
-    logf    = logs_dir / f"{test_name}.log"
+    logf = logs_dir / f"{test_name}.log"
 
     if policy == "skip":
         return
-
     if policy != "regen" and ref_sig.exists():
         return
 
-    # pega os símbolos do meta e chama o Spike mapeando ROM e RAM reais
-    b = int(meta["symbols"]["begin_signature"])
-    e = int(meta["symbols"]["end_signature"])
+    rom = os.getenv("ARCHTEST_SPIKE_MEM_ROM", "-m0:0x20000")
+    ram = os.getenv("ARCHTEST_SPIKE_MEM_RAM", "-m0x20000000:0x10000")
 
-    # ROM: 0x00000000 .. 0x00020000 (128 KiB)
-    # RAM: 0x20000000 .. 0x20010000 (64 KiB)
-    cmd = (
-        "spike --isa={isa} "
-        "-m0:0x20000 "
-        "-m0x20000000:0x10000 "
-        "+sigstart=0x{b:x} +sigend=0x{e:x} "
-        "+signature={sig} +signature-granularity=4 {elf}"
-    ).format(isa=isa, b=b, e=e, sig=ref_sig, elf=elf)
+    cmd = f"spike --isa={isa} {rom} {ram} +signature={ref_sig} +signature-granularity=4 {elf}"
+    r = subprocess.run(shlex.split(cmd), capture_output=True, text=True)
+    logf.write_text(r.stdout + "\n" + r.stderr)
+    if r.returncode != 0:
+        raise RuntimeError(f"Falha no Spike ao gerar referência para {test_name}.\ncmd: {cmd}\nstdout:\n{r.stdout}\nstderr:\n{r.stderr}")
 
 def _junit_fail_error_counts(xml_path: Path) -> tuple[int, int]:
     if not xml_path.exists():
@@ -203,78 +196,66 @@ def run_cocotb_test(
     ok = (failures == 0 and errors == 0)
     return ok, failures, errors, build_dir
 
+def _read_symbols_with_nm(elf_path: 'Path | str', riscv_prefix: str) -> dict:
+    import subprocess
+    elf_str = str(elf_path)
+    nm = riscv_prefix + "nm"
+    r = subprocess.run([nm, "-g", elf_str], capture_output=True, text=True, check=True)
+    syms = {}
+    for line in r.stdout.splitlines():
+        parts = line.strip().split()
+        if len(parts) >= 3:
+            addr, kind, name = parts[0], parts[1], parts[2]
+            if name in ("begin_signature", "end_signature", "tohost", "_start", "rvtest_entry_point"):
+                syms[name] = addr
+    return syms
+
 # -------------------- build de 1 teste --------------------
-def build_archtest_one(repo_root, test_name, arch_env_dir, arch_isa_dir, arch_glue_dir, arch_out_dir, riscv_prefix):
-    arch_out_dir.mkdir(parents=True, exist_ok=True)
-    elf  = arch_out_dir / f"{test_name}.elf"
-    binp = arch_out_dir / f"{test_name}.bin"
-    hexp = arch_out_dir / f"{test_name}.hex"
-    sym  = arch_out_dir / f"{test_name}.sym"
-    meta = arch_out_dir / f"{test_name}.meta.json"
+def build_archtest_one(repo_root: Path, test_name: str, env_dir: Path, isa_dir: Path, glue_dir: Path, out_dir: Path, riscv_prefix: str) -> dict:
+    cc = riscv_prefix + "gcc"
+    objcopy = riscv_prefix + "objcopy"
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    test_src = arch_isa_dir / f"{test_name}.S"
-    if not test_src.exists():
-        raise FileNotFoundError(f"Teste ISA não encontrado: {test_src}")
+    asm = (isa_dir / f"{test_name}.S").resolve()
+    if not asm.exists():
+        raise FileNotFoundError(f"Não achei o fonte: {asm}")
 
-    gcc    = f"{riscv_prefix}gcc"
-    objcpy = f"{riscv_prefix}objcopy"
-    nm     = f"{riscv_prefix}nm"
+    build_o = out_dir / f"{test_name}.o"
+    elf = out_dir / f"{test_name}.elf"
+    hexfile = out_dir / f"{test_name}.hex"
+    meta_json = out_dir / f"{test_name}.meta.json"
 
-    cmd_gcc = (
-        f'{gcc} -march=rv32i -mabi=ilp32 -nostdlib -nostartfiles '
-        f'-DXLEN=32 -D__riscv_xlen=32 '
-        f'-T {arch_glue_dir / "link.ld"} '
-        f'-I {arch_env_dir} -I {arch_glue_dir} '
-        f'{arch_glue_dir / "start.S"} {test_src} -o {elf}'
-    )
-    _sh(cmd_gcc, cwd=repo_root)
+    ldscript = Path("tests/third_party/riscv-arch-test/tools/spike/low.ld").resolve()
+    if not ldscript.exists():
+        raise FileNotFoundError(f"low.ld não encontrado em {ldscript}")
 
-    r = subprocess.run([nm, str(elf)], cwd=repo_root, capture_output=True, text=True)
-    if r.returncode != 0:
-        raise RuntimeError(f"nm failed:\nstdout:\n{r.stdout}\nstderr:\n{r.stderr}")
-    Path(sym).write_text(r.stdout)
-    syms_txt = Path(sym).read_text()
+    cflags = [
+        "-march=rv32i",
+        "-mabi=ilp32",
+        "-nostdlib",
+        "-nostartfiles",
+        "-ffreestanding",
+        "-Os",
+        f"-I{env_dir}",
+        f"-I{glue_dir}",
+        # >>> DEFINES CRÍTICAS PARA OS ARCH-TESTS:
+        "-D__riscv_xlen=32",
+        "-DXLEN=32",
+        "-DRVTEST_RV32I"
+    ]
+    ldflags = [f"-T{ldscript}", "-nostdlib", "-nostartfiles"]
 
-    def find_addr(label):
-        for line in syms_txt.splitlines():
-            parts = line.split()
-            if len(parts) >= 3 and parts[-1] == label:
-                return int(parts[0], 16)
-        raise RuntimeError(f"símbolo não encontrado: {label} em {sym}")
+    # Compila (arquivo .S já passa pelo pré-processador via gcc)
+    subprocess.run([cc, *cflags, "-c", str(asm), "-o", str(build_o)], check=True)
+    # Linka com low.ld
+    subprocess.run([cc, *ldflags, str(build_o), "-o", str(elf)], check=True)
+    # HEX para ROM
+    subprocess.run([objcopy, "-O", "verilog", str(elf), str(hexfile)], check=True)
 
-    begin_sig = find_addr("begin_signature")
-    end_sig   = find_addr("end_signature")
-    rv_end    = None
-    tohost    = None
-    try: rv_end = find_addr("RVTEST_CODE_END")
-    except: pass
-    try: tohost = find_addr("tohost")
-    except: pass
-
-    _sh(f"{objcpy} -O binary -j .text -j .data {elf} {binp}")
-    bs = Path(binp).read_bytes()
-    pad = (-len(bs)) % 4
-    if pad:
-        bs += b"\x00" * pad
-
-    with open(hexp, "w") as f:
-        for i in range(0, len(bs), 4):
-            w = int.from_bytes(bs[i:i+4], "little")
-            f.write(f"{w:08x}\n")
-
-    meta_obj = {
-        "test": test_name,
-        "elf": str(elf),
-        "hex": str(hexp),
-        "symbols": {
-            "begin_signature": begin_sig,
-            "end_signature": end_sig,
-            "rvtest_code_end": rv_end,
-            "tohost": tohost,
-        }
-    }
-    Path(meta).write_text(json.dumps(meta_obj, indent=2))
-    return meta_obj
+    syms = _read_symbols_with_nm(elf, riscv_prefix)
+    meta = {"test": test_name, "elf": str(elf), "hex": str(hexfile), "symbols": syms}
+    meta_json.write_text(json.dumps(meta, indent=2))
+    return meta
 
 # ----------------- rodar a suíte (ou um) -----------------
 def _normalize_one_name(arch_isa_dir: Path, one: str) -> str:
@@ -383,37 +364,37 @@ if __name__ == "__main__":
         print(f"Erro: O arquivo JSON '{json_path}' está mal formatado.")
         sys.exit(1)
 
-    parser = argparse.ArgumentParser(description="Runner de Testes Cocotb para o projeto RV32I")
-    parser.add_argument("test_name", nargs="?", default="all",
-                        help=f"Nome do teste/grupo. Opções: {list(TEST_CONFIGS.keys()) + ['all','compliance']}")
-    parser.add_argument("arch_one_pos", nargs="?", help="(apenas para 'compliance') um teste do suite, ex.: add")
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument("test_name", nargs="?", default="all")
+    parser.add_argument("one_name", nargs="?", default="")
     args = parser.parse_args()
-    arch_one = args.arch_one_pos or os.getenv("ARCH_ONE")
 
-    if args.test_name == "all":
-        print("Executando TODOS os testes definidos em tests.json...")
-        for name, config in TEST_CONFIGS.items():
-            print(f"\n{'='*20} INICIANDO TESTE: {name.upper()} {'='*20}")
-            try:
-                run_cocotb_test(**config)
-                print(f"{'-'*20} TESTE {name.upper()} FINALIZADO COM SUCESSO {'-'*20}")
-            except Exception as e:
-                print(f"[ERRO] O teste '{name}' falhou: {e}")
-        print("\n{'='*10} Iniciando COMPLIANCE (rv32i_m) {'='*10}")
-        run_archtest_suite(one=arch_one)
-        print(f"{'-'*20} TESTE COMPLIANCE FINALIZADO COM SUCESSO {'-'*20}")
-        print("\nTodos os testes foram executados.")
+    if args.test_name == "assemble":
+        # Monta todos os ELFs/HEX/META sem rodar simulação
+        repo_root    = Path(__file__).resolve().parents[2]
+        arch_env_dir = (repo_root / "tests/third_party/riscv-arch-test/riscv-test-suite/env").resolve()
+        arch_isa_dir = (repo_root / "tests/third_party/riscv-arch-test/riscv-test-suite/rv32i_m/I/src").resolve()
+        arch_glue_dir = (repo_root / "tests/third_party/archtest-utils").resolve()
+        arch_out_dir  = (repo_root / "build/archtest").resolve()
+        riscv_prefix  = os.getenv("RISCV_PREFIX", "riscv-none-elf-")
 
-    elif args.test_name == "compliance":
-        run_archtest_suite(one=arch_one)
+        if args.one_name:
+            tests = [ _normalize_one_name(arch_isa_dir, args.one_name) ]
+        else:
+            import glob
+            tests = [Path(p).stem for p in glob.glob(str(arch_isa_dir / "*.S"))]
+            tests.sort()
 
-    elif args.test_name in TEST_CONFIGS:
-        print(f"Executando teste específico: {args.test_name}")
-        run_cocotb_test(**TEST_CONFIGS[args.test_name])
-        print(f"\nTeste {args.test_name} finalizado.")
-
-    else:
-        print(f"Erro: Teste '{args.test_name}' não encontrado em tests.json.")
-        print(f"Opções disponíveis: {list(TEST_CONFIGS.keys()) + ['all','compliance']}")
-        sys.exit(1)
+        for t in tests:
+            print(f"[assemble] {t}")
+            build_archtest_one(
+                repo_root,
+                t,
+                arch_env_dir,
+                arch_isa_dir,
+                arch_glue_dir,
+                arch_out_dir,
+                riscv_prefix
+            )
+        print("Montagem concluída. ELFs/HEX/META em build/archtest.")
+        sys.exit(0)

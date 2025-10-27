@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: test run clean compliance compliance-one
+.PHONY: test run clean compliance compliance-one refs build-refs arch-elves
 
 RISCV_PREFIX := $(abspath toolchain/xpack-riscv-none-elf-gcc-14.2.0-3/bin/riscv-none-elf-)
 export RISCV_PREFIX
@@ -24,11 +24,16 @@ ifndef TEST
 endif
 	python3 tests/python/runner.py compliance $(TEST)
 
+# monta apenas os ELFs/HEX/META da suíte arch-test, sem rodar Cocotb
+arch-elves:
+	python3 tests/python/runner.py assemble
+
+# Gera assinaturas de referência com Spike (independente da simulação)
 refs:
 	ARCHTEST_REF_POLICY=regen python3 tests/third_party/riscv-arch-test/tools/gen_reference_outputs.py
 
 build-refs:
-	python3 tests/python/runner.py compliance
+	$(MAKE) arch-elves
 	$(MAKE) refs
 
 clean:
