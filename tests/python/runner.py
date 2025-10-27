@@ -7,6 +7,9 @@ PLUSARGS_ENV = os.getenv("COCOTB_PLUSARGS", "")
 plusargs = [a for a in PLUSARGS_ENV.split() if a.strip()]
 REPO = Path(__file__).resolve().parents[2]
 os.environ.setdefault("PYTHONPATH", str(REPO))
+os.environ.setdefault("ARCHTEST_REF_DIR", "tests/third_party/riscv-arch-test/tools/reference_outputs")
+os.environ.setdefault("ARCHTEST_MAX_CYCLES", "200000")
+os.environ.setdefault("PYTHONUNBUFFERED", "1")
 
 def _sh(cmd, cwd=None, env=None):
     r = subprocess.run(shlex.split(cmd), cwd=cwd, env=env, capture_output=True, text=True)
@@ -46,7 +49,7 @@ def _ensure_reference_signature(meta: dict):
     if policy != "regen" and ref_sig.exists():
         return
 
-    rom = os.getenv("ARCHTEST_SPIKE_MEM_ROM", "-m0:0x20000")
+    rom = os.getenv("ARCHTEST_SPIKE_MEM_ROM", "-m2147483648:131072")
     ram = os.getenv("ARCHTEST_SPIKE_MEM_RAM", "-m0x20000000:0x10000")
 
     cmd = f"spike --isa={isa} {rom} {ram} +signature={ref_sig} +signature-granularity=4 {elf}"
