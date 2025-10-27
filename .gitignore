@@ -234,3 +234,8 @@ cython_debug/
 **/sim_build/
 !/lib/
 toolchain/
+
+*.pyc
+tests/python/sim_build/
+tests/third_party/riscv-arch-test/tools/reference_outputs/spike-logs/
+.env.*

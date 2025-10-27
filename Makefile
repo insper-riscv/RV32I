@@ -40,7 +40,7 @@ arch-elves:
 
 # Gera assinaturas de referência com Spike (independente da simulação)
 arch-refs:
-	python3 tests/third_party/riscv-arch-test/tools/gen_reference_outputs.py --isa $(ARCHTEST_ISA) --build-dir $(ARCHTEST_BUILD_DIR) --ref-dir $(ARCHTEST_REF_DIR) --spike-mem "$(ARCHTEST_SPIKE_MEM)"
+	python3 tests/third_party/riscv-arch-test/tools/gen_reference_outputs.py --isa=$(ARCHTEST_ISA) --build-dir=$(ARCHTEST_BUILD_DIR) --ref-dir=$(ARCHTEST_REF_DIR) --spike-mem="$(ARCHTEST_SPIKE_MEM)"
 
 build-refs:
 	$(MAKE) arch-elves

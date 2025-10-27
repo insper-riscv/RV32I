@@ -1,7 +1,0 @@
-name: spike
-plugin: riscv_spike
-ispec:
-  xlen: 32
-  isa: RV32I
-cspec: {}
-work_dir: /mnt/c/quartus-pfe/RV32I/build/riscof-spike
