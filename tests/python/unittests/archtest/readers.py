@@ -1,17 +1,21 @@
+import cocotb
 from cocotb.triggers import RisingEdge, ReadOnly
 
 _mem = {}  # espelho: addr->byte (0..255)
 
 async def init_sniffer(dut):
-    clk = dut.CLK
     we  = dut.weRAM
     adr = dut.ALU_out
     din = dut.out_StoreManager
-    msk = dut.mask  # 4 bits, little-endian
+    msk = dut.mask
+    clk = getattr(dut, "CLK", None)
 
     async def _loop():
         while True:
-            await RisingEdge(clk)
+            if clk is not None:
+                await RisingEdge(clk)
+            else:
+                await Timer(1, "ns")
             await ReadOnly()
             if int(we.value) != 0:
                 A = int(adr.value) & ~0x3
@@ -22,7 +26,15 @@ async def init_sniffer(dut):
                     if M & (1 << i):
                         _mem[A + i] = (W >> (8 * i)) & 0xFF
 
-    dut._ram_sniffer_task = dut._cocotb_start_soon(_loop())
+    dut._ram_sniffer_task = cocotb.start_soon(_loop())
+
+def dump_range(begin: int, end: int) -> bytes:
+    n = end - begin
+    out = bytearray(n)
+    for i in range(n):
+        out[i] = _mem.get(begin + i, 0)
+    return bytes(out)
+
 
 def ram_read32(dut, addr: int) -> int:
     a = addr & ~0x3

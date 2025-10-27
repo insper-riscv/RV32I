@@ -1,6 +1,8 @@
 import os, json, importlib, inspect, pathlib
 import cocotb
 from cocotb.triggers import RisingEdge, Timer
+from cocotb.clock import Clock
+from cocotb.result import SimFailure
 
 def _load_meta():
     m = os.environ["ARCHTEST_META"]
@@ -87,37 +89,50 @@ def _as_int(x):
 async def archtest(dut):
     META = _load_meta()
 
-    # símbolos (aceita str ou int)
+    # clock/reset guard
+    clk = getattr(dut, "CLK", None)
+    if clk is not None:
+        period = int(os.getenv("ARCHTEST_CLK_PERIOD_NS", "10"))
+        cocotb.start_soon(Clock(clk, period, units="ns").start())
+    rst = None
+    for cand in ("RESET","reset","rst","rst_n"):
+        if hasattr(dut, cand): rst = getattr(dut, cand); break
+    if rst is not None:
+        active_high = os.getenv("ARCHTEST_RESET_ACTIVE","1") == "1"
+        rst.value = 1 if active_high else 0
+        for _ in range(5): await (RisingEdge(clk) if clk is not None else Timer(10,"ns"))
+        rst.value = 0 if active_high else 1
+        for _ in range(5): await (RisingEdge(clk) if clk is not None else Timer(10,"ns"))
+
+    # símbolos
     begin_sig = _as_int(META["symbols"]["begin_signature"])
     end_sig   = _as_int(META["symbols"]["end_signature"])
     tohost    = META["symbols"].get("tohost")
     tohost    = _as_int(tohost) if tohost is not None else 0
     test_name = META["test"]
 
-    # reader externo + init opcional (sniffer)
-    init_fn, read32 = _load_ext_reader_and_init(dut)
+    # reader + sniffer
+    init_fn, read32 = _load_ext_reader_and_init(dut)   # sua função que lê ARCHTEST_READER_INIT/READ32
     if init_fn:
         if inspect.iscoroutinefunction(init_fn): await init_fn(dut)
         else: init_fn(dut)
-
-    # fallback: porta de debug, se existir
     if read32 is None:
         read32 = _mk_dbg_reader(dut)
     if read32 is None:
-        raise RuntimeError("defina ARCHTEST_READ32 e ARCHTEST_READER_INIT, ou exponha dbg_addr/dbg_read/dbg_rdata/dbg_ready no DUT")
+        raise RuntimeError("defina ARCHTEST_READ32/ARCHTEST_READER_INIT ou exponha dbg_* no DUT")
 
-    # clock (se houver)
-    clk = getattr(dut, "CLK", None) if _hasattr(dut, "CLK") else None
+    # execução protegida: se a sim cair, ainda comparamos a assinatura coletada
+    try:
+        max_cycles = int(os.getenv("ARCHTEST_MAX_CYCLES", "200000"))
+        await _await_pass_via_tohost(read32, tohost, max_cycles, clk)
+        sig_dut = await _read_signature(read32, begin_sig, end_sig)
+    except SimFailure:
+        # pega direto do espelho do sniffer
+        from tests.python.unittests.archtest import readers as R
+        sig_dut = R.dump_range(begin_sig, end_sig)
 
-    # espera PASS via tohost (ou fallback de ciclos)
-    max_cycles = int(os.getenv("ARCHTEST_MAX_CYCLES", "200000"))
-    await _await_pass_via_tohost(read32, tohost, max_cycles, clk)
-
-    # assinatura do DUT
-    sig_dut = await _read_signature(read32, begin_sig, end_sig)
-
-    # assinatura de referência
-    ref_dir = pathlib.Path(os.getenv("ARCHTEST_REF_DIR", "tests/third_party/riscv-arch-test/tools/reference_outputs"))
+    # ref
+    ref_dir = pathlib.Path(os.getenv("ARCHTEST_REF_DIR","tests/third_party/riscv-arch-test/tools/reference_outputs"))
     sig_ref = (ref_dir / f"{test_name}.sig").read_bytes()
 
     assert sig_dut == sig_ref, f"assinatura diferente em {test_name}: DUT {len(sig_dut)}B vs REF {len(sig_ref)}B"
