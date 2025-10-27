@@ -17,13 +17,13 @@ ARCHTEST_MAX_CYCLES    ?= 200000
 export ARCHTEST_ISA ARCHTEST_BUILD_DIR ARCHTEST_REF_DIR ARCHTEST_SPIKE_MEM PYTHONUNBUFFERED ARCHTEST_MAX_CYCLES
 
 test:
-	python3 tests/python/runner.py
+	python3 tests/python/runner.py unit
 
 run:
 ifndef TEST
 	$(error Use: make run TEST=<test_name>)
 endif
-	python3 tests/python/runner.py $(TEST)
+	python3 tests/python/runner.py unit $(TEST)
 
 compliance:
 	python3 tests/python/runner.py compliance
