@@ -2,9 +2,10 @@ SHELL := /bin/bash
 
 .PHONY: test run clean compliance compliance-one refs build-refs arch-elves
 
-RISCV_PREFIX := $(abspath toolchain/xpack-riscv-none-elf-gcc-14.2.0-3/bin/riscv-none-elf-)
+RISCV_PREFIX ?= riscv-none-elf-
 export RISCV_PREFIX
 export PYTHONPATH := $(PWD)
+export ARCHTEST_REF_POLICY := regen # regen se quiser regerar os arquivos de referencia, senao skip
 
 ARCHTEST_ISA           ?= rv32i
 ARCHTEST_BUILD_DIR     ?= build/archtest
@@ -40,7 +41,7 @@ arch-elves:
 
 # Gera assinaturas de referência com Spike (independente da simulação)
 arch-refs:
-	python3 tests/third_party/riscv-arch-test/tools/gen_reference_outputs.py --isa=$(ARCHTEST_ISA) --build-dir=$(ARCHTEST_BUILD_DIR) --ref-dir=$(ARCHTEST_REF_DIR) --spike-mem="$(ARCHTEST_SPIKE_MEM)"
+	python3 tests/third_party/riscv-arch-test/tools/gen_reference_outputs.py --isa=$(ARCHTEST_ISA) --build-dir=$(ARCHTEST_BUILD_DIR) --ref-dir=$(ARCHTEST_REF_DIR)
 
 build-refs:
 	$(MAKE) arch-elves

@@ -101,18 +101,16 @@ def _junit_fail_error_counts(xml_path: Path) -> tuple[int, int]:
     return failures, errors
 
 
-def _read_symbols_with_nm(elf_path: 'Path | str', riscv_prefix: str) -> dict:
-    import subprocess
-    elf_str = str(elf_path)
-    nm = riscv_prefix + "nm"
-    r = subprocess.run([nm, "-g", elf_str], capture_output=True, text=True, check=True)
+def _read_symbols_with_nm(elf_path, riscv_prefix):
+    nmtool = riscv_prefix + "nm"
+    out = subprocess.check_output([nmtool, "-n", str(elf_path)], text=True)
     syms = {}
-    for line in r.stdout.splitlines():
+    for line in out.splitlines():
         parts = line.strip().split()
         if len(parts) >= 3:
-            addr, kind, name = parts[0], parts[1], parts[2]
-            if name in ("begin_signature", "end_signature", "tohost", "_start", "rvtest_entry_point"):
-                syms[name] = "0x" + addr.lower()
+            addr, typ, name = parts[0], parts[1], parts[2]
+            if name in ("tohost", "begin_signature", "end_signature"):
+                syms[name] = "0x" + addr
     return syms
 
 
@@ -124,7 +122,7 @@ def _ensure_reference_signature(meta: dict) -> None:
     logs_dir = ref_dir / "spike-logs"
     policy = os.getenv("ARCHTEST_REF_POLICY", "auto").lower()
 
-    elf = Path(meta["elf"])
+    elf = Path(meta["elf_spike"])
     test_name = meta["test"]
     ref_dir.mkdir(parents=True, exist_ok=True)
     logs_dir.mkdir(parents=True, exist_ok=True)
@@ -247,69 +245,214 @@ def run_cocotb_test(
     return ok, failures, errors, build_dir
 
 
-# --------- Build de um teste da suíte arch-test ---------
-def build_archtest_one(
-    repo_root: Path,
-    test_name: str,
-    env_dir: Path,
-    isa_dir: Path,
-    glue_dir: Path,
-    out_dir: Path,
-    riscv_prefix: str,
-) -> dict:
+def build_for_spike(repo_root, test_name, spike_env_dir, isa_dir, out_dir, riscv_prefix):
+    """
+    Gera o ELF que o Spike entende e consegue encerrar sozinho.
+    NÃO gera .hex, NÃO gera bin. Só o .spike.elf.
+    """
     cc = riscv_prefix + "gcc"
-    objcopy = riscv_prefix + "objcopy"
+
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    asm = (isa_dir / f"{test_name}.S").resolve()
-    if not asm.exists():
-        raise FileNotFoundError(f"Não achei o fonte: {asm}")
+    asm_test   = (isa_dir / f"{test_name}.S").resolve()
+    obj_test   = out_dir / f"{test_name}.spike.test.o"
 
-    build_o = out_dir / f"{test_name}.o"
-    elf = out_dir / f"{test_name}.elf"
-    hexfile = out_dir / f"{test_name}.hex"
-    meta_json = out_dir / f"{test_name}.meta.json"
+    elf_spike  = out_dir / f"{test_name}.spike.elf"
+    ld_spike   = (repo_root / "tests/third_party/riscv-arch-test/spike/low.ld").resolve()
 
-    ldscript = (repo_root / "tests/third_party/riscv-arch-test/tools/spike/low.ld").resolve()
-    if not ldscript.exists():
-        raise FileNotFoundError(f"low.ld não encontrado em {ldscript}")
-
-    cflags = [
+    # flags pro spike: bem parecidas com as do riscv-arch-test oficial
+    cflags_spike = [
         "-march=rv32i",
         "-mabi=ilp32",
         "-nostdlib",
         "-nostartfiles",
         "-ffreestanding",
         "-Os",
-        f"-I{env_dir}",
-        f"-I{glue_dir}",
+        f"-I{spike_env_dir}",
         "-D__riscv_xlen=32",
         "-DXLEN=32",
         "-DRVTEST_RV32I",
     ]
-    ldflags = [f"-T{ldscript}", "-nostdlib", "-nostartfiles"]
 
-    subprocess.run([cc, *cflags, "-c", str(asm), "-o", str(build_o)], check=True)
-    subprocess.run([cc, *ldflags, str(build_o), "-o", str(elf)], check=True)
+    ldflags_spike = [
+        f"-T{ld_spike}",
+        "-nostdlib",
+        "-nostartfiles",
+        "-Wl,-e,_start",
+    ]
 
-    binfile = out_dir / f"{test_name}.bin"
+    # 1. compila só o teste com o ambiente spike
     subprocess.run([
-        objcopy, "-O", "binary",
+        cc, *cflags_spike,
+        "-c", str(asm_test),
+        "-o", str(obj_test)
+    ], check=True)
+
+    # IMPORTANTE: alguns ambientes de riscv-arch-test exigem também um crt/boot .S do próprio Spike env.
+    # Se você tiver, adicione aqui:
+    #   boot.S, trap.S etc. que ficam em spike_env_dir
+    # Exemplo genérico:
+    spike_extra_objs = []
+    for extra_src in sorted(spike_env_dir.glob("*.S")):
+        # p.ex. env/rv32i_m.S, env/model_test.h vira só header, etc.
+        # Só monta se for .S "de verdade"
+        o_path = out_dir / f"{test_name}.spike.env_{extra_src.stem}.o"
+        subprocess.run([
+            cc, *cflags_spike,
+            "-c", str(extra_src),
+            "-o", str(o_path)
+        ], check=True)
+        spike_extra_objs.append(o_path)
+
+    # Agora linka tudo
+    all_objs_spike = [obj_test] + spike_extra_objs
+
+    subprocess.run([
+        cc, *ldflags_spike,
+        *map(str, all_objs_spike),
+        "-o", str(elf_spike)
+    ], check=True)
+
+    return elf_spike
+
+
+# --------- Build de um teste da suíte arch-test ---------
+def build_for_dut(repo_root, test_name, dut_env_dir, glue_dir,
+                  spike_env_dir,  # <--- novo parâmetro
+                  isa_dir, out_dir, riscv_prefix):
+    cc      = riscv_prefix + "gcc"
+    objcopy = riscv_prefix + "objcopy"
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    asm_test   = (isa_dir / f"{test_name}.S").resolve()
+    obj_test   = out_dir / f"{test_name}.dut.test.o"
+
+    elf_dut    = out_dir / f"{test_name}.dut.elf"
+    binfile    = out_dir / f"{test_name}.bin"
+    hexfile    = out_dir / f"{test_name}.hex"
+    meta_json  = out_dir / f"{test_name}.meta.json"
+
+    ld_dut     = (repo_root / "tests/third_party/archtest-utils/link.ld").resolve()
+
+    # flags pro DUT:
+    #  -I dut_env_dir      (teu start.S etc)
+    #  -I glue_dir         (se tiver coisas extras)
+    #  -I spike_env_dir    (onde estão arch_test.h / model_test.h / test_macros.h)
+    cflags_dut = [
+        "-march=rv32i",
+        "-mabi=ilp32",
+        "-nostdlib",
+        "-nostartfiles",
+        "-ffreestanding",
+        "-Os",
+        f"-I{dut_env_dir}",
+        f"-I{glue_dir}",
+        f"-I{spike_env_dir}",   # <<< ADICIONAR ISSO AQUI
+        "-D__riscv_xlen=32",
+        "-DXLEN=32",
+        "-DRVTEST_RV32I",
+    ]
+
+    ldflags_dut = [
+        f"-T{ld_dut}",
+        "-nostdlib",
+        "-nostartfiles",
+        "-Wl,-e,_start",
+    ]
+
+    dut_objs = []
+
+    # compila os .S/.c do DUT env e glue first
+    for src_dir in [dut_env_dir, glue_dir]:
+        for path in sorted(src_dir.glob("*.S")):
+            o = out_dir / f"{test_name}.dut.env_{path.stem}.o"
+            subprocess.run([cc, *cflags_dut,
+                            "-c", str(path),
+                            "-o", str(o)], check=True)
+            dut_objs.append(o)
+        for path in sorted(src_dir.glob("*.c")):
+            o = out_dir / f"{test_name}.dut.env_{path.stem}.o"
+            subprocess.run([cc, *cflags_dut,
+                            "-c", str(path),
+                            "-o", str(o)], check=True)
+            dut_objs.append(o)
+
+    # compila o teste em si (add-01.S etc) com esse mesmo set de includes
+    subprocess.run([cc, *cflags_dut,
+                    "-c", str(asm_test),
+                    "-o", str(obj_test)], check=True)
+
+    all_objs_dut = [obj_test] + dut_objs
+
+    # linka DUT
+    subprocess.run([cc,
+                    *ldflags_dut,
+                    *map(str, all_objs_dut),
+                    "-o", str(elf_dut)],
+                   check=True)
+
+    # gera bin+hex
+    subprocess.run([
+        objcopy,
+        "-O", "binary",
         "--only-section=.init", "--only-section=.fini",
         "--only-section=.text", "--only-section=.text.*",
         "--only-section=.rodata", "--only-section=.rodata.*",
         "--only-section=.srodata", "--only-section=.srodata.*",
         "--only-section=.data", "--only-section=.data.*",
         "--only-section=.sdata", "--only-section=.sdata.*",
-        str(elf), str(binfile)
+        str(elf_dut), str(binfile)
     ], check=True)
 
-    _hex = out_dir / f"{test_name}.hex"
-    _bin_to_romhex(binfile, _hex)
+    _bin_to_romhex(binfile, hexfile)
 
-    syms = _read_symbols_with_nm(elf, riscv_prefix)
-    meta = {"test": test_name, "elf": str(elf), "hex": str(hexfile), "symbols": syms}
+    syms = _read_symbols_with_nm(elf_dut, riscv_prefix)
+
+    meta = {
+        "test": test_name,
+        "elf_spike": str(out_dir / f"{test_name}.spike.elf"),  # vai ser preenchido depois
+        "elf_dut": str(elf_dut),
+        "hex": str(hexfile),
+        "symbols": syms
+    }
     meta_json.write_text(json.dumps(meta, indent=2))
+
+    return meta
+
+
+def build_archtest_pair(repo_root, test_name,
+                        dut_env_dir, glue_dir,
+                        spike_env_dir,
+                        isa_dir, out_dir,
+                        riscv_prefix):
+
+    # 1. build pro DUT (usa dut_env_dir e também spike_env_dir pros headers)
+    meta = build_for_dut(
+        repo_root,
+        test_name,
+        dut_env_dir,
+        glue_dir,
+        spike_env_dir,  # NOVO AQUI
+        isa_dir,
+        out_dir,
+        riscv_prefix
+    )
+
+    # 2. build pro SPIKE
+    elf_spike = build_for_spike(
+        repo_root,
+        test_name,
+        spike_env_dir,
+        isa_dir,
+        out_dir,
+        riscv_prefix
+    )
+
+    # 3. atualiza .meta.json com o caminho do ELF spike
+    meta["elf_spike"] = str(elf_spike)
+    (out_dir / f"{test_name}.meta.json").write_text(json.dumps(meta, indent=2))
+
     return meta
 
 
@@ -327,23 +470,46 @@ def _normalize_one_name(arch_isa_dir: Path, one: str) -> str:
 # --------- Pipelines de alto nível ---------
 def run_compliance(one: str | None) -> bool:
     repo_root = Path(__file__).resolve().parents[2]
-    arch_env_dir = (repo_root / "tests/third_party/riscv-arch-test/riscv-test-suite/env").resolve()
-    arch_isa_dir = (repo_root / "tests/third_party/riscv-arch-test/riscv-test-suite/rv32i_m/I/src").resolve()
-    arch_glue_dir = (repo_root / "tests/third_party/archtest-utils").resolve()
-    arch_out_dir = (repo_root / "build/archtest").resolve()
-    riscv_prefix = os.getenv("RISCV_PREFIX", "riscv-none-elf-")
 
-    tests = [_normalize_one_name(arch_isa_dir, one)] if one else sorted(p.stem for p in arch_isa_dir.glob("*.S"))
+    dut_env_dir    = (repo_root / "tests/third_party/archtest-utils").resolve()
+    glue_dir       = (repo_root / "tests/third_party/archtest-utils").resolve()
+    spike_env_dir  = (repo_root / "tests/third_party/riscv-arch-test/env_spike").resolve()
+    isa_dir        = (repo_root / "tests/third_party/riscv-arch-test/riscv-test-suite/rv32i_m/I/src").resolve()
+    out_dir        = (repo_root / "build/archtest").resolve()
+    riscv_prefix   = os.getenv("RISCV_PREFIX", "riscv-none-elf-")
+
+    # escolhe quais testes rodar
+    tests = [_normalize_one_name(isa_dir, one)] if one else sorted(p.stem for p in isa_dir.glob("*.S"))
 
     passed = failed = 0
     for t in tests:
         print(f"\n=================== COMPLIANCE: {t} ===================")
-        meta = build_archtest_one(repo_root, t, arch_env_dir, arch_isa_dir, arch_glue_dir, arch_out_dir, riscv_prefix)
+
+        # 1. build (DUT + Spike) e escreve meta.json
+        meta = build_archtest_pair(
+            repo_root,
+            t,
+            dut_env_dir,
+            glue_dir,
+            spike_env_dir,
+            isa_dir,
+            out_dir,
+            riscv_prefix
+        )
+
+        # 2. garantir referência (rodar spike OU usar sig já salva)
         try:
-            _ensure_reference_signature(meta)
+            _ensure_reference_signature({
+                "test": meta["test"],
+                # IMPORTANTE: _ensure_reference_signature() ainda espera meta["elf"]
+                # mas agora seu meta tem "elf_spike".
+                # então vamos montar um dicionário no formato antigo:
+                "elf": meta["elf_spike"]
+            })
         except Exception as e:
             print(f"[WARN] Não foi possível gerar referência via Spike para {t}: {e}")
 
+        # 3. rodar cocotb/ghdl com o DUT
         hex_path = meta["hex"]
         extra_env = {"ARCHTEST_META": json.dumps(meta)}
         try:
@@ -431,9 +597,19 @@ if __name__ == "__main__":
             tests = [_normalize_one_name(arch_isa_dir, args.arg)]
         else:
             tests = sorted(p.stem for p in arch_isa_dir.glob("*.S"))
+        dut_env_dir    = repo_root / "tests/third_party/archtest-utils"
+        glue_dir       = repo_root / "tests/third_party/archtest-utils"   # se você tem um glue separado, aponta aqui
+        spike_env_dir  = repo_root / "tests/third_party/riscv-arch-test/env_spike"
+        isa_dir        = repo_root / "tests/third_party/riscv-arch-test/riscv-test-suite/rv32i_m/I/src"
+        out_dir        = repo_root / "build/archtest"
+
         for t in tests:
             print(f"[assemble] {t}")
-            build_archtest_one(repo_root, t, arch_env_dir, arch_isa_dir, arch_glue_dir, arch_out_dir, riscv_prefix)
+            build_archtest_pair(repo_root, t,
+                                dut_env_dir, glue_dir,
+                                spike_env_dir,
+                                isa_dir, out_dir,
+                                riscv_prefix)
         print("Montagem concluída. ELFs/HEX/META em build/archtest.")
         sys.exit(0)
 
