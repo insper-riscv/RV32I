@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 .PHONY: test run clean compliance compliance-one refs build-refs arch-elves
 
-RISCV_PREFIX ?= riscv-none-elf-
+RISCV_PREFIX ?= riscv32-unknown-elf-
 export RISCV_PREFIX
 export PYTHONPATH := $(PWD)
 export ARCHTEST_REF_POLICY := regen # regen se quiser regerar os arquivos de referencia, senao skip
