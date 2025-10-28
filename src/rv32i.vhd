@@ -5,7 +5,7 @@ use work.rv32i_ctrl_consts.all;
 
 entity rv32i is
   generic (
-	  SIMULATION : boolean := FALSE; -- SIMULATION = TRUE para fazer testes no cocotb, FLASE para fazer a sintese na placa física.
+	  SIMULATION : boolean := TRUE; -- SIMULATION = TRUE para fazer testes no cocotb, FLASE para fazer a sintese na placa física.
 	  ROM_FILE : string := "default.hex" -- ROM_FILE é o programa que vai carregar a ROM quando SIMULATION = TRUE
   );
   port   (
@@ -217,8 +217,24 @@ begin
 					data_out => out_StoreManager,
 					mask => mask
 				);
-				
 
+
+	sim_ram : if SIMULATION generate
+	eRAM <= '1' when ALU_out(31 downto 16) = x"2000" else '0';
+	RAM_SIM : entity work.RAM_big generic map(dataWidth => 32, addrWidth => 30, memoryAddrWidth => 14)
+				port map(
+					clk      => CLK,
+					addr     => ALU_out(31 downto 2),
+					data_in  => out_StoreManager,
+					data_out => RAM_out,
+					weRAM    => weRAM,
+					reRAM    => reRAM,
+					eRAM     => eRAM,
+					mask     => mask
+				);
+	end generate;
+				
+	hw_ram : if not SIMULATION generate
 	RAM : entity work.RAM
 				port map(
 					clk => CLK,
@@ -230,6 +246,8 @@ begin
 					eRAM => eRAM,
 					mask => mask
 				);
+	end generate;
+
 
 	ExtenderRAM : entity work.ExtenderRAM
 				port map(

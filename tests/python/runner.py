@@ -54,6 +54,7 @@ SOURCES = [
     "src/genericMux3x1.vhd",
     "src/genericRegister.vhd",
     "src/rv32i.vhd",
+    "src/RAM_big.vhd",  
 ]
 TEST_MODULE_ARCHTEST = "tests.python.unittests.archtest.test_archtest"
 
