@@ -17,10 +17,23 @@ REPO = Path(__file__).resolve().parents[2]
 PLUSARGS_ENV = os.getenv("COCOTB_PLUSARGS", "")
 plusargs = [a for a in PLUSARGS_ENV.split() if a.strip()]
 
+# defaults "hard"
+DEFAULT_REF_DIR        = str(REPO / "tests/third_party/riscv-arch-test/tools/reference_outputs")
+DEFAULT_SPIKE_MEM      = "-m2147483648:1048576,536870912:65536"
+DEFAULT_ISA            = "rv32i"
+DEFAULT_MAX_CYCLES     = "200000"
+DEFAULT_RISCV_PREFIX   = "riscv32-unknown-elf-"
+
+# garante que o processo atual tem esses valores
+os.environ.setdefault("ARCHTEST_REF_DIR", DEFAULT_REF_DIR)
+os.environ.setdefault("ARCHTEST_SPIKE_MEM", DEFAULT_SPIKE_MEM)
+os.environ.setdefault("ARCHTEST_ISA", DEFAULT_ISA)
+os.environ.setdefault("ARCHTEST_MAX_CYCLES", DEFAULT_MAX_CYCLES)
+os.environ.setdefault("RISCV_PREFIX", DEFAULT_RISCV_PREFIX)
+
 os.environ.setdefault("PYTHONPATH", str(REPO))
-os.environ.setdefault("ARCHTEST_REF_DIR", "tests/third_party/riscv-arch-test/tools/reference_outputs")
-os.environ.setdefault("ARCHTEST_MAX_CYCLES", "200000")
 os.environ.setdefault("PYTHONUNBUFFERED", "1")
+os.environ.setdefault("ARCHTEST_REF_POLICY", "auto")  # ou "regen" se você quer sempre regenerar
 
 
 # --------- Constantes usadas no pipeline de COMPLIANCE ---------
@@ -219,7 +232,10 @@ def run_cocotb_test(
         parameters=parameters or {},
     )
 
-    base_env = {} if extra_env is None else dict(extra_env)
+    base_env = os.environ.copy()
+    if extra_env is not None:
+        base_env.update(extra_env)
+
     for k in [
         "WAVES",
         "GHDL_DUMP_VCD",
@@ -234,7 +250,7 @@ def run_cocotb_test(
     ]:
         os.environ.pop(k, None)
         base_env.pop(k, None)
-    base_env["WAVES"] = "0"
+    base_env["WAVES"] = "1"
     base_env["PYTHONPATH"] = os.environ.get("PYTHONPATH", str(repo_root))
 
     runner.test(
@@ -321,9 +337,6 @@ def build_for_dut(repo_root, test_name,
     asm_test   = (isa_dir / f"{test_name}.S").resolve()
     obj_test   = out_dir / f"{test_name}.dut.test.o"
 
-    boot_spike  = (spike_env_dir / "boot_spike.S").resolve()
-    obj_boot    = out_dir / f"{test_name}.spike.boot.o"
-
     elf_dut    = out_dir / f"{test_name}.dut.elf"
     binfile    = out_dir / f"{test_name}.bin"
     hexfile    = out_dir / f"{test_name}.hex"
@@ -353,7 +366,6 @@ def build_for_dut(repo_root, test_name,
     ]
 
     dut_objs = []
-
     for path in sorted(dut_env_dir.glob("*.S")):
         o = out_dir / f"{test_name}.dut.env_{path.stem}.o"
         subprocess.run([cc, *cflags_dut,
@@ -372,7 +384,7 @@ def build_for_dut(repo_root, test_name,
                     "-c", str(asm_test),
                     "-o", str(obj_test)], check=True)
 
-    all_objs_dut = [obj_test] + dut_objs
+    all_objs_dut = [*dut_objs, obj_test]
 
     subprocess.run([cc,
                     *ldflags_dut,
@@ -483,7 +495,17 @@ def run_compliance(one: str | None,
             print(f"[WARN] Não foi possível gerar referência via Spike para {t}: {e}")
 
         hex_path = meta["hex"]
-        extra_env = {"ARCHTEST_META": json.dumps(meta)}
+
+        tools_dir = repo_root / "tests/third_party/riscv-arch-test/tools"
+        ref_dir = Path(os.environ["ARCHTEST_REF_DIR"]).resolve()
+
+        extra_env = {
+            "ARCHTEST_META": json.dumps(meta),
+            "ARCHTEST_REF_DIR": str(ref_dir),
+            "ARCHTEST_MAX_CYCLES": os.environ["ARCHTEST_MAX_CYCLES"],
+            "PYTHONPATH": os.environ["PYTHONPATH"],
+            "ARCHTEST_ISA": os.environ["ARCHTEST_ISA"],
+        }
 
         try:
             ok, failures, errors, _ = run_cocotb_test(
@@ -569,7 +591,7 @@ if __name__ == "__main__":
     isa_dir        = (repo_root / "tests/third_party/riscv-arch-test/riscv-test-suite/rv32i_m/I/src").resolve()
     out_dir        = (repo_root / "build/archtest").resolve()
 
-    riscv_prefix   = os.getenv("RISCV_PREFIX", "riscv-none-elf-")
+    riscv_prefix   = os.environ["RISCV_PREFIX"]
 
     if args.mode == "assemble":
         # gera TODOS os artefatos (elf_dut, elf_spike, hex, meta.json) em build/archtest

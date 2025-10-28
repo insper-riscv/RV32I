@@ -1,138 +1,68 @@
-import os, json, importlib, inspect, pathlib
+import os, json, struct, pathlib
 import cocotb
-from cocotb.triggers import RisingEdge, Timer
+from cocotb.triggers import RisingEdge, ReadOnly, Timer
 from cocotb.clock import Clock
-from cocotb.result import SimFailure
 
-def _load_meta():
-    m = os.environ["ARCHTEST_META"]
-    if m.strip().startswith("{"): return json.loads(m)
-    return json.loads(pathlib.Path(m).read_text())
+from .readers import init_sniffer, dump_range, ram_read32
 
-def _load_ext_reader_and_init(dut):
-    """Lê ARCHTEST_READER_INIT e ARCHTEST_READ32 e retorna (init_fn|None, async read32|None)."""
-    init_spec = os.getenv("ARCHTEST_READER_INIT", "").strip()
-    read_spec = os.getenv("ARCHTEST_READ32", "").strip()
-
-    init_fn = None
-    if init_spec:
-        mod, func = init_spec.split(":")
-        init_fn = getattr(importlib.import_module(mod), func)
-
-    reader = None
-    if read_spec:
-        mod, func = read_spec.split(":")
-        f = getattr(importlib.import_module(mod), func)
-        if inspect.iscoroutinefunction(f):
-            async def r(addr): return await f(dut, addr)
-        else:
-            async def r(addr): return f(dut, addr)
-        reader = r
-
-    return init_fn, reader
-
-def _hasattr(d, name):
-    try:
-        getattr(d, name)
-        return True
-    except Exception:
-        return False
-
-def _mk_dbg_reader(dut):
-    """Fallback: precisa dos pinos dbg_addr/dbg_read/dbg_rdata/dbg_ready expondo leitura de 32b."""
-    req = ["dbg_addr", "dbg_read", "dbg_rdata", "dbg_ready"]
-    if not all(_hasattr(dut, n) for n in req): return None
-
-    async def r(addr):
-        dut.dbg_addr.value = addr
-        dut.dbg_read.value = 1
-        if _hasattr(dut, "CLK"): await RisingEdge(dut.CLK)
-        else: await Timer(1, "ns")
-        while int(dut.dbg_ready.value) == 0:
-            if _hasattr(dut, "CLK"): await RisingEdge(dut.CLK)
-            else: await Timer(1, "ns")
-        val = int(dut.dbg_rdata.value) & 0xFFFFFFFF
-        dut.dbg_read.value = 0
-        return val
-    return r
-
-async def _await_pass_via_tohost(read32, tohost, cycles, clk):
-    if not tohost:
-        # se não houver tohost, apenas avance alguns ciclos para o programa terminar a assinatura
-        fallback = int(os.getenv("ARCHTEST_FALLBACK_CYCLES", "50000"))
-        if clk:
-            for _ in range(fallback): await RisingEdge(clk)
-        else:
-            await Timer(1, "ms")
-        return 0
-    c = 0
-    while c < cycles:
-        v = await read32(tohost)
-        if v != 0: return v
-        if clk: await RisingEdge(clk)
-        else: await Timer(10, "ns")
-        c += 1
-    raise TimeoutError("tohost não sinalizou dentro do limite")
-
-async def _read_signature(read32, beg, end):
-    n = end - beg
-    out = bytearray(n)
-    for off in range(0, n, 4):
-        w = await read32(beg + off)
-        out[off:off+4] = int(w).to_bytes(4, "little", signed=False)
+def _spike_sig_text_to_bytes(sig_text_bytes: bytes) -> bytes:
+    out = bytearray()
+    for line in sig_text_bytes.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        w = int(line, 16)
+        out += struct.pack("<I", w)  # little-endian
     return bytes(out)
-
-def _as_int(x):
-    return int(x, 0) if isinstance(x, str) else int(x)
 
 @cocotb.test()
 async def archtest(dut):
-    META = _load_meta()
+    # meta passado pelo runner. Obrigatório.
+    meta = json.loads(os.environ["ARCHTEST_META"])
+    syms = meta["symbols"]
+    test_name = meta["test"]
 
-    # clock/reset guard
-    clk = getattr(dut, "CLK", None)
-    if clk is not None:
-        period = int(os.getenv("ARCHTEST_CLK_PERIOD_NS", "10"))
-        cocotb.start_soon(Clock(clk, period, units="ns").start())
-    rst = None
-    for cand in ("RESET","reset","rst","rst_n"):
-        if hasattr(dut, cand): rst = getattr(dut, cand); break
-    if rst is not None:
-        active_high = os.getenv("ARCHTEST_RESET_ACTIVE","1") == "1"
-        rst.value = 1 if active_high else 0
-        for _ in range(5): await (RisingEdge(clk) if clk is not None else Timer(10,"ns"))
-        rst.value = 0 if active_high else 1
-        for _ in range(5): await (RisingEdge(clk) if clk is not None else Timer(10,"ns"))
+    begin_sig = int(syms["begin_signature"], 16)
+    end_sig   = int(syms["end_signature"], 16)
+    tohost    = int(syms["tohost"], 16)
 
-    # símbolos
-    begin_sig = _as_int(META["symbols"]["begin_signature"])
-    end_sig   = _as_int(META["symbols"]["end_signature"])
-    tohost    = META["symbols"].get("tohost")
-    tohost    = _as_int(tohost) if tohost is not None else 0
-    test_name = META["test"]
+    max_cycles = int(os.environ.get("ARCHTEST_MAX_CYCLES", "200000"))
 
-    # reader + sniffer
-    init_fn, read32 = _load_ext_reader_and_init(dut)   # sua função que lê ARCHTEST_READER_INIT/READ32
-    if init_fn:
-        if inspect.iscoroutinefunction(init_fn): await init_fn(dut)
-        else: init_fn(dut)
-    if read32 is None:
-        read32 = _mk_dbg_reader(dut)
-    if read32 is None:
-        raise RuntimeError("defina ARCHTEST_READ32/ARCHTEST_READER_INIT ou exponha dbg_* no DUT")
+    cocotb.log.info(f"SYMS = {syms}")
 
-    # execução protegida: se a sim cair, ainda comparamos a assinatura coletada
-    try:
-        max_cycles = int(os.getenv("ARCHTEST_MAX_CYCLES", "200000"))
-        await _await_pass_via_tohost(read32, tohost, max_cycles, clk)
-        sig_dut = await _read_signature(read32, begin_sig, end_sig)
-    except SimFailure:
-        # pega direto do espelho do sniffer
-        from tests.python.unittests.archtest import readers as R
-        sig_dut = R.dump_range(begin_sig, end_sig)
+    cocotb.start_soon(Clock(dut.CLK, 10, units="ns").start())
+    
+    # inicializa o sniffer de RAM (não tenta dbg_*, nunca mais quebra por causa disso)
+    await init_sniffer(dut)
 
-    # ref
-    ref_dir = pathlib.Path(os.getenv("ARCHTEST_REF_DIR","tests/third_party/riscv-arch-test/tools/reference_outputs"))
-    sig_ref = (ref_dir / f"{test_name}.sig").read_bytes()
+    # loop principal: roda clock até tohost != 0
+    done = False
+    for cycle in range(max_cycles):
+        if hasattr(dut, "CLK"):
+            await RisingEdge(dut.CLK)
+        else:
+            await Timer(1, "ns")
 
-    assert sig_dut == sig_ref, f"assinatura diferente em {test_name}: DUT {len(sig_dut)}B vs REF {len(sig_ref)}B"
+        await ReadOnly()
+
+        th = ram_read32(dut, tohost)
+        if th != 0:
+            cocotb.log.info(f"[archtest] tohost=0x{th:08x} ciclo={cycle}")
+            done = True
+            break
+
+    if not done:
+        raise AssertionError(f"timeout: tohost ficou 0 até {max_cycles} ciclos")
+
+    # coleta assinatura do DUT
+    sig_dut = dump_range(begin_sig, end_sig)
+
+    # carrega referência do Spike
+    ref_dir = pathlib.Path(os.environ["ARCHTEST_REF_DIR"])
+    sig_ref_txt = (ref_dir / f"{test_name}.sig").read_bytes()
+    sig_ref_bin = _spike_sig_text_to_bytes(sig_ref_txt)
+
+    assert sig_dut == sig_ref_bin, (
+        f"assinatura diferente em {test_name}: "
+        f"DUT {len(sig_dut)}B vs REF {len(sig_ref_bin)}B"
+    )

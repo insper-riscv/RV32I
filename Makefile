@@ -7,9 +7,9 @@ export RISCV_PREFIX
 export PYTHONPATH := $(PWD)
 export ARCHTEST_REF_POLICY := regen # regen se quiser regerar os arquivos de referencia, senao skip
 
+ARCHTEST_REF_DIR := $(PWD)/tests/third_party/riscv-arch-test/tools/reference_outputs
 ARCHTEST_ISA           ?= rv32i
 ARCHTEST_BUILD_DIR     ?= build/archtest
-ARCHTEST_REF_DIR       ?= tests/third_party/riscv-arch-test/tools/reference_outputs
 # Spike 1.1.1-dev: usa UM único -m com lista ROM,RAM (decimal)
 ARCHTEST_SPIKE_MEM     ?= -m2147483648:1048576,536870912:65536
 # Logs + testes mais faladores/rápidos
