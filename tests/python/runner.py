@@ -262,14 +262,17 @@ def build_for_spike(repo_root, test_name,
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    asm_test   = (isa_dir / f"{test_name}.S").resolve()
-    obj_test   = out_dir / f"{test_name}.spike.test.o"
+    asm_test    = (isa_dir / f"{test_name}.S").resolve()
+    obj_test    = out_dir / f"{test_name}.spike.test.o"
 
-    elf_spike  = out_dir / f"{test_name}.spike.elf"
-    ld_spike   = (repo_root / "tests/compliance/archtest_spike_env/low.ld").resolve()
+    boot_spike  = (spike_env_dir / "boot_spike.S").resolve()
+    obj_boot    = out_dir / f"{test_name}.spike.boot.o"
+
+    elf_spike   = out_dir / f"{test_name}.spike.elf"
+    ld_spike    = (spike_env_dir / "low.ld").resolve()
 
     cflags_spike = [
-        "-march=rv32i",
+        "-march=rv32i_zicsr",
         "-mabi=ilp32",
         "-nostdlib",
         "-nostartfiles",
@@ -288,9 +291,18 @@ def build_for_spike(repo_root, test_name,
         "-Wl,-e,_start",
     ]
 
-    subprocess.run([cc, *cflags_spike, "-c", str(asm_test), "-o", str(obj_test)], check=True)
+    subprocess.run([cc, *cflags_spike,
+                    "-c", str(boot_spike),
+                    "-o", str(obj_boot)], check=True)
 
-    subprocess.run([cc, *ldflags_spike, str(obj_test), "-o", str(elf_spike)], check=True)
+    subprocess.run([cc, *cflags_spike,
+                    "-c", str(asm_test),
+                    "-o", str(obj_test)], check=True)
+
+    subprocess.run([cc, *ldflags_spike,
+                    str(obj_boot),
+                    str(obj_test),
+                    "-o", str(elf_spike)], check=True)
 
     return elf_spike
 
@@ -308,6 +320,9 @@ def build_for_dut(repo_root, test_name,
 
     asm_test   = (isa_dir / f"{test_name}.S").resolve()
     obj_test   = out_dir / f"{test_name}.dut.test.o"
+
+    boot_spike  = (spike_env_dir / "boot_spike.S").resolve()
+    obj_boot    = out_dir / f"{test_name}.spike.boot.o"
 
     elf_dut    = out_dir / f"{test_name}.dut.elf"
     binfile    = out_dir / f"{test_name}.bin"
