@@ -3,8 +3,10 @@
 
 _start:
     # montar endereço 0x800 (2048) em x1
-    lui   x1, 0x1
-    addi  x1, x1, -2048    # x1 = 0x00000800  (endereço dos LEDs, halfword)
+    #lui   x1, 0x1
+    #addi  x1, x1, -2048    # x1 = 0x00000800  (endereço dos LEDs, halfword)
+    lui   x1, 0x1          # x1 = 0x00001000  (endereço dos LEDs)
+    addi  x1, x1, 0        # sem ajuste
 
     # carregar contador para ~0.5s: N = 12_500_000
     # usado no laço de delay (recarregado a cada cycle)

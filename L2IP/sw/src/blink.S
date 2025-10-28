@@ -3,8 +3,10 @@
 
 _start:
     # montar endereço 0x800 (2048) em x1 (base dos LEDs)
-    lui   x1, 0x1
-    addi  x1, x1, -2048        # x1 = 0x00000800
+    #lui   x1, 0x1
+    #addi  x1, x1, -2048        # x1 = 0x00000800
+    lui   x1, 0x1          # x1 = 0x00001000  (endereço dos LEDs)
+    addi  x1, x1, 0        # sem ajuste
 
 blink_loop:
     # acende todos os 8 LEDs (0x00FF)

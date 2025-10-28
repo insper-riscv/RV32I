@@ -269,7 +269,7 @@ RAM : entity work.RAM
 			
 enable_led <= '1'
   when (eRAM = '1' and weRAM = '1' and
-        unsigned(ALU_out(31 downto 2)) = to_unsigned(512, 30))
+        unsigned(ALU_out(31 downto 2)) = to_unsigned(1024, 30))
   else '0';
 			
 leds : entity work.genericRegister
