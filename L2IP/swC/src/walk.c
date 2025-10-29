@@ -1,16 +1,18 @@
 #define LED_ADDR ((volatile unsigned short *)0x00001000)
 
-int main(void) {
-    volatile unsigned int i;
-    unsigned int pattern = 1; 
+void delay(int value){
+    for (int i = 0; i < value; i++) { __asm__ volatile ("nop"); }
+}
 
-    for (;;) {
+int main(void) {
+    unsigned int pattern = 1; 
+    while(1) {
         *LED_ADDR = (unsigned short)pattern;
-        for (i = 0; i < 1250000; i++) { __asm__ volatile ("nop"); }
+        delay(1250000);
         pattern <<= 1;
         if (pattern == 256u) pattern = 1u;
         *LED_ADDR = (unsigned short)pattern;
-        for (i = 0; i < 1250000; i++) { __asm__ volatile ("nop"); }
+        delay(1250000);
     }
 
     return 0;

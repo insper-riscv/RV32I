@@ -57,7 +57,7 @@ build:
 	$(CC) $(CFLAGS) -O0 -c $(FILE) -o $(BUILD_DIR)/main.o
 
 	@echo "--> linkando (gerando ELF)"
-	$(CC) -nostdlib -nostartfiles -T $(LDSCRIPT) $(BUILD_DIR)/startup_L2IP.o $(BUILD_DIR)/main.o -o $(OUT_ELF)
+	$(CC) -nostdlib -nostartfiles -T $(LDSCRIPT) $(BUILD_DIR)/startup_L2IP.o $(BUILD_DIR)/main.o -lgcc -o $(OUT_ELF)
 
 	@echo "--> gerando BIN (imagem binária)"
 	$(OBJCOPY) -O binary $(OUT_ELF) $(OUT_BIN)
