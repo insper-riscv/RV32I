@@ -23,7 +23,7 @@ architecture behaviour of rv32i is
   --signal CLK : std_logic;
   
   signal MuxPc4ALU_out : std_logic_vector(31 downto 0);
-  signal PC_out : std_logic_vector(31 downto 0);
+  signal PC_out : std_logic_vector(31 downto 0) := (others => '0');
   
   signal ROM_out : std_logic_vector(31 downto 0);
   
@@ -36,7 +36,7 @@ architecture behaviour of rv32i is
   signal selMuxPCRS1 : std_logic;
   signal opALU : std_logic_vector(4 downto 0);
   signal mask : std_logic_vector(3 downto 0);
-  signal weRAM, reRAM, eRAM : std_logic;
+  signal weRAM, reRAM, eRAM, eRAM_instdec : std_logic;
   
   signal ExtenderImm_out : std_logic_vector(31 downto 0);
   
@@ -60,20 +60,27 @@ architecture behaviour of rv32i is
   signal selMuxPc4ALU_ext : std_logic_vector(1 downto 0);
 
   signal addr_word : std_logic_vector(31 downto 0);
-  
+  signal rst_boot : std_logic := '1';
   
 
 begin
 
 --edgeDetectorKey : entity work.edgeDetector
 --			port map (clk => CLOCK_50, entrada => NOT(FPGA_RESET_N), saida => CLK);
+
+	process(CLK)
+	begin
+	if rising_edge(CLK) and rst_boot = '1' then
+		rst_boot <= '0';
+	end if;
+	end process;
 			
 			
 	PC : entity work.genericRegister
 		generic map ( data_width => 32 )
 		port map (
 			clock => CLK,
-			clear => '0',
+			clear => rst_boot,
 			enable => '1',
 			source => MuxPc4ALU_out,
 			
@@ -124,7 +131,7 @@ begin
 					opALU => opALU,
 					weRAM => weRAM,
 					reRAM => reRAM,
-					eRAM => eRAM
+					eRAM => eRAM_instdec
 				);
 				
 	ExtenderImm : entity work.ExtenderImm
@@ -243,7 +250,7 @@ begin
 					data_out => RAM_out,
 					weRAM => weRAM,
 					reRAM => reRAM,
-					eRAM => eRAM,
+					eRAM => eRAM_instdec,
 					mask => mask
 				);
 	end generate;
