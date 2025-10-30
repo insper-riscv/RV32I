@@ -3,8 +3,8 @@ JedecChain;
 	FileRevision(JESD32A);
 	DefaultMfr(6E);
 
-	P ActionCode(Ign)
-		Device PartName(5CEBA4F23) MfrSpec(OpMask(0) FullPath("/home/borg/pfe/RV32I/L2IP/hw/output_files/L2IP.sof"));
+	P ActionCode(Cfg)
+		Device PartName(5CEBA4F23) Path("/home/borg/pfe/RV32I/L2IP/hw/output_files/") File("L2IP.sof") MfrSpec(OpMask(1));
 
 ChainEnd;
 

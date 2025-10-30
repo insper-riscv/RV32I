@@ -1,32 +1,21 @@
 {
   "name": "riscv-core",
   "image": "ghcr.io/pedropcventura/riscv-dev_tools:yosys-fixed",
-
-  // Use the non-root user created in the image
   "remoteUser": "dev",
 
-  // Folder mapping: mount local project to /work
   "workspaceFolder": "/work",
   "workspaceMount": "source=${localWorkspaceFolder},target=/work,type=bind,consistency=cached",
 
-  // Optional: GUI waveform viewer support (can remove if unused)
   "containerEnv": {
     "DISPLAY": "host.docker.internal:0"
   },
   "runArgs": [
-    "-e", "DISPLAY=host.docker.internal:0"
+    "-e", "DISPLAY=host.docker.internal:0",
+    "-v", "/var/run/docker.sock:/var/run/docker.sock"   // talk to host Docker
   ],
 
-  // Optional feature: allows this devcontainer to run other Docker commands
-  // (needed only if you'll later use Quartus or any sidecar container)
-  "features": {
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
-  },
+  "features": {},   // <-- remove the docker-outside-of-docker feature
 
-  // Simple command to confirm environment on first startup
-  // "postCreateCommand": "sudo apt-get update && (sudo apt-get install -y ghdl ghdl-yosys-plugin || sudo apt-get install -y ghdl yosys-plugin-ghdl) && yosys -m ghdl -p 'help' || true", 
-
-  // Recommend essential VSCode extensions (auto-suggests to the user)
   "customizations": {
     "vscode": {
       "extensions": [
