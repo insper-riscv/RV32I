@@ -11,7 +11,6 @@ from xml.etree import ElementTree as ET
 
 from cocotb.runner import get_runner, VHDL
 
-
 # --------- Configuração base e defaults reprodutíveis ---------
 REPO = Path(__file__).resolve().parents[2]
 PLUSARGS_ENV = os.getenv("COCOTB_PLUSARGS", "")
@@ -19,7 +18,7 @@ plusargs = [a for a in PLUSARGS_ENV.split() if a.strip()]
 
 # defaults "hard"
 DEFAULT_REF_DIR        = str(REPO / "tests/third_party/riscv-arch-test/tools/reference_outputs")
-DEFAULT_SPIKE_MEM      = "-m2147483648:1048576,536870912:65536"
+DEFAULT_SPIKE_MEM      = "-m0x80000000:0x00020000,0x20000000:0x00010000"
 DEFAULT_ISA            = "rv32i"
 DEFAULT_MAX_CYCLES     = "200000"
 DEFAULT_RISCV_PREFIX   = "riscv32-unknown-elf-"
@@ -286,7 +285,7 @@ def build_for_spike(repo_root, test_name,
     obj_boot    = out_dir / f"{test_name}.spike.boot.o"
 
     elf_spike   = out_dir / f"{test_name}.spike.elf"
-    ld_spike    = (spike_env_dir / "low.ld").resolve()
+    ld_spike    = (spike_env_dir / "link.ld").resolve()
 
     cflags_spike = [
         "-march=rv32i_zicsr",
@@ -295,6 +294,7 @@ def build_for_spike(repo_root, test_name,
         "-nostartfiles",
         "-ffreestanding",
         "-Os",
+        f"-I{spike_env_dir}",
         f"-I{common_env_dir}",
         "-D__riscv_xlen=32",
         "-DXLEN=32",

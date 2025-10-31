@@ -24,6 +24,7 @@ _start:
     j    3b
 
 4:
+    .ifdef DEBUG_SIGFILL
     la   t1, begin_signature
     la   t2, end_signature
     li   t3, 0xDEADBEEF
@@ -33,8 +34,8 @@ _start:
     sw   t3, 0(t1)
     addi t1, t1, 4
     j    5b
-
 6:
+    .endif
     la   sp, __stack_top
     j    rvtest_entry_point
 

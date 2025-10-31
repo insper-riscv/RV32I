@@ -8,7 +8,7 @@
 _start:
     ################################################
     # 0. copiar .data inicializada da ROM -> RAM
-    #    usa símbolos que o low.ld exporta
+    #    usa símbolos que o link.ld exporta
     ################################################
     la   t0, __data_load_start   # origem em ROM
     la   t1, __data_start        # destino em RAM
