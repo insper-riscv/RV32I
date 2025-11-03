@@ -240,3 +240,4 @@ tests/python/sim_build/
 tests/third_party/riscv-arch-test/tools/reference_outputs/spike-logs/
 .env.*
 tmp.sig
+*.bin

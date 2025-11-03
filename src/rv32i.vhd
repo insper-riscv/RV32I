@@ -19,68 +19,59 @@ end entity rv32i;
 
 architecture behaviour of rv32i is
 
-  -- add necessary signals here
-  --signal CLK : std_logic;
-  
-  signal MuxPc4ALU_out : std_logic_vector(31 downto 0);
-  signal PC_out : std_logic_vector(31 downto 0) := (others => '0');
-  
-  signal ROM_out : std_logic_vector(31 downto 0);
-  
-  signal selMuxPc4ALU : std_logic;
-  signal opExImm : std_logic_vector(2 downto 0);
-  signal selMuxALUPc4RAM : std_logic_vector(1 downto 0);
-  signal weReg : std_logic;
-  signal opExRAM : std_logic_vector(2 downto 0);
-  signal selMuxRS2Imm : std_logic;
-  signal selMuxPCRS1 : std_logic;
-  signal opALU : std_logic_vector(4 downto 0);
-  signal mask : std_logic_vector(3 downto 0);
-  signal weRAM, reRAM, eRAM, eRAM_instdec : std_logic;
-  
-  signal ExtenderImm_out : std_logic_vector(31 downto 0);
-  
-  signal MuxALUPc4RAM_out : std_logic_vector(31 downto 0);
-  signal d_rs1 : std_logic_vector(31 downto 0);
-  signal d_rs2 : std_logic_vector(31 downto 0);
-  signal out_StoreManager : std_logic_vector(31 downto 0);
-  
-  signal ALU_out : std_logic_vector(31 downto 0);
-  signal PC4 : std_logic_vector(31 downto 0);
-  signal addImmPC_out : std_logic_vector(31 downto 0);
-  signal extenderRAM_out : std_logic_vector(31 downto 0);
-  
-  -- Created with ALU
-  signal MuxPCRS1_out : std_logic_vector(31 downto 0);
-  signal MuxRS2Imm_out : std_logic_vector(31 downto 0);
-  signal branch_flag : std_logic;
-  
-  signal RAM_out : std_logic_vector(31 downto 0);
-  
-  signal selMuxPc4ALU_ext : std_logic_vector(1 downto 0);
+-- program counter / next-PC
+signal PC_out            : std_logic_vector(31 downto 0) := (others => '0');
+signal PC4               : std_logic_vector(31 downto 0) := (others => '0');
 
-  signal addr_word : std_logic_vector(31 downto 0);
-  signal rst_boot : std_logic := '1';
-  
+-- ROM output: give decoder a NOP on cycle 0
+signal ROM_out           : std_logic_vector(31 downto 0) := x"00000013"; -- ADDI x0,x0,0
+
+-- control signals from decoder (ALL ZERO)
+signal selMuxPc4ALU      : std_logic                      := '0';
+signal opExImm           : std_logic_vector(2 downto 0)   := (others => '0');
+signal selMuxALUPc4RAM   : std_logic_vector(1 downto 0)   := (others => '0');
+signal weReg             : std_logic                      := '0';
+signal opExRAM           : std_logic_vector(2 downto 0)   := (others => '0');
+signal selMuxRS2Imm      : std_logic                      := '0';
+signal selMuxPCRS1       : std_logic                      := '0';
+signal opALU             : std_logic_vector(4 downto 0)   := (others => '0');
+signal selMuxPc4ALU_ext  : std_logic_vector(1 downto 0)   := (others => '0');
+signal MuxPc4ALU_out 	 : std_logic_vector(31 downto 0)  := (others => '0');
+
+-- memory controls / data path
+signal mask              : std_logic_vector(3 downto 0)   := (others => '0');
+signal weRAM             : std_logic                      := '0';
+signal reRAM             : std_logic                      := '0';
+signal eRAM              : std_logic                      := '0';
+signal eRAM_instdec      : std_logic                      := '0';
+
+-- datapath regs
+signal ExtenderImm_out   : std_logic_vector(31 downto 0)  := (others => '0');
+signal MuxALUPc4RAM_out  : std_logic_vector(31 downto 0)  := (others => '0');
+signal d_rs1             : std_logic_vector(31 downto 0)  := (others => '0');
+signal d_rs2             : std_logic_vector(31 downto 0)  := (others => '0');
+signal out_StoreManager  : std_logic_vector(31 downto 0)  := (others => '0');
+signal ALU_out           : std_logic_vector(31 downto 0)  := (others => '0');
+signal addImmPC_out      : std_logic_vector(31 downto 0)  := (others => '0');
+signal extenderRAM_out   : std_logic_vector(31 downto 0)  := (others => '0');
+signal MuxPCRS1_out      : std_logic_vector(31 downto 0)  := (others => '0');
+signal MuxRS2Imm_out     : std_logic_vector(31 downto 0)  := (others => '0');
+signal branch_flag       : std_logic                      := '0';
+signal RAM_out           : std_logic_vector(31 downto 0)  := (others => '0');
+
+-- ROM address helper
+signal addr_word         : std_logic_vector(31 downto 0)  := (others => '0');
 
 begin
 
 --edgeDetectorKey : entity work.edgeDetector
---			port map (clk => CLOCK_50, entrada => NOT(FPGA_RESET_N), saida => CLK);
-
-	process(CLK)
-	begin
-	if rising_edge(CLK) and rst_boot = '1' then
-		rst_boot <= '0';
-	end if;
-	end process;
-			
+--			port map (clk => CLOCK_50, entrada => NOT(FPGA_RESET_N), saida => CLK);			
 			
 	PC : entity work.genericRegister
 		generic map ( data_width => 32 )
 		port map (
 			clock => CLK,
-			clear => rst_boot,
+			clear => '0',
 			enable => '1',
 			source => MuxPc4ALU_out,
 			

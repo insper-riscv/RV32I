@@ -25,15 +25,19 @@
 
 #define RVMODEL_BOOT
 
-//RV_COMPLIANCE_DATA_BEGIN
-#define RVMODEL_DATA_BEGIN                                              \
-  RVMODEL_DATA_SECTION                                                        \
-  .align ALIGNMENT;\
+// RV_COMPLIANCE_DATA_BEGIN
+#undef RVMODEL_DATA_BEGIN
+#define RVMODEL_DATA_BEGIN                                  \
+  RVMODEL_DATA_SECTION                                      \
+  .pushsection .signature,"aw",@progbits;                   \
+  .align ALIGNMENT;                                         \
   .global begin_signature; begin_signature:
 
 //RV_COMPLIANCE_DATA_END
-#define RVMODEL_DATA_END                                                      \
-  .global end_signature; end_signature:  
+#undef RVMODEL_DATA_END
+#define RVMODEL_DATA_END                                    \
+  .global end_signature; end_signature:                     \
+  .popsection 
 
 //RVTEST_IO_INIT
 #define RVMODEL_IO_INIT
@@ -41,12 +45,29 @@
 #define RVMODEL_IO_WRITE_STR(_R, _STR)
 //RVTEST_IO_CHECK
 #define RVMODEL_IO_CHECK()
-//RVTEST_IO_ASSERT_GPR_EQ
-#define RVMODEL_IO_ASSERT_GPR_EQ(_S, _R, _I)
-//RVTEST_IO_ASSERT_SFPR_EQ
-#define RVMODEL_IO_ASSERT_SFPR_EQ(_F, _R, _I)
-//RVTEST_IO_ASSERT_DFPR_EQ
-#define RVMODEL_IO_ASSERT_DFPR_EQ(_D, _R, _I)
+
+/* RV32 only */
+#define BYTES_PER_WORD 4
+#define STORE_GPR      sw
+#define STORE_SFPR     fsw
+#define STORE_DFPR     fsd
+
+/* Write a GPR value into the signature at slot _I */
+#define RVMODEL_IO_ASSERT_GPR_EQ(_S, _R, _I) \
+  la   _S, begin_signature;                  \
+  addi _S, _S, ((_I) * BYTES_PER_WORD);      \
+  STORE_GPR _R, 0(_S);
+
+/* Float versions (harmless even if you don't run FP tests) */
+#define RVMODEL_IO_ASSERT_SFPR_EQ(_F, _R, _I) \
+  la   _F, begin_signature;                   \
+  addi _F, _F, ((_I) * BYTES_PER_WORD);       \
+  STORE_SFPR _R, 0(_F);
+
+#define RVMODEL_IO_ASSERT_DFPR_EQ(_D, _R, _I) \
+  la   _D, begin_signature;                   \
+  addi _D, _D, ((_I) * BYTES_PER_WORD);       \
+  STORE_DFPR _R, 0(_D);
 
 #define RVMODEL_SET_MSW_INT
 

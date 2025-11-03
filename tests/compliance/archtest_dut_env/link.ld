@@ -26,6 +26,7 @@ SECTIONS
     __data_start = .;
     *(.data .data.*)
     *(.sdata .sdata.*)
+    *(.tohost) *(.fromhost)
     __data_end = .;
   } > RAM AT>ROM
   __data_load_start = LOADADDR(.data);
@@ -48,12 +49,6 @@ SECTIONS
       PROVIDE(end_signature = .);
       PROVIDE(endsignature  = end_signature);
       PROVIDE(rvtest_sig_end = end_signature);
-  } > RAM
-
-  .tohost (NOLOAD) : {
-    . = ALIGN(256);
-    tohost = .;
-    . = . + 4;
   } > RAM
 
   __stack_top = ORIGIN(RAM) + LENGTH(RAM);

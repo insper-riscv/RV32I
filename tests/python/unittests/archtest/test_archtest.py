@@ -9,28 +9,132 @@ import subprocess, re, tempfile
 RE_HEX_SYM = re.compile(r"^([0-9a-fA-F]+)\s+\w\s+(\S+)$")
 RE_AT_LINE = re.compile(r"^@([0-9a-fA-F]+)$")
 
-async def watch_sig_writes(dut, beg, end, cycles=200000):
-    import cocotb
-    from cocotb.triggers import RisingEdge
-    def u32(sig): return int(sig.value)
-    writes=0
+# -------- helpers to robustly map DUT signal names --------
+
+# -------- reset helper (active-high or active-low) --------
+async def pulse_reset(dut, cycles=8):
+    """
+    Try to find a reset signal on the top-level and pulse it.
+    Active-low if the name suggests '*_N' or '*n'; otherwise active-high.
+    """
+    candidates = (
+        "RST_N", "RESET_N", "resetn", "rst_n", "rst_n_i",
+        "RST", "RESET", "reset", "rst", "rst_i"
+    )
+    rst = None
+    name = None
+    for n in candidates:
+        if hasattr(dut, n):
+            rst, name = getattr(dut, n), n
+            break
+    if rst is None:
+        dut._log.warning("[reset] no reset port found; skipping explicit reset")
+        return
+
+    # Guess polarity from name
+    name_l = name.lower()
+    active_low = name_l.endswith("_n") or name_l.endswith("n")
+    act = 0 if active_low else 1
+    deact = 1 - act
+
+    dut._log.info(f"[reset] pulsing reset '{name}' (active_{'low' if active_low else 'high'}) for {cycles} cycles")
+    # Assert
+    rst.value = act
     for _ in range(cycles):
         await RisingEdge(dut.CLK)
-        we   = int(getattr(dut,"weRAM").value)
-        ena  = int(getattr(dut,"eRAM").value)
-        addr = u32(getattr(dut,"addr"))*4   # se sua RAM usa A[31:2]
-        wdat = u32(getattr(dut,"data_in"))
-        if we and ena and beg <= addr < end:
-            writes+=1
-            dut._log.info(f"[SIG-WRITE] addr=0x{addr:08x} data=0x{wdat:08x}")
-    dut._log.info(f"[SIG-WRITE] total writes: {writes}")
+    # Deassert
+    rst.value = deact
+    # Let things settle a few cycles
+    for _ in range(3):
+        await RisingEdge(dut.CLK)
 
+
+_SENTINEL = object()
+
+def _pick(dut, *candidates, **kw):
+    """
+    Return (signal, picked_name). If none is found:
+      - if 'default' is provided, return (default, None)
+      - else raise AttributeError
+    """
+    default = kw.get("default", _SENTINEL)
+    for name in candidates:
+        if hasattr(dut, name):
+            return getattr(dut, name), name
+    if default is _SENTINEL:
+        raise AttributeError(f"{dut._name} has none of: {candidates}")
+    return default, None
+
+def _u32(sig):
+    return int(sig.value)
+
+# -------- signature write watcher (sniffer) --------
+
+async def watch_sig_writes(dut, beg, end, cycles=200000):
+    """
+    Watches RAM writes and logs any that land in [beg, end).
+
+    Adapts to different top-level signal names:
+      - address  : tries ('addr','address','ram_addr','ALU_out')
+      - wdata    : tries ('wdata','dataW','data_in','out_StoreManager','write_data')
+      - write-en : tries ('we','weRAM','ram_we','write')
+      - enable   : tries ('eRAM','ram_en','ena')          [optional]
+      - byte mask: tries ('mask','byte_en','wmask','be')  [optional]
+
+    Address scale:
+      * If name suggests WORD index ('addr','address','ram_addr'), scale=4
+      * Otherwise (e.g., 'ALU_out'), scale=1 (byte address)
+    """
+    addr_sig, addr_name   = _pick(dut, "addr", "address", "ram_addr", "ALU_out")
+    wdata_sig, _          = _pick(dut, "wdata", "dataW", "data_in", "out_StoreManager", "write_data")
+    we_sig, _             = _pick(dut, "we", "weRAM", "ram_we", "write")
+    ena_sig, ena_name     = _pick(dut, "eRAM", "ram_en", "ena", default=None)
+    mask_sig, mask_name   = _pick(dut, "mask", "byte_en", "wmask", "be", default=None)
+
+    word_index_names = {"addr", "address", "ram_addr"}
+    ADDR_SCALE = 4 if (addr_name in word_index_names) else 1
+
+    writes = 0
+    dut._log.info(
+        "[SIG-WATCH] addr='%s' scale=%d, we='%s', ena='%s', wdata='%s', mask='%s'"
+        % (
+            addr_name, ADDR_SCALE,
+            getattr(we_sig, "_name", "<we?>"),
+            ena_name if ena_name is not None else "<assume 1>",
+            getattr(wdata_sig, "_name", "<wdata?>"),
+            mask_name if mask_name is not None else "<none=0xF>",
+        )
+    )
+
+    for _ in range(cycles):
+        await RisingEdge(dut.CLK)
+
+        if int(we_sig.value) == 0:
+            continue
+
+        ena_ok = 1 if (ena_sig is None) else int(ena_sig.value)
+        if not ena_ok:
+            continue
+
+        addr = _u32(addr_sig) * ADDR_SCALE
+        if not (beg <= addr < end):
+            continue
+
+        data = _u32(wdata_sig) & 0xFFFFFFFF
+        mask = (_u32(mask_sig) & 0xF) if (mask_sig is not None) else 0xF
+
+        writes += 1
+        dut._log.info(f"[SIG-WRITE] addr=0x{addr:08x} data=0x{data:08x} mask=0b{mask:04b}")
+
+    dut._log.info(f"[SIG-WRITE] total writes observed in [0x{beg:08x},0x{end:08x}): {writes}")
+
+# -------- nm / spike helpers --------
 
 def _sym_addr(elf_path:str, sym_name:str)->int:
     out = subprocess.check_output(["riscv32-unknown-elf-nm","-n",elf_path], text=True)
     for line in out.splitlines():
         m = RE_HEX_SYM.match(line.strip())
-        if not m: 
+        if not m:
             continue
         addr_hex, name = m.groups()
         if name == sym_name:
@@ -56,19 +160,18 @@ def _try_read_binary_sig(path:str)->bytes:
         head = f.read(2)
     if head.startswith(b"@"):
         return None
-    # Parece binário (ou outro formato); devolve bytes
     with open(path,"rb") as f:
         return f.read()
 
 def _parse_text_signature(path:str)->tuple[int, bytearray]:
     """
     Parseia o formato textual do Spike:
-      @<addr>\n
-      <word0> <word1> ... (hex de 32 bits, sem 0x, separados por espaço/linha)
-    Pode ter vários blocos começando com @addr.
-    Retorna (start_addr, bytes_contiguos) cobrindo do menor @addr até o maior endereço escrito.
+      @<addr>  (linha)
+      <word0> <word1> ... (hex 32b)
+    Pode haver vários blocos @addr.
+    Retorna (start_addr, bytes_contiguos).
     """
-    blocks = []  # lista de (base_addr:int, [words:int])
+    blocks = []
     cur_addr = None
     cur_words = []
     min_addr = None
@@ -81,7 +184,6 @@ def _parse_text_signature(path:str)->tuple[int, bytearray]:
                 continue
             m = RE_AT_LINE.match(line)
             if m:
-                # fecha bloco anterior
                 if cur_addr is not None and cur_words:
                     blocks.append((cur_addr, cur_words))
                 cur_addr = int(m.group(1), 16)
@@ -89,21 +191,14 @@ def _parse_text_signature(path:str)->tuple[int, bytearray]:
                 if min_addr is None or cur_addr < min_addr:
                     min_addr = cur_addr
                 continue
-            # tokens hex
-            tokens = line.split()
-            for tok in tokens:
-                w = int(tok, 16)
-                cur_words.append(w)
-        # fecha o último
+            for tok in line.split():
+                cur_words.append(int(tok, 16) & 0xFFFFFFFF)
         if cur_addr is not None and cur_words:
             blocks.append((cur_addr, cur_words))
 
     if not blocks:
         raise AssertionError(f"Assinatura textual vazia em {path}")
 
-    # Calcula faixa total e materializa um bytearray contínuo
-    # Cada word ocupa 4 bytes; endereçamento é byte-addressed.
-    # Também infere max_addr.
     for base, words in blocks:
         end = base + 4*len(words)
         if max_addr is None or end > max_addr:
@@ -114,7 +209,7 @@ def _parse_text_signature(path:str)->tuple[int, bytearray]:
     for base, words in blocks:
         off = base - min_addr
         for w in words:
-            struct.pack_into("<I", buf, off, w & 0xFFFFFFFF)
+            struct.pack_into("<I", buf, off, w)
             off += 4
 
     return min_addr, buf
@@ -122,28 +217,21 @@ def _parse_text_signature(path:str)->tuple[int, bytearray]:
 def _load_spike_signature_bytes(sig_path:str)->tuple[int, bytes]:
     b = _try_read_binary_sig(sig_path)
     if b is not None:
-        # Não temos o endereço base no binário cru; vamos derivar do ELF depois.
         return None, b
     start_addr, bb = _parse_text_signature(sig_path)
     return start_addr, bytes(bb)
 
 def compare_signature_textsig(dump_range, dut_elf:str, spike_elf:str)->None:
-    # 1) Gera assinatura do Spike (texto: @addr + hex)
     sig_path = _run_spike(spike_elf)
-
-    # 2) Converte assinatura do Spike em bytes contínuos e captura o endereço base
     spike_start_addr, sig_ref = _load_spike_signature_bytes(sig_path)
 
-    # 3) Descobre begin/end do DUT
     b_dut = _sym_addr(dut_elf, "begin_signature")
     e_dut = _sym_addr(dut_elf, "end_signature")
     dut_span = e_dut - b_dut
 
-    # 4) Se a assinatura do Spike veio binária sem base, alinhe pelo ELF do Spike:
     if spike_start_addr is None:
         spike_start_addr = _sym_addr(spike_elf, "begin_signature")
 
-    # 5) Ajuste de tamanho: limite pela janela do DUT
     need = len(sig_ref)
     if need > dut_span:
         raise AssertionError(
@@ -151,10 +239,8 @@ def compare_signature_textsig(dump_range, dut_elf:str, spike_elf:str)->None:
             f"Ajuste end_signature no linker do DUT."
         )
 
-    # 6) Leia do DUT exatamente 'need' bytes
     sig_dut = dump_range(b_dut, b_dut + need)
 
-    # 7) Comparação
     if sig_dut != sig_ref:
         diffs = []
         for i in range(0, need, 4):
@@ -167,22 +253,15 @@ def compare_signature_textsig(dump_range, dut_elf:str, spike_elf:str)->None:
         preview = "\n".join(f"@+0x{i:04x}: REF=0x{wr:08x} DUT=0x{wd:08x}" for i,wr,wd in diffs) or "(sem diffs?!?)"
         raise AssertionError("assinaturas diferentes; primeiras diferenças:\n"+preview)
 
-    # 8) Sanidade opcional
-    # print(f"[ok] assinatura igual: {need} bytes (base Spike 0x{spike_start_addr:08x}, base DUT 0x{b_dut:08x})")
-
 def _load_ref_sig(path: pathlib.Path) -> bytes:
     raw = path.read_text().splitlines()
     if any(line.strip().startswith("@") for line in raw):
-        # formato com @addr
-        buf = bytearray()
-        base = None
         spans = []
         cur_base = None
         cur = []
-        import re, struct
         for line in raw:
             s = line.strip()
-            if not s: 
+            if not s:
                 continue
             m = re.match(r"^@([0-9a-fA-F]+)$", s)
             if m:
@@ -205,12 +284,10 @@ def _load_ref_sig(path: pathlib.Path) -> bytes:
                 struct.pack_into("<I", buf, off, w); off += 4
         return bytes(buf)
     else:
-        # um hex de 32b por linha
-        import struct
         out = bytearray()
         for line in raw:
             s = line.strip()
-            if not s: 
+            if not s:
                 continue
             out += struct.pack("<I", int(s, 16) & 0xFFFFFFFF)
         return bytes(out)
@@ -240,11 +317,15 @@ async def archtest(dut):
     EXTRA_AFTER_TOHOST = int(os.environ.get("ARCHTEST_EXTRA_AFTER_TOHOST", "50000"))
 
     cocotb.start_soon(Clock(dut.CLK, 10, units="ns").start())
+
+    await pulse_reset(dut)
+
     await init_sniffer(dut)
 
     ref_dir = pathlib.Path(os.environ["ARCHTEST_REF_DIR"])
     sig_ref_bin = _load_ref_sig(ref_dir / f"{test_name}.sig")
 
+    # observe signature writes during run (robust to signal names/scaling)
     await watch_sig_writes(dut, begin_sig, end_sig)
 
     region_len = end_sig - begin_sig
@@ -255,29 +336,35 @@ async def archtest(dut):
     tail_addr = end_sig - 4
 
     pass_cycle = None
+    seen_zero = False
     for cycle in range(max_cycles):
         await RisingEdge(dut.CLK)
         await ReadOnly()
         th = ram_read32(dut, tohost)
-        if th != 0:
-            cocotb.log.info(f"[archtest] tohost!=0 ciclo={cycle}")
+
+        if th == 0:
+            seen_zero = True
+            continue
+
+        if seen_zero and th != 0:
+            cocotb.log.info(f"[archtest] tohost 0->nonzero at cycle={cycle} (th=0x{th:08x})")
             pass_cycle = cycle
             break
-    if pass_cycle is None:
-        raise AssertionError(f"timeout: tohost ficou 0 até {max_cycles} ciclos")
 
-    # Give a bit of runway for final writes; do not require any in-memory sentinel.
+    if pass_cycle is None:
+        raise AssertionError(f"timeout: tohost never transitioned 0->nonzero within {max_cycles} cycles")
+
+    # Extra runway for final writes
     for _ in range(EXTRA_AFTER_TOHOST):
         await RisingEdge(dut.CLK)
         await ReadOnly()
-        # optional peek to encourage last writes to settle
         _ = ram_read32(dut, tail_addr)
 
     sig_dut = await _dump_range_via_ram(dut, begin_sig, end_sig)
 
     cocotb.log.info(f"[archtest] size DUT={len(sig_dut)} REF={len(sig_ref_bin)} cmp_len={cmp_len}")
 
-    def _u32(buf, off): return struct.unpack_from("<I", buf, off)[0]
+    def _u32b(buf, off): return struct.unpack_from("<I", buf, off)[0]
     def _hexw(w): return f"0x{w:08x}"
 
     if sig_dut[:cmp_len] != sig_ref_bin[:cmp_len]:
@@ -293,21 +380,21 @@ async def archtest(dut):
         (out_dir / "ref.bin").write_bytes(sig_ref_bin[:cmp_len])
         with (out_dir / "dut.sig").open("w") as f:
             for j in range(0, cmp_len, 4):
-                f.write(f"{_u32(sig_dut, j):08x}\n")
+                f.write(f"{_u32b(sig_dut, j):08x}\n")
 
         if first_mis is None:
             assert False, f"assinatura diferente no prefixo em {test_name}: bytes diferentes (32b-aligned)"
 
         idx = first_mis // 4
         addr = begin_sig + first_mis
-        w_dut = _u32(sig_dut, first_mis)
-        w_ref = _u32(sig_ref_bin, first_mis)
+        w_dut = _u32b(sig_dut, first_mis)
+        w_ref = _u32b(sig_ref_bin, first_mis)
         s = max(0, (idx - 2) * 4)
         e = min(cmp_len, (idx + 3) * 4)
         cocotb.log.info("[archtest] primeira divergência:")
         for off in range(s, e, 4):
             tag = "!=" if off == first_mis else "  "
-            cocotb.log.info(f"{tag} [{(begin_sig+off):08x}] DUT={_hexw(_u32(sig_dut, off))} REF={_hexw(_u32(sig_ref_bin, off))}")
+            cocotb.log.info(f"{tag} [{(begin_sig+off):08x}] DUT={_hexw(_u32b(sig_dut, off))} REF={_hexw(_u32b(sig_ref_bin, off))}")
 
         assert False, (
             f"prefix mismatch em {test_name}: word#{idx} @0x{addr:08x} "
