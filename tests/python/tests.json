@@ -63,6 +63,13 @@
       "ROM_FILE": "tests/python/unittests/entities/data/testROM.hex"
     }
   },
+  "clk_gen_3way": {
+    "toplevel": "clk_gen_3way",
+    "sources": [
+      "src/clk_gen_3way.vhd"
+    ],
+    "test_module": "tests.python.unittests.entities.ClkGen3Way"
+  },
   "one": {
     "toplevel": "rv32i",               
     "sources": [
