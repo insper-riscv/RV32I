@@ -1,7 +1,7 @@
 {
   "name": "riscv-core",
-  "image": "ghcr.io/pedropcventura/riscv-dev_tools:yosys-fixed",
-  "remoteUser": "dev",
+  "image": "ghcr.io/pedropcventura/riscv-dev_tools:dev-amd64-usb",
+  "remoteUser": "root",
 
   "workspaceFolder": "/work",
   "workspaceMount": "source=${localWorkspaceFolder},target=/work,type=bind,consistency=cached",
@@ -11,10 +11,10 @@
   },
   "runArgs": [
     "-e", "DISPLAY=host.docker.internal:0",
-    "-v", "/var/run/docker.sock:/var/run/docker.sock"   // talk to host Docker
+    "-v", "/var/run/docker.sock:/var/run/docker.sock"   
   ],
 
-  "features": {},   // <-- remove the docker-outside-of-docker feature
+  "features": {},  
 
   "customizations": {
     "vscode": {
@@ -23,7 +23,8 @@
         "ms-python.vscode-pylance",
         "ms-vscode.makefile-tools",
         "teros-technology.teroshdl",
-        "ms-python.black-formatter"
+        "ms-python.black-formatter",
+        "jerrygoyal.shortcut-menu-bar"
       ]
     }
   }
