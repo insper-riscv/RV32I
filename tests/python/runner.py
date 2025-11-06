@@ -23,7 +23,7 @@ def run_cocotb_test(toplevel: str, sources: list, test_module: str, parameters: 
         group = "misc"
 
     if group == "instructions":
-        test_name = test_module.split(".")[-2]
+        test_name = test_module.split(".")[-1]
         build_dir = tests_root / "python/sim_build" / group / test_name
     else:
         build_dir = tests_root / "python/sim_build" / group / toplevel
