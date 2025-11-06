@@ -144,7 +144,8 @@ class riscv_insper(pluginTemplate):
           # for each test there are specific compile macros that need to be enabled. The macros in
           # the testList node only contain the macros/values. For the gcc toolchain we need to
           # prefix with "-D". The following does precisely that.
-          compile_macros= ' -D' + " -D".join(testentry['macros'])
+          macs = testentry.get('macros', [])
+          compile_macros = (' -D' + ' -D'.join(macs)) if macs else ''
 
           # substitute all variables in the compile command that we created in the initialize
           # function
