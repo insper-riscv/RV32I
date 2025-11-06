@@ -24,7 +24,7 @@ architecture rtl of ROM_simulation is
     of std_logic_vector(dataWidth-1 downto 0);
 
   signal memROM : blocoMemoria := (others => (others => '0'));
-  signal localAddress : std_logic_vector(memoryAddrWidth-1 downto 0);
+  signal localAddress : std_logic_vector(memoryAddrWidth-1 downto 0) := (others => '0');
 
   signal data_reg : std_logic_vector(dataWidth-1 downto 0) := (others => '0'); -- registrador de saída
 begin

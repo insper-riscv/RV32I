@@ -25,7 +25,7 @@ architecture rtl of RAM_sim is
   signal mem : mem_t := (others => (others => '0'));
 
   -- word index (32-bit aligned)
-  signal widx : std_logic_vector(memoryAddrWidth-1 downto 0);
+  signal widx : std_logic_vector(memoryAddrWidth-1 downto 0):= (others => '0');
 
   signal data_out_reg : std_logic_vector(31 downto 0) := (others => '0'); -- registro de saída
 begin
