@@ -11,13 +11,19 @@ def sext(val, bits):
 
 @cocotb.test()
 async def test_r_type_example(dut):
+
+    async def step():
+        for i in range (3):
+            dut.CLK.value = 1
+            await Timer(10, units="ns")
+            dut.CLK.value = 0
+            await Timer(10, units="ns")
     """Testa ADD, SUB, XOR, OR, AND, SLL, SRL, SRA, SLT, SLTU com base no .S fornecido."""
 
     # Deixa rodar até depois do carregamento de x1 e x2
     # (li x1, ... ; li x2, ...) → 2 instruções + saltos iniciais
     for _ in range(14):
-        dut.CLK.value = 1; await Timer(10, units="ns")
-        dut.CLK.value = 0; await Timer(10, units="ns")
+        await step()
 
     # Valores carregados no .S
     rs1 = 0x00000001
@@ -40,9 +46,7 @@ async def test_r_type_example(dut):
 
     # Agora cada clock corresponde a uma instrução R-type
     for instr, exp in zip(instrs, expected):
-        dut.CLK.value = 1; await Timer(10, units="ns")
-        got = int(dut.ALU_out.value)
-        dut.CLK.value = 0; await Timer(10, units="ns")
-
+        await step()
+        got = int(dut.ALU_out_IDEXMEM.value)
         assert got == exp, f"{instr} falhou: esperado {exp:#010x}, obtido {got:#010x}"
         dut._log.info(f"{instr} OK: {got:#010x}")
