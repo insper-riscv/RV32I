@@ -26,6 +26,8 @@ architecture rtl of RAM is
 
   -- word index (32-bit aligned)
   signal widx : std_logic_vector(memoryAddrWidth-1 downto 0);
+
+  signal data_out_reg : std_logic_vector(31 downto 0) := (others => '0'); -- registro de saída
 begin
   widx <= addr(8 downto 0);
 
@@ -50,8 +52,17 @@ begin
     end if;
   end process;
 
-  -- leitura assíncrona, só ativa se reRAM=1 e eRAM=1
-  data_out <= mem(to_integer(unsigned(widx))) when (reRAM = '1' and eRAM = '1')
-              else (others => '0');
+  -- leitura síncrona: captura mem(...) na subida do clock se eRAM='1' e reRAM='1'
+  sync_read: process(clk)
+  begin
+    if rising_edge(clk) then
+      if (eRAM = '1' and reRAM = '1') then
+        data_out_reg <= mem(to_integer(unsigned(widx)));
+      end if;
+      -- caso contrário, mantém o valor anterior (nenhuma alteração)
+    end if;
+  end process;
+
+  data_out <= data_out_reg;
 
 end architecture;
