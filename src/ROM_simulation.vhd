@@ -7,7 +7,7 @@ use ieee.std_logic_textio.all;
 entity ROM_simulation is
   generic (
     dataWidth: natural := 32;
-    addrWidth: natural := 32;
+    addrWidth: natural := 30;
     memoryAddrWidth: natural := 9;
     ROM_FILE: string := "initROM.hex"   -- novo generic
   );

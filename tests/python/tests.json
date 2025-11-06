@@ -24,9 +24,9 @@
     "test_module": "tests.python.unittests.entities.instructionDecoder"
   },
   "RAM": {
-    "toplevel": "ram",
+    "toplevel": "ram_sim",
     "sources": [
-    "src/RAM.vhd"
+    "src/RAM_sim.vhd"
     ],
     "test_module": "tests.python.unittests.entities.RAM"
   },
@@ -71,12 +71,12 @@
     "test_module": "tests.python.unittests.entities.ClkGen3Way"
   },
   "one": {
-    "toplevel": "rv32i",               
+    "toplevel": "rv32i3stage",               
     "sources": [
       "src/rv32i_ctrl_consts.vhd",
       "src/ALU.vhd",
       "src/RegFile.vhd",
-      "src/RAM.vhd",
+      "src/RAM_sim.vhd",
       "src/ROM_simulation.vhd",
       "src/InstructionDecoder.vhd",
       "src/ExtenderImm.vhd",
@@ -87,7 +87,9 @@
       "src/genericMux2x1.vhd",
       "src/genericMux3x1.vhd",
       "src/genericRegister.vhd",
-      "src/rv32i.vhd"
+      "src/clk_gen_3way.vhd",
+      "src/FlipFlop.vhd",
+      "src/rv32i3stage.vhd"
     ],
     "test_module": "tests.python.unittests.instructions.one",
     "parameters": {
@@ -101,7 +103,7 @@
       "src/rv32i_ctrl_consts.vhd",
       "src/ALU.vhd",
       "src/RegFile.vhd",
-      "src/RAM.vhd",
+      "src/RAM_sim.vhd",
       "src/ROM_simulation.vhd",
       "src/InstructionDecoder.vhd",
       "src/ExtenderImm.vhd",

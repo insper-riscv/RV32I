@@ -18,13 +18,19 @@ def auipc_value(pc, imm):
 
 @cocotb.test()
 async def test_lui_auipc(dut):
+
+    async def step():
+        for i in range (3):
+            dut.CLK.value = 1
+            await Timer(10, units="ns")
+            dut.CLK.value = 0
+            await Timer(10, units="ns")
+
+
     """Testa LUI e AUIPC em casos normais e limites."""
     # deixa a CPU rodar as instruções AUIPC
     for _ in range(7):
-        dut.CLK.value = 1
-        await Timer(10, units="ns")
-        dut.CLK.value = 0
-        await Timer(10, units="ns")
+        await step()
 
     # ==== CASOS DE AUIPC ====
     auipc_immediates = [
@@ -41,20 +47,14 @@ async def test_lui_auipc(dut):
     auipc_expected = [auipc_value(pc, imm) for pc, imm in zip(pcs, auipc_immediates)]
 
     for expected in auipc_expected:
-        dut.CLK.value = 1
-        await Timer(10, units="ns")
-        got = int(dut.ALU_out.value)
-        dut.CLK.value = 0
-        await Timer(10, units="ns")
+        await step()
+        got = int(dut.ALU_out_IDEXMEM.value)
         assert got == expected, f"AUIPC falhou: esperado {expected:#010x}, obtido {got:#010x}"
         dut._log.info(f"AUIPC OK: {got:#010x}")
 
     # deixa a CPU rodar as instruções LUI iniciais
     for _ in range(7):
-        dut.CLK.value = 1
-        await Timer(10, units="ns")
-        dut.CLK.value = 0
-        await Timer(10, units="ns")
+        await step()
 
     # ==== CASOS DE LUI ====
     lui_immediates = [
@@ -69,11 +69,8 @@ async def test_lui_auipc(dut):
     lui_expected = [lui_value(imm) for imm in lui_immediates]
 
     for expected in lui_expected:
-        dut.CLK.value = 1
-        await Timer(10, units="ns")
-        got = int(dut.ALU_out.value)
-        dut.CLK.value = 0
-        await Timer(10, units="ns")
+        await step()
+        got = int(dut.ALU_out_IDEXMEM.value)
         assert got == expected, f"LUI falhou: esperado {expected:#010x}, obtido {got:#010x}"
         dut._log.info(f"LUI OK: {got:#010x}")
 
