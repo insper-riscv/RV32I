@@ -69,35 +69,37 @@ architecture behaviour of L2IP is
   signal selMuxPc4ALU_ext : std_logic_vector(1 downto 0);
   
   signal enable_led : std_logic;
+  signal enable_GPIO : std_logic;
+  signal weGPIO : std_logic;
+  signal reGPIO : std_logic;
+  signal weLEDS : std_logic;
+  signal RAMorGPIO : std_logic_vector(31 downto 0);
+  signal gpio_read_data : std_logic_vector(31 downto 0);
   
   signal CLKbtn : std_logic;
- 
-   -- ========= MMIO / GPIO =========
-  -- Seleção: 4KB em 0x8000_0000 (endereços de palavra)
-  signal sel_gpio          : std_logic;
-  signal gpio_addr_nibble  : std_logic_vector(3 downto 0);  -- 16 palavras (0x0..0xF)
-  signal gpio_write_en     : std_logic;
-  signal gpio_read_en      : std_logic;
-
-  signal gpio_data_out     : std_logic_vector(31 downto 0);
-  signal bus_rdata_preext  : std_logic_vector(31 downto 0);
   
-
+  signal periph_id : std_logic_vector(2 downto 0);
+  signal gpio_op : std_logic_vector(3 downto 0);
+  
+  constant PERIPH_GPIO : std_logic_vector(2 downto 0) := "000";
+  constant PERIPH_LED  : std_logic_vector(2 downto 0) := "001";
+ 
   
   
 
 begin
 
-  -- Base 0x8000_0000 → bits [31:12] = x"80000"
-  sel_gpio <= '1' when (ALU_out(31 downto 12) = x"80000") else '0';
+periph_id <= ALU_out(30 downto 28);
+gpio_op <= ALU_out(5 downto 2);
 
-  -- GPIO endereçado por PALAVRA; teu GPIO usa 4 bits de endereço (0..15)
-  gpio_addr_nibble <= ALU_out(5 downto 2);
+enable_GPIO <= '1' when (ALU_out(31) = '1' and periph_id = PERIPH_GPIO) else '0';
+enable_led <= '1' when (ALU_out(31) = '1' and periph_id = PERIPH_LED) else '0';
 
-  -- Escrita/leitura válidas somente quando o teu “canal de memória” está ativo
-  gpio_write_en <= '1' when (eRAM='1' and weRAM='1' and sel_gpio='1') else '0';
-  gpio_read_en  <= '1' when (eRAM='1' and reRAM='1' and sel_gpio='1') else '0';
+reGPIO <= enable_GPIO and reRAM;
+weGPIO <= enable_GPIO and weRAM;
+weLEDS <= enable_led and weRAM;
 
+RAMorGPIO <= gpio_read_data when (ALU_out(31) = '1' and periph_id = PERIPH_GPIO) else RAM_out;
 
 edgeDetectorKey : entity work.edgeDetector
     port map (
@@ -290,32 +292,28 @@ RAM : entity work.RAM
 				mask => mask
 			);
 			
-enable_led <= '1'
-  when (eRAM = '1' and weRAM = '1' and
-        unsigned(ALU_out(31 downto 2)) = to_unsigned(1024, 30))
-  else '0';
+--enable_led <= '1'
+--  when (eRAM = '1' and weRAM = '1' and
+--        unsigned(ALU_out(31 downto 2)) = to_unsigned(1024, 30))
+--  else '0';
 			
 leds : entity work.genericRegister
 			generic map ( data_width => 8 )
 			port map (
 				clock => CLK,
 				clear => SW(0),
-				enable => enable_led,
+				enable => weLEDS,
 				source => out_StoreManager(7 downto 0),
 				destination => LEDR(7 downto 0)
 			);
 
-  -- Se for leitura de GPIO (MMIO), pega do GPIO; senão, da RAM
-bus_rdata_preext <= gpio_data_out when (sel_gpio='1' and reRAM='1' and eRAM='1') else RAM_out;
-
 ExtenderRAM : entity work.ExtenderRAM
-  port map(
-    signalIn  => bus_rdata_preext,
-    opExRAM   => opExRAM,
-    EA        => ALU_out(1 downto 0),
-    signalOut => extenderRAM_out
-  );
-
+			port map(
+				signalIn => RAMorGPIO,
+				opExRAM => opExRAM,
+				EA => ALU_out(1 downto 0),
+				signalOut => extenderRAM_out
+			);
 			
 selMuxPc4ALU_ext <= branch_flag & selMuxPc4ALU; 	
 
@@ -328,6 +326,19 @@ MuxPc4ALU : entity work.genericMux3x1
         selector_MUX => selMuxPc4ALU_ext,
         output_MUX => MuxPc4ALU_out
     );
+	  
+GPIO : entity work.GPIO
+	port map(
+		clock => CLK,
+		clear => SW(0),
+		data_in => out_StoreManager,
+		address => gpio_op,
+		write => weGPIO,
+		read => reGPIO,
+		data_out => gpio_read_data,
+		irq => open,
+		gpio_pins => GPIO_P
+		);
 					  
 
 					  
@@ -356,15 +367,15 @@ MuxPc4ALU : entity work.genericMux3x1
 --					  saida7seg => HEX5);
 
 DecoderDisplay0 :  entity work.conversorHex7Seg
-        port map(dadoHex => PC_out(3 downto 0),
+        port map(dadoHex => gpio_op,
                  saida7seg => HEX0);
 
 DecoderDisplay1 :  entity work.conversorHex7Seg
-		  port map(dadoHex => PC_out(7 downto 4),
+		  port map(dadoHex => ALU_out(31) & periph_id,
 					  saida7seg => HEX1);
 				
 DecoderDisplay2 :  entity work.conversorHex7Seg
-		  port map(dadoHex => ALU_out(3 downto 0),
+		  port map(dadoHex => out_StoreManager(3 downto 0),
 					  saida7seg => HEX2);
 					  
 DecoderDisplay3 :  entity work.conversorHex7Seg
@@ -378,23 +389,6 @@ DecoderDisplay4 :  entity work.conversorHex7Seg
 DecoderDisplay5 :  entity work.conversorHex7Seg
 		  port map(dadoHex => ALU_out(15 downto 12),
 					  saida7seg => HEX5);
-					  
-u_gpio : entity work.GPIO
- generic map (
-	DATA_WIDTH => 32
- )
- port map (
-	clock     => CLK,                 -- teu clock interno
-	clear     => not FPGA_RESET_N,    -- reset ativo alto interno (ajuste se precisar)
-	data_in   => out_StoreManager,    -- dados de escrita vindos do StoreManager
-	address   => gpio_addr_nibble,    -- 4 bits (palavra)
-	write     => gpio_write_en,
-	read      => gpio_read_en,
-	data_out  => gpio_data_out,       -- volta dado de leitura do GPIO
-	irq       => open,                -- liga aqui se/qd usar interrupção
-	gpio_pins => GPIO_P               -- pinos físicos
- );
-
 
 
 --example_blinky : entity work.Blinky

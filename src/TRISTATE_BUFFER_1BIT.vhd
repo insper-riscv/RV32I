@@ -19,7 +19,7 @@ entity TRISTATE_BUFFER_1BIT is
         -- Enable signal: when '1', drives data_in onto data_out; when '0', output is 'Z'
         enable   : in  std_logic;
         -- Shared bidirectional bus line (output)
-        data_out : out std_logic
+        data_out : inout std_logic
     );
 end TRISTATE_BUFFER_1BIT;
 
