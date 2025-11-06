@@ -11,16 +11,23 @@ def sext(val, bits):
 
 @cocotb.test()
 async def test_i_type(dut):
-    """Testa ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI."""
 
     dut.CLK.value = 0
+    await Timer(10, units="ns")
+
+    async def step():
+        for i in range (3):
+            dut.CLK.value = 1
+            await Timer(10, units="ns")
+            dut.CLK.value = 0
+            await Timer(10, units="ns")
+
+    """Testa ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI."""
+
 
     # Roda ciclos iniciais até os ADD que expõem resultados
     for _ in range(9):
-        dut.CLK.value = 1
-        await Timer(10, units="ns")
-        dut.CLK.value = 0
-        await Timer(10, units="ns")
+        await step()
 
     # Valor base em x1 = 0x0000F0F0
     x1 = 0x0000F0F0
@@ -36,9 +43,7 @@ async def test_i_type(dut):
 
     # Verifica resultados um a um
     for instr, exp in zip(["ADDI","XORI","ORI","ANDI","SLLI","SRLI","SRAI"], expected):
-        dut.CLK.value = 1; await Timer(10, units="ns")
-        got = int(dut.ALU_out.value)
-        dut.CLK.value = 0; await Timer(10, units="ns")
-
+        await step()
+        got = int(dut.ALU_out_IDEXMEM.value)
         assert got == exp, f"{instr} falhou: esperado {exp:#010x}, obtido {got:#010x}"
         dut._log.info(f"{instr} OK: {got:#010x}")
