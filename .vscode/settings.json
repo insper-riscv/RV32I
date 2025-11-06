@@ -18,5 +18,7 @@
   // ------------------------------------------------------------
   "[vhdl]": {
     "editor.defaultFormatter": "teros-technology.teroshdl"
-  }
+  },
+
+  "ShortcutMenuBar.userButton2": "workbench.action.tasks.runTask|Boot current file (Make)"
 }
