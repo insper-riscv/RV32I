@@ -9,7 +9,7 @@ MEMORY {
 SECTIONS
 {
   .text.init : { KEEP(*(.text.init)) *(.init) } > ROM
-  .tohost    : { *(.tohost) } > ROM
+  .tohost    : { *(.tohost) } > RAM
   .text      : { *(.text .text.*) *(.rodata .rodata.*) } > ROM
 
   /* Dados residem em RAM, mas são inicializados a partir da ROM */
@@ -22,12 +22,6 @@ SECTIONS
   } > RAM
 
   . = ALIGN(16);
-  .signature (NOLOAD) : {
-    begin_signature = .;
-    *(.signature*)
-    . = ALIGN(16);
-    end_signature = .;
-  } > RAM
 
   _end = .;
 }

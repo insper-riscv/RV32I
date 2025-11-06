@@ -74,8 +74,8 @@ class riscv_insper(pluginTemplate):
        # runTests function
        self.compile_cmd = 'riscv{1}-unknown-elf-gcc -march={0} \
          -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -g\
-         -T '+self.pluginpath+'/env/link.ld\
-         -I '+self.pluginpath+'/env/\
+         -T '+self.pluginpath+'/dut_env/link.ld\
+         -I '+self.pluginpath+'/dut_env/\
          -I ' + archtest_env + ' {2} -o {3} {4}'
 
        # add more utility snippets here
