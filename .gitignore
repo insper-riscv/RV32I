@@ -233,3 +233,7 @@ cython_debug/
 
 **/sim_build/
 !/lib/
+
+.strace
+output_files/*
+!output_files/*.sof
