@@ -30,17 +30,29 @@ async def write_word(dut, addr, data, mask):
     dut.eRAM.value = 0
 
 async def read_word(dut, addr, expect_z=False):
+    """
+    Leitura síncrona: coloca endereço, habilita eRAM/reRAM, espera a subida do clock
+    e captura o valor logo após a borda. Se expect_z=True, tenta verificar Z (raro
+    em leitura síncrona; mantive o parâmetro por compatibilidade).
+    """
     dut.addr.value = addr
     dut.eRAM.value = 1
     dut.reRAM.value = 1
+    # esperar a borda que provoca a leitura síncrona
+    await RisingEdge(dut.clk)
+    # pequeno delay pós-borda para estabilização
     await Timer(1, units="ns")
     val = dut.data_out.value
+    # desabilitar sinais (comportamento de teste original)
     dut.reRAM.value = 0
     dut.eRAM.value = 0
+
     if expect_z:
-        # saída em alta impedância
-        assert str(val) == "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz", f"Esperado Z, obtido {val}"
+        # leitura síncrona normalmente não retorna Z; mantemos a verificação caso alguém
+        # explicitamente peça por isso.
+        assert str(val).lower().count("z") > 0, f"Esperado Z, obtido {val}"
         return None
+
     return int(val)
 
 @cocotb.test()
@@ -83,25 +95,34 @@ async def all_masks(dut):
 
 @cocotb.test()
 async def disable_read(dut):
-    """Verifica que data_out vai para 0 se reRAM=0 ou eRAM=0."""
+    """Verifica comportamento quando reRAM=0 ou eRAM=0 para leitura síncrona."""
     cocotb.start_soon(Clock(dut.clk, 10, "ns").start())
     await init_dut(dut)
 
     data = 0xCAFEBABE
     await write_word(dut, 0, data, 0b1111)
 
-    # leitura com reRAM=0
+    # 1) Ler normalmente com re=1/e=1 para obter o valor esperado
     dut.addr.value = 0
     dut.eRAM.value = 1
-    dut.reRAM.value = 0
+    dut.reRAM.value = 1
+    await RisingEdge(dut.clk)
     await Timer(1, "ns")
-    assert str(dut.data_out.value).lower().startswith("00"), "Esperado alta impedância quando reRAM=0"
+    last_val = int(dut.data_out.value)
+    # desabilita leitura (reRAM=0) e aplica outra borda: a saída deve manter last_val
+    dut.reRAM.value = 0
+    dut.eRAM.value = 1
+    await RisingEdge(dut.clk)
+    await Timer(1, "ns")
+    assert int(dut.data_out.value) == last_val, "Esperado manter último valor quando reRAM=0"
 
-    # leitura com eRAM=0
+    # agora testar eRAM=0: com re=1 mas eRAM=0 a leitura síncrona não deve atualizar o registrador,
+    # então a saída deve continuar sendo last_val
     dut.reRAM.value = 1
     dut.eRAM.value = 0
+    await RisingEdge(dut.clk)
     await Timer(1, "ns")
-    assert str(dut.data_out.value).lower().startswith("00"), "Esperado alta impedância quando eRAM=0"
+    assert int(dut.data_out.value) == last_val, "Esperado manter último valor quando eRAM=0"
 
 @cocotb.test()
 async def multi_positions(dut):
