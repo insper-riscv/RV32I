@@ -13,6 +13,8 @@ entity ROM_simulation is
   );
   port (
     addr : in  std_logic_vector (addrWidth-1 downto 0);
+    clk  : in  std_logic;                               -- adicionado
+    re   : in  std_logic;                               -- adicionado (read enable)
     data : out std_logic_vector (dataWidth-1 downto 0)
   );
 end entity;
@@ -23,6 +25,8 @@ architecture rtl of ROM_simulation is
 
   signal memROM : blocoMemoria := (others => (others => '0'));
   signal localAddress : std_logic_vector(memoryAddrWidth-1 downto 0);
+
+  signal data_reg : std_logic_vector(dataWidth-1 downto 0) := (others => '0'); -- registrador de saída
 begin
 
   -- inicializa a ROM lendo de um arquivo texto com 1 palavra (32 bits) por linha, em hex
@@ -46,6 +50,17 @@ begin
   -- WORD-addressable: 'addr' é interpretado como índice de palavra,
   -- portanto usamos os bits menos-significativos necessários para indexar memROM.
   localAddress <= addr(memoryAddrWidth-1 downto 0);
-  data <= memROM(to_integer(unsigned(localAddress)));
+
+  -- leitura síncrona: na subida do clock, quando re = '1', captura a palavra.
+  sync_read: process(clk)
+  begin
+    if rising_edge(clk) then
+      if re = '1' then
+        data_reg <= memROM(to_integer(unsigned(localAddress)));
+      end if;
+    end if;
+  end process;
+
+  data <= data_reg;
 
 end architecture;
