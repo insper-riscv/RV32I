@@ -201,7 +201,7 @@ RegFile : entity work.RegFile
 PC4_WB : entity work.genericRegister
 			generic map ( data_width => 32 )
 			port map (
-				clock => CLK_IF,
+				clock => CLK_IDEXMEM,
 				clear => '0',
 				enable => '1',
 				source => PC4_ID_out,

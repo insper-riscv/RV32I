@@ -11,15 +11,22 @@ def sext(val, bits):
 
 @cocotb.test()
 async def test_jal(dut):
+
+    dut.CLK.value = 0
+    await Timer(10, units="ns")
+
+    async def step():
+        for i in range (3):
+            dut.CLK.value = 1
+            await Timer(10, units="ns")
+            dut.CLK.value = 0
+            await Timer(10, units="ns")
     """Testa apenas JAL verificando PC_out e registrador de retorno."""
 
     # ====== Executa JAL ======
-    dut.CLK.value = 1; await Timer(10, units="ns")  # executa JAL
-    pc_before = int(dut.PC_out.value)  # PC onde JAL está
-    dut.CLK.value = 0; await Timer(10, units="ns")
-
-    dut.CLK.value = 1; await Timer(10, units="ns")
-    pc_after = int(dut.PC_out.value)   # PC após salto
+    pc_before = int(dut.PC_IF_out.value)  # PC onde JAL está
+    await step()
+    pc_after = int(dut.PC_IF_out.value)   # PC após salto
 
     # Cálculo esperado
     offset = sext(8, 21)  # imediato do JAL
@@ -32,16 +39,12 @@ async def test_jal(dut):
 
     # ====== Executa ADD que expõe registrador de retorno (x6 = x5) ======
     # executa ADD saída da ALU com x6 = x5
-    reg_val = int(dut.ALU_out.value)    
-    dut.CLK.value = 0; await Timer(10, units="ns")     
+    await step()
+    reg_val = int(dut.ALU_out_IDEXMEM.value)    
 
     # EXECUTA JALR
-    dut.CLK.value = 1; await Timer(10, units="ns")    
-    dut.CLK.value = 0; await Timer(10, units="ns")   
-
-    # ====== NOVA IMPLEMENTAÇÃO DO JALR ======
-    dut.CLK.value = 1; await Timer(10, units="ns") 
-    pc = int(dut.PC_out.value)
+    await step()
+    pc = int(dut.PC_IF_out.value)
 
     # esperado: voltar para endereço salvo em x5 (reg_val), alinhado
     expected_jalr_pc = reg_val & ~1
