@@ -15,10 +15,17 @@ async def test_branches(dut):
     # offset usado nos branches = 8 bytes (2 instruções à frente)
     offset = sext(8, 13)
 
+    dut.CLK.value = 0
+    await Timer(10, units="ns")
+
     # Helper: executa uma instrução e retorna PC
     async def step():
+        pc = int(dut.PC_IF_out.value)
         dut.CLK.value = 1; await Timer(5, units="ns")
-        pc = int(dut.PC_out.value)
+        dut.CLK.value = 0; await Timer(10, units="ns")
+        dut.CLK.value = 1; await Timer(10, units="ns")
+        dut.CLK.value = 0; await Timer(10, units="ns")
+        dut.CLK.value = 1; await Timer(10, units="ns")
         dut.CLK.value = 0; await Timer(10, units="ns")
         dut.CLK.value = 1; await Timer(5, units="ns")
         return pc
