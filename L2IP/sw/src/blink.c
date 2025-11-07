@@ -1,7 +1,7 @@
-#define LED_ADDR ((volatile unsigned int *)0x00001000)
+#define LED_ADDR ((volatile unsigned int *)0x00004000)
 
-void delay(int valor){
-    for (int i = 0; i < valor; i++) { __asm__ volatile ("nop"); }
+void delay(int value){
+    for (int i = 0; i < value; i++) { __asm__ volatile ("nop"); }
 }
 
 int main(void) {
@@ -13,10 +13,3 @@ int main(void) {
     }
     return 0;
 }
-
-
-
-
-
-
-         

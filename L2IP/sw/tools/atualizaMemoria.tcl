@@ -7,7 +7,7 @@ puts stdout ""
 
 set DEV_NAME "@1: 5CE(BA4|FA4) (0x02B050DD)"
 
-set MIF {/home/borg/pfe/RV32I/L2IP/sw/build/program.mif}
+set MIF {/home/borg/pfe/RV32I/L2IP/sw/build/firmware.mif}
 
 set JTAG {USB-Blaster [1-4]}
 

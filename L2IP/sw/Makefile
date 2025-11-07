@@ -1,71 +1,125 @@
+# ==========================================================
+# Makefile para L2IP - compilação, geração de bin/hex/mif e boot
+# ==========================================================
+
 # Diretórios
-SRC_DIR := src
+SRC_DIR := .
 BUILD_DIR := build
 TOOLS_DIR := tools
 
 # Ferramentas
-AS = riscv32-unknown-elf-as
-LD = riscv32-unknown-elf-ld
+CC = riscv32-unknown-elf-gcc
 OBJCOPY = riscv32-unknown-elf-objcopy
-ARCH = -march=rv32i -mabi=ilp32
 PYTHON = python3
 
-# Nome base fixo
-OUT_BASENAME := program
+# Flags / arquitetura
+ARCH = -march=rv32i -mabi=ilp32
+CFLAGS = $(ARCH) -O0 -Wall
+ASFLAGS = $(ARCH)
+
+# Linker script
+LDSCRIPT = L2IP.ld
+
+# Nome base
+OUT_BASENAME := firmware
+OUT_ELF := $(BUILD_DIR)/$(OUT_BASENAME).elf
+OUT_BIN := $(BUILD_DIR)/$(OUT_BASENAME).bin
 OUT_HEX := $(BUILD_DIR)/$(OUT_BASENAME).hex
 OUT_MIF := $(BUILD_DIR)/$(OUT_BASENAME).mif
 
-# Script de boot
-LOADER := $(TOOLS_DIR)/MIFloader.py
+# Script de boot / utilitários
+HEX2MIF = $(PYTHON) $(TOOLS_DIR)/hex2mif.py
+MIFBOOT = $(PYTHON) $(TOOLS_DIR)/MIFboot.py
 
 # ==========================================================
-# Comandos principais
+# Alvos públicos
 # ==========================================================
+.PHONY: build boot clean all
 
-.PHONY: build load clean
+all: build
 
-## Compila e gera o MIF
+# ----------------------------------------------------------
+# make build FILE=src/main.c
+#   Compila startup_L2IP.S e $(FILE), linka, gera bin/hex/mif
+# ----------------------------------------------------------
 build:
 	@if [ -z "$(FILE)" ]; then \
-		echo "Uso: make build FILE=<arquivo.S>"; \
+		echo "Uso: make build FILE=<arquivo.c>"; \
 		exit 1; \
 	fi
-	$(MAKE) $(OUT_MIF) FILE=$(FILE)
+	@echo "=== Build iniciado ==="
+	@mkdir -p $(BUILD_DIR)
 
-## Compila e faz upload para a FPGA
+	@echo "--> compilando startup_L2IP.S"
+	$(CC) $(ASFLAGS) -O0 -c startup_L2IP.S -o $(BUILD_DIR)/startup_L2IP.o
+
+	@echo "--> compilando $(FILE)"
+	$(CC) $(CFLAGS) -O0 -c $(FILE) -o $(BUILD_DIR)/main.o
+
+	@echo "--> linkando (gerando ELF)"
+	$(CC) -nostdlib -nostartfiles -T $(LDSCRIPT) $(BUILD_DIR)/startup_L2IP.o $(BUILD_DIR)/main.o -lgcc -o $(OUT_ELF)
+
+	@echo "--> gerando BIN (imagem binária)"
+	$(OBJCOPY) -O binary $(OUT_ELF) $(OUT_BIN)
+
+	@echo "--> gerando HEX (32-bit words, big-endian per linha)"
+	hexdump -v -e '1/4 "%08X\n"' $(OUT_BIN) > $(OUT_HEX)
+
+
+	@echo "--> gerando MIF (depth=8192) via $(TOOLS_DIR)/hex2mif.py"
+	$(HEX2MIF) $(OUT_HEX) $(OUT_MIF) 8192
+
+	@echo "=== Build concluído ==="
+	@echo "Saídas em $(BUILD_DIR):"
+	@echo "  $(OUT_ELF)"
+	@echo "  $(OUT_BIN)"
+	@echo "  $(OUT_HEX)"
+	@echo "  $(OUT_MIF)"
+
+# ----------------------------------------------------------
+# make boot FILE=src/main.c
+#   Limpa build, executa build, e envia MIF para FPGA (MEM ID = ROM)
+# ----------------------------------------------------------
 boot:
 	@if [ -z "$(FILE)" ]; then \
-		echo "Uso: make boot FILE=<arquivo.S>"; \
+		echo "Uso: make boot FILE=<arquivo.c>"; \
 		exit 1; \
 	fi
-	@echo "Limpando arquivos em $(BUILD_DIR)..."
-	rm -f $(BUILD_DIR)/*.o $(BUILD_DIR)/*.elf $(BUILD_DIR)/*.bin $(BUILD_DIR)/*.hex $(BUILD_DIR)/*.mif
-	@echo "Limpeza concluída"
-	$(MAKE) $(OUT_MIF) FILE=$(FILE)
-	@echo "Enviando $(OUT_MIF) para a FPGA (MEM ID = ROM)..."
-	$(PYTHON) $(TOOLS_DIR)/MIFboot.py $(abspath $(OUT_MIF)) ROM
+	@echo "=== Boot: limpando build e rebuild ==="
+	@rm -f $(BUILD_DIR)/* || true
+	@$(MAKE) build FILE=$(FILE)
+	@echo "=== Enviando $(OUT_MIF) para a FPGA (MEM ID = ROM) ==="
+	@$(MIFBOOT) $(abspath $(OUT_MIF)) ROM
+	@echo "=== Boot concluído ==="
 
-## Limpa a pasta build
+# ----------------------------------------------------------
+# make clean
+# ----------------------------------------------------------
 clean:
-	@echo "Limpando arquivos em $(BUILD_DIR)..."
-	rm -f $(BUILD_DIR)/*.o $(BUILD_DIR)/*.elf $(BUILD_DIR)/*.bin $(BUILD_DIR)/*.hex $(BUILD_DIR)/*.mif
-	@echo "Limpeza concluída"
+	@echo "Limpando diretório $(BUILD_DIR)..."
+	@rm -rf $(BUILD_DIR)
+	@echo "Limpeza concluída."
 
 # ==========================================================
-# Regras de build
+# Regras auxiliares (se desejar compilar componentes separadamente)
+# Não usadas diretamente pelos alvos acima, mantidas para referência.
 # ==========================================================
-
-$(OUT_HEX):
+$(BUILD_DIR)/startup_L2IP.o: startup_L2IP.S
 	@mkdir -p $(BUILD_DIR)
-	$(AS) $(ARCH) -o $(BUILD_DIR)/$(OUT_BASENAME).o $(FILE)
-	$(LD) -Ttext=0x0 -o $(BUILD_DIR)/$(OUT_BASENAME).elf $(BUILD_DIR)/$(OUT_BASENAME).o
-	$(OBJCOPY) -O binary $(BUILD_DIR)/$(OUT_BASENAME).elf $(BUILD_DIR)/$(OUT_BASENAME).bin
-	hexdump -v -e '1/4 "%08X\n"' $(BUILD_DIR)/$(OUT_BASENAME).bin > $(OUT_HEX)
-	rm -f $(BUILD_DIR)/$(OUT_BASENAME).o $(BUILD_DIR)/$(OUT_BASENAME).elf $(BUILD_DIR)/$(OUT_BASENAME).bin
-	@echo "Gerado: $(OUT_HEX)"
+	$(CC) $(ASFLAGS) -O0 -c startup_L2IP.S -o $@
+
+$(BUILD_DIR)/main.o:
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -O0 -c $(FILE) -o $@
+
+$(OUT_ELF): $(BUILD_DIR)/startup_L2IP.o $(BUILD_DIR)/main.o
+	$(CC) -nostdlib -nostartfiles -T $(LDSCRIPT) $^ -o $@
+
+$(OUT_BIN): $(OUT_ELF)
+	$(OBJCOPY) -O binary $< $@
+
+$(OUT_HEX): $(OUT_BIN)
+	hexdump -v -e '1/4 "%08X\n"' $< > $@
 
 $(OUT_MIF): $(OUT_HEX)
-	@mkdir -p $(BUILD_DIR)
-	@echo "Gerando $(OUT_MIF)..."
-	@$(PYTHON) $(TOOLS_DIR)/hex2mif.py $(OUT_HEX) $(OUT_MIF) 512
-	@echo "Gerado: $(OUT_MIF)"
+	$(HEX2MIF) $< $@ 8192

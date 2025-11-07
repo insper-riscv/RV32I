@@ -6,7 +6,7 @@ void delay(int valor){
 
 int main(void) {
 
-    int vec[] = {1000.0, 100000.0, 100000.0};
+    int vec[] = {1000, 100000, 100000};
     int i = 0;
     while (1) {
         

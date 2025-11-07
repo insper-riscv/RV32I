@@ -41,7 +41,7 @@ set_global_assignment -name DEVICE 5CEBA4F23C7
 set_global_assignment -name TOP_LEVEL_ENTITY L2IP
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 18.1.0
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "16:50:55  OCTOBER 16, 2025"
-set_global_assignment -name LAST_QUARTUS_VERSION "18.1.0 Standard Edition"
+set_global_assignment -name LAST_QUARTUS_VERSION "18.1.0 Lite Edition"
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
@@ -310,8 +310,10 @@ set_global_assignment -name ROUTER_CLOCKING_TOPOLOGY_ANALYSIS ON
 set_global_assignment -name ADV_NETLIST_OPT_SYNTH_WYSIWYG_REMAP OFF
 set_global_assignment -name FITTER_EFFORT "AUTO FIT"
 set_global_assignment -name MUX_RESTRUCTURE OFF
+set_global_assignment -name VHDL_FILE ../../src/clk_gen_3way.vhd
+set_global_assignment -name QIP_FILE ../../src/ROM1PORT/rom1port.qip
+set_global_assignment -name QIP_FILE ../../src/RAM1PORT/ram1port.qip
 set_global_assignment -name SDC_FILE ../../src/clk.sdc
-set_global_assignment -name QIP_FILE ../../src/ROM_IP/room.qip
 set_global_assignment -name VHDL_FILE ../../src/FlipFlop.vhd
 set_global_assignment -name VHDL_FILE ../../src/StoreManager.vhd
 set_global_assignment -name VHDL_FILE ../../src/rv32i_ctrl_consts.vhd
