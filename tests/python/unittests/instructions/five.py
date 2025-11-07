@@ -20,7 +20,7 @@ async def test_branches(dut):
 
     # Helper: executa uma instrução e retorna PC
     async def step():
-        pc = int(dut.PC_IF_out.value)
+        pc = int(dut.core.pc_if_out.value)
         dut.CLK.value = 1; await Timer(5, units="ns")
         dut.CLK.value = 0; await Timer(10, units="ns")
         dut.CLK.value = 1; await Timer(10, units="ns")

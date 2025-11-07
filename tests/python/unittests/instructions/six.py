@@ -9,9 +9,9 @@ async def test_load_store_via_loads_and_regs(dut):
     await Timer(10, units="ns")
 
     async def step():
-        alu_out = int(dut.ALU_out_IDEXMEM.value)
-        ram_out = int(dut.RAM_out.value)
-        ext_ram_out = int(dut.extenderRAM_out.value)
+        alu_out = int(dut.core.alu_out_idexmem.value)
+        ram_out = int(dut.core.ram_out.value)
+        ext_ram_out = int(dut.core.extenderRAM_out.value)
         dut.CLK.value = 1; await Timer(5, units="ns")
         dut.CLK.value = 0; await Timer(10, units="ns")
         dut.CLK.value = 1; await Timer(10, units="ns")

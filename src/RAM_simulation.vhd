@@ -2,7 +2,7 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity RAM_sim is
+entity RAM_simulation is
   generic (
     dataWidth: natural := 32;
     addrWidth: natural := 30;
@@ -20,7 +20,7 @@ entity RAM_sim is
   );
 end entity;
 
-architecture rtl of RAM_sim is
+architecture rtl of RAM_simulation is
   type mem_t is array(0 to 2**memoryAddrWidth - 1) of std_logic_vector(31 downto 0);
   signal mem : mem_t := (others => (others => '0'));
 

@@ -47,6 +47,6 @@ async def test_r_type_example(dut):
     # Agora cada clock corresponde a uma instrução R-type
     for instr, exp in zip(instrs, expected):
         await step()
-        got = int(dut.ALU_out_IDEXMEM.value)
+        got = int(dut.core.alu_out_idexmem.value)
         assert got == exp, f"{instr} falhou: esperado {exp:#010x}, obtido {got:#010x}"
         dut._log.info(f"{instr} OK: {got:#010x}")

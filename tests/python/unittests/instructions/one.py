@@ -48,7 +48,7 @@ async def test_lui_auipc(dut):
 
     for expected in auipc_expected:
         await step()
-        got = int(dut.ALU_out_IDEXMEM.value)
+        got = int(dut.core.alu_out_idexmem.value)
         assert got == expected, f"AUIPC falhou: esperado {expected:#010x}, obtido {got:#010x}"
         dut._log.info(f"AUIPC OK: {got:#010x}")
 
@@ -70,7 +70,7 @@ async def test_lui_auipc(dut):
 
     for expected in lui_expected:
         await step()
-        got = int(dut.ALU_out_IDEXMEM.value)
+        got = int(dut.core.alu_out_idexmem.value)
         assert got == expected, f"LUI falhou: esperado {expected:#010x}, obtido {got:#010x}"
         dut._log.info(f"LUI OK: {got:#010x}")
 

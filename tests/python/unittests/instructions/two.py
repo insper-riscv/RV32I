@@ -44,6 +44,6 @@ async def test_i_type(dut):
     # Verifica resultados um a um
     for instr, exp in zip(["ADDI","XORI","ORI","ANDI","SLLI","SRLI","SRAI"], expected):
         await step()
-        got = int(dut.ALU_out_IDEXMEM.value)
+        got = int(dut.core.alu_out_idexmem.value)
         assert got == exp, f"{instr} falhou: esperado {exp:#010x}, obtido {got:#010x}"
         dut._log.info(f"{instr} OK: {got:#010x}")

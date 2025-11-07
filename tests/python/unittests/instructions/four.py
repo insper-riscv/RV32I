@@ -24,9 +24,9 @@ async def test_jal(dut):
     """Testa apenas JAL verificando PC_out e registrador de retorno."""
 
     # ====== Executa JAL ======
-    pc_before = int(dut.PC_IF_out.value)  # PC onde JAL está
+    pc_before = int(dut.core.pc_if_out.value)  # PC onde JAL está
     await step()
-    pc_after = int(dut.PC_IF_out.value)   # PC após salto
+    pc_after = int(dut.core.pc_if_out.value)   # PC após salto
 
     # Cálculo esperado
     offset = sext(8, 21)  # imediato do JAL
@@ -40,11 +40,11 @@ async def test_jal(dut):
     # ====== Executa ADD que expõe registrador de retorno (x6 = x5) ======
     # executa ADD saída da ALU com x6 = x5
     await step()
-    reg_val = int(dut.ALU_out_IDEXMEM.value)    
+    reg_val = int(dut.core.alu_out_idexmem.value)    
 
     # EXECUTA JALR
     await step()
-    pc = int(dut.PC_IF_out.value)
+    pc = int(dut.core.pc_if_out.value)
 
     # esperado: voltar para endereço salvo em x5 (reg_val), alinhado
     expected_jalr_pc = reg_val & ~1
