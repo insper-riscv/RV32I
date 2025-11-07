@@ -94,7 +94,6 @@
     ],
     "test_module": "tests.python.unittests.instructions.one",
     "parameters": {
-      "SIMULATION" : true,
       "ROM_FILE": "tests/python/unittests/instructions/codes/build/one.hex"
     }
   },
@@ -122,7 +121,6 @@
     ],
     "test_module": "tests.python.unittests.instructions.two",
     "parameters": {
-      "SIMULATION" : true,
       "ROM_FILE": "tests/python/unittests/instructions/codes/build/two.hex"
     }
   },
@@ -150,7 +148,6 @@
     ],
     "test_module": "tests.python.unittests.instructions.three",
     "parameters": {
-      "SIMULATION" : true,
       "ROM_FILE": "tests/python/unittests/instructions/codes/build/three.hex"
     }
   },
@@ -178,7 +175,6 @@
     ],
     "test_module": "tests.python.unittests.instructions.four",
     "parameters": {
-      "SIMULATION" : true,
       "ROM_FILE": "tests/python/unittests/instructions/codes/build/four.hex"
     }
   },
@@ -206,7 +202,6 @@
     ],
     "test_module": "tests.python.unittests.instructions.five",
     "parameters": {
-      "SIMULATION" : true,
       "ROM_FILE": "tests/python/unittests/instructions/codes/build/five.hex"
     }
   },
@@ -234,7 +229,6 @@
     ],
     "test_module": "tests.python.unittests.instructions.six",
     "parameters": {
-      "SIMULATION" : true,
       "ROM_FILE": "tests/python/unittests/instructions/codes/build/six.hex"
     }
   }

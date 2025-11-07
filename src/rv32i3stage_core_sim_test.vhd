@@ -5,7 +5,6 @@ use work.rv32i_ctrl_consts.all;
 
 entity rv32i3stage_core_sim_test is
 	generic (
-	  SIMULATION : boolean := FALSE; 
 	  ROM_FILE : string := "default.hex" 
   	);
 	port (
@@ -16,20 +15,20 @@ end entity;
 
 architecture behaviour of rv32i3stage_core_sim_test is
 
--- sinais aqui
-signal CLK_IF, CLK_IDEXMEM : std_logic;
+	-- sinais aqui
+	signal CLK_IF, CLK_IDEXMEM : std_logic;
 
-signal rom_addr : std_logic_vector(31 downto 0);
-signal rom_rden : std_logic;
-signal rom_data : std_logic_vector(31 downto 0);
+	signal rom_addr : std_logic_vector(31 downto 0);
+	signal rom_rden : std_logic;
+	signal rom_data : std_logic_vector(31 downto 0);
 
-signal ram_addr : std_logic_vector(31 downto 0);
-signal ram_wdata : std_logic_vector(31 downto 0);
-signal ram_rdata : std_logic_vector(31 downto 0);
-signal ram_en : std_logic;
-signal ram_wren : std_logic;
-signal ram_rden : std_logic;
-signal ram_byteena : std_logic_vector(3 downto 0);
+	signal ram_addr : std_logic_vector(31 downto 0);
+	signal ram_wdata : std_logic_vector(31 downto 0);
+	signal ram_rdata : std_logic_vector(31 downto 0);
+	signal ram_en : std_logic;
+	signal ram_wren : std_logic;
+	signal ram_rden : std_logic;
+	signal ram_byteena : std_logic_vector(3 downto 0);
 
 begin
 
