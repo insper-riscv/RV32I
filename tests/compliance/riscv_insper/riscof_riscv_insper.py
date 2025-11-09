@@ -87,38 +87,41 @@ class riscv_insper(pluginTemplate):
       
       repo = Path(self.pluginpath).parents[2]
       self.build_dir = Path(self.pluginpath) / "sim_build_riscof"
+      shutil.rmtree(self.build_dir, ignore_errors=True)
       self.build_dir.mkdir(parents=True, exist_ok=True)
       self.dut_exe = str((self.build_dir / "rv32i3stage_core_sim_test").resolve())
 
+      self.top = "rv32i3stage_core_sim_test"
+
       SOURCES = [
           "src/rv32i_ctrl_consts.vhd",
-          "src/ALU.vhd",
-          "src/RegFile.vhd",
-          "src/RAM_simulation.vhd",
-          "src/ROM_simulation.vhd",
-          "src/InstructionDecoder.vhd",
-          "src/ExtenderImm.vhd",
-          "src/ExtenderRAM.vhd",
-          "src/StoreManager.vhd",
+          "src/genericRegister.vhd",
           "src/genericAdder.vhd",
           "src/genericAdderU.vhd",
           "src/genericMux2x1.vhd",
           "src/genericMux3x1.vhd",
-          "src/genericRegister.vhd",
-          "src/clk_gen_3way.vhd",
           "src/FlipFlop.vhd",
+          "src/ALU.vhd",
+          "src/ExtenderImm.vhd",
+          "src/ExtenderRAM.vhd",
+          "src/StoreManager.vhd",
+          "src/InstructionDecoder.vhd",
+          "src/RegFile.vhd",
+          "src/RAM_simulation.vhd",
+          "src/ROM_simulation.vhd",
+          "src/clk_gen_3way.vhd",
           "src/rv32i3stage_core.vhd",
           "src/rv32i3stage_core_sim_test.vhd"
       ]
       vhdl = [str((repo / s).resolve()) for s in SOURCES]
 
       for s in vhdl:
-            subprocess.run(["ghdl","-a","--std=08",str(self.build_dir), s],
+            subprocess.run(["ghdl","-a","--std=08",f"--workdir={str(self.build_dir)}", s],
                            cwd=self.build_dir, check=True)
             
-      subprocess.run(["ghdl","-e","--std=08",str(self.build_dir),
-                        "rv32i3stage_core_sim_test"],
-                       cwd=self.build_dir, check=True)
+      # subprocess.run(["ghdl","-e","--std=08",f"--workdir={str(self.build_dir)}",
+      #                   "rv32i3stage_core_sim_test"],
+      #                  cwd=self.build_dir, check=True)
 
       # load the isa yaml as a dictionary in python.
       ispec = utils.load_yaml(isa_yaml)['hart0']
@@ -182,7 +185,8 @@ class riscv_insper(pluginTemplate):
           # for each test there are specific compile macros that need to be enabled. The macros in
           # the testList node only contain the macros/values. For the gcc toolchain we need to
           # prefix with "-D". The following does precisely that.
-          compile_macros= ' -D' + " -D".join(testentry['macros'])
+          macros_list = testentry.get('macros', [])
+          compile_macros = (' -D' + ' -D'.join(macros_list)) if macros_list else ''   
 
           # substitute all variables in the compile command that we created in the initialize
           # function
@@ -192,8 +196,41 @@ class riscv_insper(pluginTemplate):
 	  # the "else" clause is executed below assigning the sim command to simple no action
 	  # echo statement.
           if self.target_run:
+            hexfile = os.path.join(test_dir, "prog.hex")
+            sig_file = os.path.join(test_dir, self.name[:-1] + ".signature")
             # set up the simulation command. Template is for spike. Please change.
-            simcmd = self.dut_exe + ' --isa={0} +signature={1} +signature-granularity=4 {2}'.format(self.isa, sig_file, elf)
+            # simcmd = self.dut_exe + ' --isa={0} +signature={1} +signature-granularity=4 {2}'.format(self.isa, sig_file, elf)
+
+            simcmd = (
+                # ELF -> BIN -> HEX (write the name ROM expects)
+                f"riscv{self.xlen}-unknown-elf-objcopy -O binary {elf} prog.bin && "
+                f"hexdump -ve '1/4 \"%08x\\n\"' prog.bin > default.hex && "
+
+                # extract signature symbols (hex, no 0x)
+                f"BEGIN_HEX=$$(riscv{self.xlen}-unknown-elf-objdump -t {elf} | "
+                f"awk '$$NF==\"begin_signature\" {{print $$1; exit}}') && "
+                f"END_HEX=$$(riscv{self.xlen}-unknown-elf-objdump -t {elf} | "
+                f"awk '$$NF==\"end_signature\"   {{print $$1; exit}}') && "
+
+                # sanity check
+                f"test -n \"$$BEGIN_HEX\" -a -n \"$$END_HEX\" || "
+                f"{{ echo 'Missing begin/end_signature' >&2; exit 2; }}; "
+
+                # hex -> decimal (portable), compute word indices
+                f"BEGIN_DEC=$$(printf '%d' 0x$${{BEGIN_HEX}}); "
+                f"END_DEC=$$(printf '%d' 0x$${{END_HEX}}); "
+                f"BASE_DEC=$$(printf '%d' 0x80000000); "
+                f"SIGB=$$(((BEGIN_DEC - BASE_DEC) / 4)); "
+                f"SIGE=$$(((END_DEC  - BASE_DEC) / 4)); "
+
+                # elaborate & run; pass only SIG_* generics (ROM reads default.hex by default)
+                f"ghdl -e --std=08 --workdir={shlex.quote(str(self.build_dir))} "
+                f"-gSIG_BEGIN_ADDR=$${{SIGB}} -gSIG_END_ADDR=$${{SIGE}} "
+                f'-gSIG_FILE="{sig_file}" '
+                f"{self.top} && "
+                f"ghdl -r --std=08 --workdir={shlex.quote(str(self.build_dir))} {self.top} && "
+                f"rm -f prog.bin"
+            )
           else:
             simcmd = 'echo "NO RUN"'
 

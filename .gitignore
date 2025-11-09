@@ -193,7 +193,7 @@ celerybeat.pid
 
 # Environments
 .env
-.venv
+.venv/
 env/
 venv/
 ENV/
@@ -239,3 +239,4 @@ output_files/*
 !output_files/*.sof
 
 riscof_work/
+sim_build_riscof/
