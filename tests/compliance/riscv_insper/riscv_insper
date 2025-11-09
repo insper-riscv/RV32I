@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+import argparse, subprocess, tempfile, struct, sys, re, pathlib, os
+
+p = argparse.ArgumentParser()
+p.add_argument("--isa", required=True)                 # accepted but not used by RTL
+p.add_argument("+signature", dest="sig", required=True)
+p.add_argument("+signature-granularity", dest="gran", default="4")
+p.add_argument("elf")
+a = p.parse_args()
+
+repo  = pathlib.Path(__file__).resolve().parents[2]  # RV32I/
+bpath = repo / "tests" / "compliance" / "riscv_insper" / "sim_build_riscof"
+if not bpath.exists():
+    w = bpath / "WHERE.txt"
+    if w.exists():
+        bpath = pathlib.Path(w.read_text().strip())
+    else:
+        print("ERROR: simulator not built. Run the RISCOF build stage first.", file=sys.stderr)
+        sys.exit(2)
+
+# Find begin/end signature addresses from ELF symbols
+nmout = subprocess.check_output(["riscv32-unknown-elf-nm", a.elf], text=True)
+def sym(name):
+    m = re.search(rf"^([0-9a-fA-F]+)\s+\w\s+{name}$", nmout, re.M)
+    if not m:
+        print(f"Missing symbol {name} in ELF", file=sys.stderr); sys.exit(3)
+    return int(m.group(1), 16)
+sig_begin = sym("begin_signature")
+sig_end   = sym("end_signature")
+
+# Convert ELF -> ROM hex (one little-endian 32-bit word per line)
+tmp  = pathlib.Path(tempfile.mkdtemp())
+binf = tmp/"prog.bin"
+hexf = tmp/"prog.hex"
+subprocess.run(["riscv32-unknown-elf-objcopy","-O","binary",a.elf,str(binf)], check=True)
+with open(binf,"rb") as f, open(hexf,"w") as o:
+    while True:
+        b = f.read(4)
+        if not b: break
+        o.write(f"{struct.unpack('<I', b.ljust(4,b'\\0'))[0]:08X}\n")
+
+# Run the GHDL executable, passing generics (quote string generics!)
+cmd = [
+  "ghdl","-r","rv32i3stage_core_sim_test","--std=08",
+  f'-gROM_FILE="{hexf}"',
+  f"-gSIG_BEGIN_ADDR={sig_begin}",
+  f"-gSIG_END_ADDR={sig_end}",
+  f'-gSIG_FILE="{a.sig}"'
+]
+subprocess.run(cmd, cwd=bpath, check=True)

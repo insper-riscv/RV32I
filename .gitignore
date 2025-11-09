@@ -237,3 +237,5 @@ cython_debug/
 .strace
 output_files/*
 !output_files/*.sof
+
+riscof_work/
