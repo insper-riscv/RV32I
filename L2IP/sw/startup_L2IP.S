@@ -28,7 +28,7 @@ hang:
 Reset_Handler:
     /* Zerando .bss: t0 = start, t1 = end */
     la   t0, __sbss
-    la   t1, __ebss
+    la   t1, __esbss
     beq  t0, t1, .L_bss_done
 
 .L_bss_loop:

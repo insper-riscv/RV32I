@@ -13,27 +13,27 @@ entity L2IP is
 end entity;
 
 architecture behaviour of L2IP is
--- sinais aqui
+	-- sinais aqui
 
--- ======= cpu <-> memorias =======
-signal CLK_IF, CLK_IDEXMEM : std_logic;
+	-- ======= cpu <-> memorias =======
+	signal CLK_IF, CLK_IDEXMEM : std_logic;
 
-signal rom_addr : std_logic_vector(31 downto 0);
-signal rom_rden : std_logic;
-signal rom_data : std_logic_vector(31 downto 0);
+	signal rom_addr : std_logic_vector(31 downto 0);
+	signal rom_rden : std_logic;
+	signal rom_data : std_logic_vector(31 downto 0);
 
-signal ram_addr : std_logic_vector(31 downto 0);
-signal ram_wdata : std_logic_vector(31 downto 0);
-signal ram_rdata : std_logic_vector(31 downto 0);
-signal ram_en : std_logic;
-signal ram_wren : std_logic;
-signal ram_rden : std_logic;
-signal ram_byteena : std_logic_vector(3 downto 0);
+	signal ram_addr : std_logic_vector(31 downto 0);
+	signal ram_wdata : std_logic_vector(31 downto 0);
+	signal ram_rdata : std_logic_vector(31 downto 0);
+	signal ram_en : std_logic;
+	signal ram_wren : std_logic;
+	signal ram_rden : std_logic;
+	signal ram_byteena : std_logic_vector(3 downto 0);
 
--- ======= perifericos =======
+	-- ======= perifericos =======
 
-signal CLK, CLKbtn : std_logic;
-signal enable_led : std_logic;
+	signal CLK, CLKbtn : std_logic;
+	signal enable_led : std_logic;
 
 begin
 
