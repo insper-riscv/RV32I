@@ -179,7 +179,8 @@ class riscv_insper(pluginTemplate):
 
       # set the make command that will be used. The num_jobs parameter was set in the __init__
       # function earlier
-      make.makeCommand = 'make -k -j' + self.num_jobs
+      # make.makeCommand = 'make -k -j' + self.num_jobs
+      make.makeCommand = 'make -j' + self.num_jobs
 
       # we will iterate over each entry in the testList. Each entry node will be refered to by the
       # variable testname.
@@ -235,35 +236,57 @@ class riscv_insper(pluginTemplate):
             # simcmd = self.dut_exe + ' --isa={0} +signature={1} +signature-granularity=4 {2}'.format(self.isa, sig_file, elf)
 
             simcmd = (
-                # ELF -> BIN -> HEX (write the name ROM expects)
-                f"riscv{self.xlen}-unknown-elf-objcopy -O binary {elf} prog.bin && "
-                f"hexdump -ve '1/4 \"%08x\\n\"' prog.bin > default.hex && "
+                # dash-friendly: strict + trace (no pipefail)
+                "set -eu; set -x; "
 
-                # extract signature symbols (hex, no 0x)
+                # 1) ELF -> BIN -> HEX (ROM expects default.hex in CWD)
+                f"riscv{self.xlen}-unknown-elf-objcopy -O binary {elf} prog.bin && "
+                "hexdump -ve '1/4 \"%08x\\n\"' prog.bin > default.hex && "
+
+                # 2) get signature symbol addresses (hex, no 0x)
                 f"BEGIN_HEX=$$(riscv{self.xlen}-unknown-elf-objdump -t {elf} | "
                 f"awk '$$NF==\"begin_signature\" {{print $$1; exit}}') && "
                 f"END_HEX=$$(riscv{self.xlen}-unknown-elf-objdump -t {elf} | "
                 f"awk '$$NF==\"end_signature\"   {{print $$1; exit}}') && "
 
-                # sanity check
-                f"test -n \"$$BEGIN_HEX\" -a -n \"$$END_HEX\" || "
-                f"{{ echo 'Missing begin/end_signature' >&2; exit 2; }}; "
+                # sanity check symbols exist
+                'test -n "$BEGIN_HEX" -a -n "$END_HEX" || '
+                '{ echo "*** ERROR: Missing begin/end_signature" >&2; exit 2; }; '
 
-                # hex -> decimal (portable), compute word indices
-                f"BEGIN_DEC=$$(printf '%d' 0x$${{BEGIN_HEX}}); "
-                f"END_DEC=$$(printf '%d' 0x$${{END_HEX}}); "
-                f"BASE_DEC=$$(printf '%d' 0x20000000); "
-                f"SIGB=$$(((BEGIN_DEC - BASE_DEC) / 4)); "
-                f"SIGE=$$(((END_DEC  - BASE_DEC) / 4)); "
+                # 3) hex -> decimal (BYTE addresses for the VHDL generics)
+                'BEGIN_DEC=$$(printf "%d" 0x$${BEGIN_HEX}); '
+                'END_DEC=$$(printf   "%d" 0x$${END_HEX}); '
 
-                # elaborate & run; pass only SIG_* generics (ROM reads default.hex by default)
+                # brief visibility
+                'echo "--- SIG INFO ---"; '
+                'echo ELF_BEGIN=0x$${BEGIN_HEX} ELF_END=0x$${END_HEX} '
+                    'BEGIN_DEC=$${BEGIN_DEC} END_DEC=$${END_DEC}; '
+                'echo HEX_LINES=$$(wc -l < default.hex); '
+
+                # 4) elaborate & run with BYTE addresses (let TB try to write the file)
                 f"ghdl -e --std=08 --workdir={shlex.quote(str(self.build_dir))} "
-                f"-gSIG_BEGIN_ADDR=$${{SIGB}} -gSIG_END_ADDR=$${{SIGE}} "
+                f"-gSIG_BEGIN_ADDR=$${{BEGIN_DEC}} -gSIG_END_ADDR=$${{END_DEC}} "
                 f'-gSIG_FILE="{sig_file}" '
                 f"{self.top} && "
                 f"ghdl -r --std=08 --workdir={shlex.quote(str(self.build_dir))} {self.top} && "
-                f"rm -f prog.bin"
+
+                # 5) fallback: if TB didn't write the signature, slice it from default.hex
+                #    assumes ROM base 0x20000000 to map addresses -> line indices
+                'if [ ! -s ' + shlex.quote(sig_file) + ' ]; then '
+                  'echo "*** TB did not write signature; generating from default.hex fallback"; '
+                  'BASE_DEC=$$(printf "%d" 0x20000000); '
+                  'SIGB=$$(( (BEGIN_DEC - BASE_DEC) / 4 )); '
+                  'SIGE=$$(( (END_DEC   - BASE_DEC) / 4 )); '
+                  # sed is 1-based and END is exclusive -> use SIGE as the last line number (no -1)
+                  'START_LINE=$$((SIGB + 1)); '
+                  'END_LINE=$$((SIGE)); '
+                  'sed -n "$${START_LINE},$${END_LINE}p" default.hex > ' + shlex.quote(sig_file) + '; '
+                'fi; '
+
+                # 6) cleanup
+                "rm -f prog.bin"
             )
+
           else:
             simcmd = 'echo "NO RUN"'
 

@@ -10,4 +10,4 @@ tomli==2.2.1
 typing_extensions==4.15.0
 riscof==1.25.3
 riscv-config==3.18.3
-riscv-isac==0.18.0
+spike
