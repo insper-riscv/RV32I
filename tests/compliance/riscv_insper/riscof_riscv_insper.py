@@ -132,21 +132,42 @@ class riscv_insper(pluginTemplate):
 
       # for riscv_insper start building the '--isa' argument. the self.isa is dutnmae specific and may not be
       # useful for all DUTs
+      # self.isa = 'rv' + self.xlen
+      # if "I" in ispec["ISA"]:
+      #     self.isa += 'i'
+      # if "M" in ispec["ISA"]:
+      #     self.isa += 'm'
+      # if "F" in ispec["ISA"]:
+      #     self.isa += 'f'
+      # if "D" in ispec["ISA"]:
+      #     self.isa += 'd'
+      # if "C" in ispec["ISA"]:
+      #     self.isa += 'c'
+
+      # Compose ISA for any tool that uses it (keep lower-case for consistency)
       self.isa = 'rv' + self.xlen
-      if "I" in ispec["ISA"]:
-          self.isa += 'i'
-      if "M" in ispec["ISA"]:
-          self.isa += 'm'
-      if "F" in ispec["ISA"]:
-          self.isa += 'f'
-      if "D" in ispec["ISA"]:
-          self.isa += 'd'
-      if "C" in ispec["ISA"]:
-          self.isa += 'c'
+      s = ispec["ISA"]
+
+      if "I" in s: self.isa += 'i'
+      if "E" in s: self.isa += 'e'
+      if "M" in s: self.isa += 'm'
+      if "A" in s: self.isa += 'a'
+      if "F" in s: self.isa += 'f'
+      if "D" in s: self.isa += 'd'
+      if "C" in s: self.isa += 'c'
+      # add Z* that matter for rv32i_m suite & toolchain
+      if ("Zicsr" in s) or ("zicsr" in s):       self.isa += '_zicsr'
+      if ("Zifencei" in s) or ("zifencei" in s): self.isa += '_zifencei'
+
+      self.isa = self.isa.lower()
+
+      # Choose mabi correctly
+      mabi = 'lp64' if self.xlen == '64' else ('ilp32e' if ('E' in s) else 'ilp32')
+      self.compile_cmd = self.compile_cmd + f' -mabi={mabi} '
 
       #TODO: The following assumes you are using the riscv-gcc toolchain. If
       #      not please change appropriately
-      self.compile_cmd = self.compile_cmd+' -mabi='+('lp64 ' if 64 in ispec['supported_xlen'] else 'ilp32 ')
+      # self.compile_cmd = self.compile_cmd+' -mabi='+('lp64 ' if 64 in ispec['supported_xlen'] else 'ilp32 ')
 
     def runTests(self, testList):
 
@@ -191,13 +212,18 @@ class riscv_insper(pluginTemplate):
           # substitute all variables in the compile command that we created in the initialize
           # function
 
-          march = testentry['isa'].lower()
-          if march == 'rv32i':
-              march = 'rv32i_zicsr_zifencei'
-          elif march == 'rv64i':
-              march = 'rv64i_zicsr_zifencei'
+          # march = testentry['isa'].lower()
+          # if march == 'rv32i':
+          #     march = 'rv32i_zicsr_zifencei'
+          # elif march == 'rv64i':
+          #     march = 'rv64i_zicsr_zifencei'
 
+          march = testentry['isa'].lower()
+          if 'zicsr' not in march:    march += '_zicsr'
+          if 'zifencei' not in march: march += '_zifencei'
           cmd = self.compile_cmd.format(march, self.xlen, test, elf, compile_macros)
+
+          # cmd = self.compile_cmd.format(march, self.xlen, test, elf, compile_macros)
 
 	  # if the user wants to disable running the tests and only compile the tests, then
 	  # the "else" clause is executed below assigning the sim command to simple no action
@@ -226,7 +252,7 @@ class riscv_insper(pluginTemplate):
                 # hex -> decimal (portable), compute word indices
                 f"BEGIN_DEC=$$(printf '%d' 0x$${{BEGIN_HEX}}); "
                 f"END_DEC=$$(printf '%d' 0x$${{END_HEX}}); "
-                f"BASE_DEC=$$(printf '%d' 0x80000000); "
+                f"BASE_DEC=$$(printf '%d' 0x20000000); "
                 f"SIGB=$$(((BEGIN_DEC - BASE_DEC) / 4)); "
                 f"SIGE=$$(((END_DEC  - BASE_DEC) / 4)); "
 
