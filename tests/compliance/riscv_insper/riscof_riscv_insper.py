@@ -132,17 +132,17 @@ class riscv_insper(pluginTemplate):
 
       # for riscv_insper start building the '--isa' argument. the self.isa is dutnmae specific and may not be
       # useful for all DUTs
-      self.isa = 'rv' + self.xlen + 'i'
-      # if "I" in ispec["ISA"]:
-      #     self.isa += 'i'
-      # if "M" in ispec["ISA"]:
-      #     self.isa += 'm'
-      # if "F" in ispec["ISA"]:
-      #     self.isa += 'f'
-      # if "D" in ispec["ISA"]:
-      #     self.isa += 'd'
-      # if "C" in ispec["ISA"]:
-      #     self.isa += 'c'
+      self.isa = 'rv' + self.xlen
+      if "I" in ispec["ISA"]:
+          self.isa += 'i'
+      if "M" in ispec["ISA"]:
+          self.isa += 'm'
+      if "F" in ispec["ISA"]:
+          self.isa += 'f'
+      if "D" in ispec["ISA"]:
+          self.isa += 'd'
+      if "C" in ispec["ISA"]:
+          self.isa += 'c'
 
       #TODO: The following assumes you are using the riscv-gcc toolchain. If
       #      not please change appropriately
@@ -190,7 +190,14 @@ class riscv_insper(pluginTemplate):
 
           # substitute all variables in the compile command that we created in the initialize
           # function
-          cmd = self.compile_cmd.format(testentry['isa'].lower(), self.xlen, test, elf, compile_macros)
+
+          march = testentry['isa'].lower()
+          if march == 'rv32i':
+              march = 'rv32i_zicsr_zifencei'
+          elif march == 'rv64i':
+              march = 'rv64i_zicsr_zifencei'
+
+          cmd = self.compile_cmd.format(march, self.xlen, test, elf, compile_macros)
 
 	  # if the user wants to disable running the tests and only compile the tests, then
 	  # the "else" clause is executed below assigning the sim command to simple no action

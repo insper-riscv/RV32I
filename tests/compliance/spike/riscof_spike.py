@@ -103,6 +103,12 @@ class spike(pluginTemplate):
       if "C" in ispec["ISA"]:
           self.isa += 'c'
 
+      isa_str = ispec["ISA"]
+      if "Zicsr" in isa_str or "ZICSR" in isa_str:
+          self.isa += "_zicsr"
+      if "Zifencei" in isa_str or "ZIFENCEI" in isa_str:
+          self.isa += "_zifencei"
+
       #TODO: The following assumes you are using the riscv-gcc toolchain. If
       #      not please change appropriately
       self.compile_cmd = self.compile_cmd+' -mabi='+('lp64 ' if 64 in ispec['supported_xlen'] else 'ilp32 ')
@@ -148,7 +154,14 @@ class spike(pluginTemplate):
 
           # substitute all variables in the compile command that we created in the initialize
           # function
-          cmd = self.compile_cmd.format(testentry['isa'].lower(), self.xlen, test, elf, compile_macros)
+
+          march = testentry['isa'].lower()
+          if march == 'rv32i':
+              march = 'rv32i_zicsr_zifencei'
+          elif march == 'rv64i':
+              march = 'rv64i_zicsr_zifencei'
+
+          cmd = self.compile_cmd.format(march, self.xlen, test, elf, compile_macros)
 
 	  # if the user wants to disable running the tests and only compile the tests, then
 	  # the "else" clause is executed below assigning the sim command to simple no action
