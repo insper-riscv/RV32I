@@ -1,47 +1,82 @@
-/* L2IP.ld - Linker script para L2IP (RV32I, Harvard simples)
-   ROM: 512 words x 4 = 2048 bytes at address 0x00000000 (instruction memory)
-   RAM: 512 words x 4 = 2048 bytes at address 0x00000000 (data memory)
-   NOTE: ORIGINs are both 0 because arquitetura Harvard usa espaços separados.
-*/
+/* L2IP_fixed.ld - Linker script para RV32I Harvard (ROM + RAM, LMA != VMA) */
+
 
 ENTRY(_start)
 
 MEMORY
 {
-  FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 2048    /* instruções (ROM) */
-  RAM   (rwx): ORIGIN = 0x00000000, LENGTH = 2048    /* dados (RAM) */
+  ROM (rx) : ORIGIN = 0x00000000, LENGTH = 0x8000
+  RAM (rwx): ORIGIN = 0x80000000, LENGTH = 0x4000   /* LINK-time RAM address (avoid overlap) */
 }
 
-/* Output sections */
 SECTIONS
 {
-    /* código (vai para ROM) */
-    .text :
-    {
-    KEEP(*(.init))            /* caso tenha inicializadores em assembly */
-    *(.text*)                 /* todo código */
+  /* CODE in ROM (VMA = LMA = 0x00000000) */
+  . = ORIGIN(ROM);
+  .text :
+  {
+    KEEP(*(.init))
+    *(.text*)
     . = ALIGN(4);
-    } > FLASH
+  } > ROM
 
-    /* descartamos .rodata — não permitimos constantes em ROM/data reads */
-    /DISCARD/ : { *(.rodata*) *(.constdata*) }
+  /* DATA/RODATA/BSS in RAM (VMA = 0x80000000 so linker doesn't collide with ROM) */
+  . = ORIGIN(RAM);
 
-    /* .data em RAM, mas sem área de carga em FLASH (sem copy) -> NOBITS (zerada) */
-    . = ORIGIN(RAM);
-
-    /* .data and .bss as before */
-    .data (NOLOAD) : { __sdata = .; *(.data*) __edata = .; } > RAM
-    .bss  (NOLOAD) : { __sbss = .; *(.bss*) *(COMMON) __ebss = .; } > RAM
-
+   __rodata_load = .;
+  .rodata :
+  {
+    __srodata = .;
+    *(.rodata*)
     . = ALIGN(4);
+    __erodata = .;
+  } > RAM
 
-    /* símbolos úteis para startup / libc */
-    PROVIDE(__HeapBase = __ebss);                       /* heap começa logo após .bss */
-    PROVIDE(__StackTop = ORIGIN(RAM) + LENGTH(RAM));    /* topo da pilha (SP inicial) */
-    PROVIDE(__StackLimit = __StackTop);                 /* sem limite reservado (dinâmico) */
+  __data_load = .;
+  .data :
+  {
+    __sdata = .;
+    *(.data*)
+    . = ALIGN(4);
+    __edata = .;
+  } > RAM
 
-    PROVIDE(end = __ebss);
+  /* small-data (inicializados pequenos) */
+  .sdata :
+  {
+    __ssdata = .;
+    *(.sdata*)
+    . = ALIGN(4);
+    __esdata = .;
+  } > RAM
 
-    /* remover seções de exceções / debug que não queremos */
-    /DISCARD/ : { *(.comment) *(.note*) *(.eh_frame*) }
+  /* .bss e .sbss (NOLOAD) */
+  .bss (NOLOAD) :
+  {
+    __sbss = .;
+    *(.bss*)
+    *(COMMON)
+    . = ALIGN(4);
+    __ebss = .;
+  } > RAM
+
+  .sbss (NOLOAD) :
+  {
+    __ssbss = .;
+    *(.sbss*)
+    . = ALIGN(4);
+    __esbss = .;
+  } > RAM
+
+  /* symbols visible to crt0 */
+  PROVIDE(__rodata_vma = __srodata);
+  PROVIDE(__rodata_vma_end = __erodata);
+  PROVIDE(__data_vma = __sdata);
+  PROVIDE(__data_vma_end = __edata);
+
+  PROVIDE(__HeapBase = __ebss);
+  PROVIDE(__StackTop = ORIGIN(RAM) + LENGTH(RAM));
+  PROVIDE(end = __ebss);
+
+  /DISCARD/ : { *(.comment) *(.note*) *(.eh_frame*) }
 }

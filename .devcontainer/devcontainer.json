@@ -1,6 +1,6 @@
 {
   "name": "riscv-core",
-  "image": "ghcr.io/pedropcventura/riscv-dev_tools:dev-amd64-usb",
+  "image": "ghcr.io/pedropcventura/riscv-dev_tools:dev-amd64-final",
   "remoteUser": "root",
 
   "workspaceFolder": "/work",
@@ -10,6 +10,9 @@
     "DISPLAY": "host.docker.internal:0"
   },
   "runArgs": [
+    "--privileged",
+    "--device=/dev/bus/usb:/dev/bus/usb",
+    "-v", "/dev:/dev",
     "-e", "DISPLAY=host.docker.internal:0",
     "-v", "/var/run/docker.sock:/var/run/docker.sock"   
   ],
