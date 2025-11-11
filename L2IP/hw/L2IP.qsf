@@ -290,14 +290,87 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[9]
 
 #set_instance_assignment -name CURRENT_STRENGTH_NEW "MINIMUM CURRENT" -to VGA_*
 
+#============================================================
+# GPIO_P
+#============================================================
+
+# JP1 / GPIO_0 → GPIO_P[0..31]
+set_location_assignment PIN_N16 -to GPIO_P[0]
+set_location_assignment PIN_B16 -to GPIO_P[1]
+set_location_assignment PIN_M16 -to GPIO_P[2]
+set_location_assignment PIN_C16 -to GPIO_P[3]
+set_location_assignment PIN_D17 -to GPIO_P[4]
+set_location_assignment PIN_K20 -to GPIO_P[5]
+set_location_assignment PIN_K21 -to GPIO_P[6]
+set_location_assignment PIN_K22 -to GPIO_P[7]
+set_location_assignment PIN_M20 -to GPIO_P[8]
+set_location_assignment PIN_M21 -to GPIO_P[9]
+set_location_assignment PIN_N21 -to GPIO_P[10]
+set_location_assignment PIN_R22 -to GPIO_P[11]
+set_location_assignment PIN_R21 -to GPIO_P[12]
+set_location_assignment PIN_T22 -to GPIO_P[13]
+set_location_assignment PIN_N20 -to GPIO_P[14]
+set_location_assignment PIN_N19 -to GPIO_P[15]
+set_location_assignment PIN_M22 -to GPIO_P[16]
+set_location_assignment PIN_P19 -to GPIO_P[17]
+set_location_assignment PIN_L22 -to GPIO_P[18]
+set_location_assignment PIN_P17 -to GPIO_P[19]
+set_location_assignment PIN_P16 -to GPIO_P[20]
+set_location_assignment PIN_M18 -to GPIO_P[21]
+set_location_assignment PIN_L18 -to GPIO_P[22]
+set_location_assignment PIN_L17 -to GPIO_P[23]
+set_location_assignment PIN_L19 -to GPIO_P[24]
+set_location_assignment PIN_K17 -to GPIO_P[25]
+set_location_assignment PIN_K19 -to GPIO_P[26]
+set_location_assignment PIN_P18 -to GPIO_P[27]
+set_location_assignment PIN_R15 -to GPIO_P[28]
+set_location_assignment PIN_R17 -to GPIO_P[29]
+set_location_assignment PIN_R16 -to GPIO_P[30]
+set_location_assignment PIN_T20 -to GPIO_P[31]
+
+# IO standard típico do cabeçalho JP1/JP2 (confirme no manual: 3.3 V)
+
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[8]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[9]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[10]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[11]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[12]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[13]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[14]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[15]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[16]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[17]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[18]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[19]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[20]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[21]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[22]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[23]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[24]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[25]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[26]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[27]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[28]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[29]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[30]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO_P[31]
+
 #====================================================================
 # Fim da configuração dos pinos utilizados em Design de Computadores.
 #====================================================================
 
 set_global_assignment -name OPTIMIZATION_TECHNIQUE SPEED
-set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC OFF
+set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
 set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION OFF
-set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_RETIMING OFF
+set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_RETIMING ON
 set_global_assignment -name ROUTER_LCELL_INSERTION_AND_LOGIC_DUPLICATION ON
 set_global_assignment -name ROUTER_TIMING_OPTIMIZATION_LEVEL MAXIMUM
 set_global_assignment -name QII_AUTO_PACKED_REGISTERS NORMAL
@@ -305,8 +378,24 @@ set_global_assignment -name SMART_RECOMPILE ON
 set_global_assignment -name PHYSICAL_SYNTHESIS_ASYNCHRONOUS_SIGNAL_PIPELINING OFF
 set_global_assignment -name ROUTER_CLOCKING_TOPOLOGY_ANALYSIS ON
 set_global_assignment -name ADV_NETLIST_OPT_SYNTH_WYSIWYG_REMAP OFF
-set_global_assignment -name FITTER_EFFORT "AUTO FIT"
+set_global_assignment -name FITTER_EFFORT "FAST FIT"
 set_global_assignment -name MUX_RESTRUCTURE OFF
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name OPTIMIZATION_MODE "AGGRESSIVE PERFORMANCE"
+set_global_assignment -name FINAL_PLACEMENT_OPTIMIZATION ALWAYS
+set_global_assignment -name FITTER_AGGRESSIVE_ROUTABILITY_OPTIMIZATION ALWAYS
+set_global_assignment -name VHDL_FILE ../../src/PLL/pll.vhd
+set_global_assignment -name VERILOG_FILE ../../src/PLL/pll_0002.v
+set_global_assignment -name VHDL_FILE ../../src/GPIO/TRISTATE_BUFFER_1BIT.vhd
+set_global_assignment -name VHDL_FILE ../../src/GPIO/GPIO_OPERATION_DECODER.vhd
+set_global_assignment -name VHDL_FILE ../../src/GPIO/GPIO_CELL.vhd
+set_global_assignment -name VHDL_FILE ../../src/GPIO/GPIO.vhd
+set_global_assignment -name VHDL_FILE ../../src/GPIO/GENERICS.vhd
+set_global_assignment -name VHDL_FILE ../../src/GPIO/GENERIC_SYNCHRONIZER_1BIT.vhd
+set_global_assignment -name VHDL_FILE ../../src/GPIO/GENERIC_MUX_8X1.vhd
+set_global_assignment -name VHDL_FILE ../../src/GPIO/GENERIC_MUX_4X1.vhd
 set_global_assignment -name VHDL_FILE ../../src/rv32i3stage_core.vhd
 set_global_assignment -name VHDL_FILE ../../src/clk_gen_3way.vhd
 set_global_assignment -name QIP_FILE ../../src/ROM1PORT/rom1port.qip
@@ -331,7 +420,13 @@ set_global_assignment -name VHDL_FILE ../../src/AndGate.vhd
 set_global_assignment -name VHDL_FILE ../../src/genericAdderU.vhd
 set_global_assignment -name VHDL_FILE ../../src/ALU.vhd
 set_global_assignment -name VHDL_FILE L2IP.vhd
-set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
-set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
-set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name VHDL_FILE ../../src/TIMER/ALU_GE_UNSIGNED.vhd
+set_global_assignment -name VHDL_FILE ../../src/TIMER/CLOCK_PRESCALER.vhd
+set_global_assignment -name VHDL_FILE ../../src/TIMER/COUNTER_OVERFLOW.vhd
+set_global_assignment -name VHDL_FILE ../../src/TIMER/GENERIC_ADDER.vhd
+set_global_assignment -name VHDL_FILE ../../src/TIMER/GENERIC_CARRY_LOOKAHEAD.vhd
+set_global_assignment -name VHDL_FILE ../../src/TIMER/GENERIC_MUX_2X1.vhd
+set_global_assignment -name VHDL_FILE ../../src/TIMER/GENERIC_REGISTER.vhd
+set_global_assignment -name VHDL_FILE ../../src/TIMER/TIMER.vhd
+set_global_assignment -name VHDL_FILE ../../src/TIMER/TIMER_OPERATION_DECODER.vhd
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
