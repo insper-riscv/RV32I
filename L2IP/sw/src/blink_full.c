@@ -3,7 +3,7 @@
  * Só usa LED_ADDR (periférico) — sem bibliotecas externas.
  */
 
-#define LED_ADDR ((volatile unsigned int *)0x00004000)
+#define LED_ADDR ((volatile unsigned int *)0x90000000u)
 typedef unsigned int u32;
 
 /* -------------------------

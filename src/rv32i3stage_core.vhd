@@ -8,11 +8,10 @@ use work.rv32i_ctrl_consts.all;
 entity rv32i3stage_core is
   port (
     -- clock e reset
-    clk  : in  std_logic;
-	clk_if_signal, clk_idexmem_signal  : out  std_logic;
+	CLK_IF, CLK_IDEXMEM, CLK_WB  : in  std_logic;
     reset : in  std_logic;
 
-    ----------------------------------------------------------------------
+    -----------------------------	-----------------------------------------
     -- Interface com a ROM (somente leitura)
     ----------------------------------------------------------------------
     rom_addr : out std_logic_vector(31 downto 0);  -- endereço de instrução
@@ -77,21 +76,8 @@ architecture behaviour of rv32i3stage_core is
   
   signal selMuxPc4ALU_ext : std_logic_vector(1 downto 0);
    
-  signal CLK_IF, CLK_IDEXMEM, CLK_WB : std_logic;
  
 begin
-
-clk_gen : entity work.clk_gen_3way
-    port map (
-        clk_in=> clk,
-        reset=> reset,
-		clk0 => CLK_IF,
-		clk1 => CLK_IDEXMEM,
-		clk2 => CLK_WB
-    );
-
-clk_idexmem_signal <= CLK_IDEXMEM;
-clk_if_signal <= CLK_IF;
 
 PC_IF : entity work.genericRegister
 			generic map ( data_width => 32 )
@@ -157,7 +143,7 @@ rd_WB : entity work.genericRegister
 			
 weReg_WB : entity work.FlipFlop
 			port map (
-				clock => CLK,
+				clock => CLK_IDEXMEM,
 				clear => reset,
 				enable => '1',
 				source => weReg_IDEXMEM,

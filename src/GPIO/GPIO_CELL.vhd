@@ -62,7 +62,7 @@ begin
   -- Direction Register: Controls GPIO pin direction (input/output).
   -- 0 = input, 1 = output
   -----------------------------------------------------------------------------
-  U_REG_DIR : entity WORK.GENERIC_FLIP_FLOP
+  U_REG_DIR : entity WORK.FlipFlop
     port map (
         clock       => clock,
         clear       => clear,
@@ -96,7 +96,7 @@ begin
   -- Output Register: Holds the value to be sent to the GPIO pin.
   -- Enabled on load operations and when the bit is selected (data in = 1) for SET/CLEAR/TOGGLE.
   -----------------------------------------------------------------------------
-  U_REG_OUT : entity WORK.GENERIC_FLIP_FLOP
+  U_REG_OUT : entity WORK.FlipFlop
     port map (
         clock       => clock,
         clear       => clear,
@@ -133,7 +133,7 @@ begin
   -- Previous Pin Input Register: Holds the previous value of the GPIO pin.
   -- This is used for edge detection in the interrupt logic.
   -----------------------------------------------------------------------------
-  U_REG_PREV : entity WORK.GENERIC_FLIP_FLOP
+  U_REG_PREV : entity WORK.FlipFlop
     port map (
         clock       => clock,
         clear       => '0', -- No reset
@@ -146,7 +146,7 @@ begin
   -- Interrupt Mask Register: Controls wether interrupts are enabled or disabled for this GPIO cell.
   -- If irq_mask = '1', interrupts are enabled. If irq_mask = '0', interrupts are disabled.
   -----------------------------------------------------------------------------
-  U_IRQ_MASK : entity WORK.GENERIC_FLIP_FLOP
+  U_IRQ_MASK : entity WORK.FlipFlop
     port map (
         clock       => clock,
         clear       => clear,
@@ -159,7 +159,7 @@ begin
   -- Interrupt Rising Edge Mask Register: Controls rising edge interrupt detection.
   -- If irq_rise_mask = '1', rising edge interrupts are enabled. If irq_rise_mask = '0', they are disabled.
   -----------------------------------------------------------------------------
-  U_IRQ_RISE : entity WORK.GENERIC_FLIP_FLOP
+  U_IRQ_RISE : entity WORK.FlipFlop
     port map (
         clock       => clock,
         clear       => clear,
@@ -172,7 +172,7 @@ begin
   -- Interrupt Falling Edge Mask Register: Controls falling edge interrupt detection.
   -- If irq_fall_mask = '1', falling edge interrupts are enabled. If irq_fall_mask = '0', they are disabled.
   --------------------------------------------------------------------------
-  U_IRQ_FALL : entity WORK.GENERIC_FLIP_FLOP
+  U_IRQ_FALL : entity WORK.FlipFlop
     port map (
         clock       => clock,
         clear       => clear,
@@ -196,7 +196,7 @@ begin
   -- The status is cleared when the processor writes a '1' to the register (W1C).
   -- The interrupt status is set if the interrupt logic is high and the mask is enabled.
   ----------------------------------------------------------------------------
-  U_IRQ_STATUS : entity WORK.GENERIC_FLIP_FLOP
+  U_IRQ_STATUS : entity WORK.FlipFlop
     port map (
         clock       => clock,
         clear       => clear or (wr_signals(6)), -- Clear on Read

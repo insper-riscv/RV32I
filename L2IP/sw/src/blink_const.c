@@ -1,4 +1,4 @@
-#define LED_ADDR ((volatile unsigned int *)0x00004000)
+#define LED_ADDR ((volatile unsigned int *)0x90000000u)
 
 const unsigned int pattern[8] = {1, 2, 4, 8, 16, 32, 64, 128}; // .rodata
 

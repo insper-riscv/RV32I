@@ -15,9 +15,6 @@ end entity;
 
 architecture behaviour of rv32i3stage_core_sim_test is
 
-	-- sinais aqui
-	signal CLK_IF, CLK_IDEXMEM : std_logic;
-
 	signal rom_addr : std_logic_vector(31 downto 0);
 	signal rom_rden : std_logic;
 	signal rom_data : std_logic_vector(31 downto 0);
@@ -30,14 +27,28 @@ architecture behaviour of rv32i3stage_core_sim_test is
 	signal ram_rden : std_logic;
 	signal ram_byteena : std_logic_vector(3 downto 0);
 
+	signal pll_clk_if     : std_logic;
+	signal pll_clk_idexmem: std_logic;
+	signal pll_clk_wb     : std_logic;
+	signal pll_locked     : std_logic;
+
 begin
+
+	pll_inst : entity work.clk_gen_3way
+    port map (
+      clk_in   => CLK,
+      reset      => reset, -- reset ativo alto no PLL
+      clk0 => pll_clk_if,
+      clk1 => pll_clk_idexmem,
+      clk2 => pll_clk_wb
+    );
 
 	CORE : entity work.rv32i3stage_core	
 		port map (
 			-- clock e reset
-			clk  		=> CLK,
-			clk_if_signal  	=> CLK_IF,
-			clk_idexmem_signal	=> CLK_IDEXMEM,
+			CLK_IF       => pll_clk_if,
+			CLK_IDEXMEM  => pll_clk_idexmem,
+			CLK_WB       => pll_clk_wb,
 			reset 		=> reset,
 
 			----------------------------------------------------------------------
@@ -63,7 +74,7 @@ begin
 		generic map (ROM_FILE => ROM_FILE)  
 		port map (
 			addr 	=> rom_addr(31 downto 2),--word addressable
-			clk 	=> CLK_IF,
+			clk 	=> pll_clk_if,
 			re 		=> rom_rden,
 			data	=> rom_data
 	);
@@ -72,7 +83,7 @@ begin
 		port map(
 			addr 		=> ram_addr(31 downto 2), -- word addressable
 			mask 		=> ram_byteena,
-			clk		 	=> CLK_IDEXMEM,
+			clk		 	=> pll_clk_idexmem,
 			data_in 	=> ram_wdata,
 			reRAM 		=> ram_rden and ram_en,
 			weRAM 		=> ram_wren and ram_en,
