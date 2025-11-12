@@ -74,8 +74,8 @@ class spike(pluginTemplate):
        # runTests function
        self.compile_cmd = 'riscv{1}-unknown-elf-gcc -march={0} \
          -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -g\
-         -T '+self.pluginpath+'/env/link.ld\
-         -I '+self.pluginpath+'/env/\
+         -T '+self.pluginpath+'/env_spike/link.ld\
+         -I '+self.pluginpath+'/env_spike/\
          -I ' + archtest_env + ' {2} -o {3} {4}'
 
        # add more utility snippets here
