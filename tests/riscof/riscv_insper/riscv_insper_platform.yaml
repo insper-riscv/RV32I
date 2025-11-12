@@ -1,8 +1,0 @@
-mtime:
-  implemented: false
-mtimecmp:
-  implemented: false
-nmi:
-  label: nmi_vector
-reset:
-  label: reset_vector
