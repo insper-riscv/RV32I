@@ -6,7 +6,7 @@ entity RAM_simulation is
   generic (
     dataWidth: natural := 32;
     addrWidth: natural := 30;
-    memoryAddrWidth: natural := 9   -- 0 - 511 posicoes de 32 bits cada
+    memoryAddrWidth: natural := 14   -- 0 - 511 posicoes de 32 bits cada
   );
   port (
     clk      : in  std_logic;
@@ -29,7 +29,7 @@ architecture rtl of RAM_simulation is
 
   signal data_out_reg : std_logic_vector(31 downto 0) := (others => '0'); -- registro de saída
 begin
-  widx <= addr(8 downto 0);
+  widx <= addr(memoryAddrWidth-1 downto 0);
 
   process(clk)
   begin
