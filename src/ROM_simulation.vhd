@@ -8,7 +8,7 @@ entity ROM_simulation is
   generic (
     dataWidth: natural := 32;
     addrWidth: natural := 30;
-    memoryAddrWidth: natural := 9;
+    memoryAddrWidth: natural := 14;
     ROM_FILE: string := "initROM.hex"   -- novo generic
   );
   port (

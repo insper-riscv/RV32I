@@ -1,23 +1,31 @@
-OUTPUT_ARCH( "riscv" )
+OUTPUT_ARCH(riscv)
 ENTRY(rvtest_entry_point)
+
+MEMORY {
+  ROM (rx) : ORIGIN = 0x00000000, LENGTH = 64K
+  RAM (rw) : ORIGIN = 0x20000000, LENGTH = 64K
+}
 
 SECTIONS
 {
-  . = 0x20000000;
-  .text.init : { *(.text.init) }
-  . = ALIGN(0x1000);
-  .tohost : { *(.tohost) }
-  . = ALIGN(0x1000);
-  .text : { *(.text) }
-  . = ALIGN(0x1000);
-  .data : { *(.data) }
-  .data.string : { *(.data.string)}
-  .bss : { *(.bss) }
+  .text.init : { KEEP(*(.text.init)) *(.init) } > ROM
+  .text      : { *(.text .text.*) *(.rodata .rodata.*) } > ROM
+
+  /* optional, but many envs keep .tohost in RAM */
+  .tohost    : { *(.tohost) } > RAM
+
+  .data : {
+    *(.sdata .sdata.*) *(.data .data.*)
+  } > RAM AT> ROM
+
+  .bss (NOLOAD) : {
+    *(.sbss .sbss.*) *(.bss .bss.* COMMON)
+  } > RAM
+
+  .signature : { KEEP(*(.signature)) KEEP(*(.signature.*)) } > RAM
+
   . = ALIGN(16);
-  .signature :
-  {
-    KEEP(*(.signature))
-    KEEP(*(.signature.*))
-  }
+  PROVIDE(begin_signature = ADDR(.signature));
+  PROVIDE(end_signature   = ADDR(.signature) + SIZEOF(.signature));
   _end = .;
 }

@@ -250,7 +250,7 @@ class riscv_insper(pluginTemplate):
                 f"awk '$$NF==\"end_signature\"   {{print $$1; exit}}') && "
 
                 # sanity check symbols exist
-                'test -n "$BEGIN_HEX" -a -n "$END_HEX" || '
+                'test -n "$$BEGIN_HEX" -a -n "$$END_HEX" || '
                 '{ echo "*** ERROR: Missing begin/end_signature" >&2; exit 2; }; '
 
                 # 3) hex -> decimal (BYTE addresses for the VHDL generics)
@@ -270,20 +270,7 @@ class riscv_insper(pluginTemplate):
                 f"{self.top} && "
                 f"ghdl -r --std=08 --workdir={shlex.quote(str(self.build_dir))} {self.top} && "
 
-                # 5) fallback: if TB didn't write the signature, slice it from default.hex
-                #    assumes ROM base 0x20000000 to map addresses -> line indices
-                'if [ ! -s ' + shlex.quote(sig_file) + ' ]; then '
-                  'echo "*** TB did not write signature; generating from default.hex fallback"; '
-                  'BASE_DEC=$$(printf "%d" 0x20000000); '
-                  'SIGB=$$(( (BEGIN_DEC - BASE_DEC) / 4 )); '
-                  'SIGE=$$(( (END_DEC   - BASE_DEC) / 4 )); '
-                  # sed is 1-based and END is exclusive -> use SIGE as the last line number (no -1)
-                  'START_LINE=$$((SIGB + 1)); '
-                  'END_LINE=$$((SIGE)); '
-                  'sed -n "$${START_LINE},$${END_LINE}p" default.hex > ' + shlex.quote(sig_file) + '; '
-                'fi; '
-
-                # 6) cleanup
+                # 5) cleanup
                 "rm -f prog.bin"
             )
 
