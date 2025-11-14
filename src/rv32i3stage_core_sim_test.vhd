@@ -13,13 +13,16 @@ entity rv32i3stage_core_sim_test is
 	  SIG_END_ADDR   : natural := 16#00000000#;
 	  SIG_FILE       : string := "signature.out"
   	);
-	port (
-    	CLK   : in  std_logic;
-		reset : in std_logic := '0'   
-  	);
+	-- port (
+    	-- CLK   : in  std_logic;
+		-- reset : in std_logic := '0'   
+  	-- );
 end entity;
 
 architecture behaviour of rv32i3stage_core_sim_test is
+
+	signal CLK   : std_logic := '0';
+  	signal reset : std_logic := '1';
 
 	signal CLK_IF, CLK_IDEXMEM : std_logic;
 
@@ -47,10 +50,19 @@ architecture behaviour of rv32i3stage_core_sim_test is
 	signal dump_addr : std_logic_vector(31 downto 0) := (others=>'0');
 	signal dump_rden : std_logic := '0';
 
-	constant TOHOST_ADDR : std_logic_vector(31 downto 0) := x"10000000";
+	constant TOHOST_ADDR : std_logic_vector(31 downto 0) := x"20000000";
   	signal finished : std_logic := '0';
+	signal wd_count   : natural := 0;
+    constant MAX_CYCLES : natural := 100000;
 
 begin
+	CLK <= not CLK after 5 ns;
+	process
+	begin
+		wait for 100 ns;
+		reset <= '0';
+		wait;
+	end process;
 
 	assert (SIG_END_ADDR >= SIG_BEGIN_ADDR)
 	report "SIG_END_ADDR < SIG_BEGIN_ADDR" severity failure;
@@ -114,13 +126,26 @@ begin
 	);
 
 	process(CLK_IDEXMEM)
-	begin
-		if rising_edge(CLK_IDEXMEM) then
-		if (core_ram_wren='1' and core_ram_en='1' and core_ram_addr = TOHOST_ADDR) then
-			finished <= '1';
-		end if;
-		end if;
-	end process;
+    begin
+        if rising_edge(CLK_IDEXMEM) then
+            if finished = '0' then
+                -- 1) Caso ideal: teste escreve em 'tohost'
+                if (core_ram_wren = '1' and core_ram_en = '1' and core_ram_addr = TOHOST_ADDR) then
+					report "TOHOST write detected, finishing test" severity note;
+                    finished <= '1';
+
+                -- 2) Fallback: limite de ciclos (watchdog interno)
+                elsif wd_count = MAX_CYCLES then
+                    report "Internal WATCHDOG reached MAX_CYCLES, forcing signature dump"
+                      severity warning;
+                    finished <= '1';
+                else
+                    wd_count <= wd_count + 1;
+                end if;
+            end if;
+        end if;
+    end process;
+
 
 	---------------------------------------------------------------------------
 	-- Signature dump FSM (handles synchronous RAM read)
