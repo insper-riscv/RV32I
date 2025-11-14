@@ -69,6 +69,13 @@ begin
 	assert (SIG_BEGIN_ADDR mod 4 = 0 and SIG_END_ADDR mod 4 = 0)
 	report "Signature range not word-aligned" severity failure;
 
+	sig_debug : process
+	begin
+		report "TB SIG_BEGIN_ADDR = " & integer'image(SIG_BEGIN_ADDR) severity note;
+		report "TB SIG_END_ADDR   = " & integer'image(SIG_END_ADDR)   severity note;
+		wait;  -- stop this process forever
+	end process;
+
 	CORE : entity work.rv32i3stage_core	
 		port map (
 			-- clock e reset

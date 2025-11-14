@@ -2,7 +2,7 @@ OUTPUT_ARCH(riscv)
 ENTRY(rvtest_entry_point)
 
 MEMORY {
-  ROM (rx) : ORIGIN = 0x00000000, LENGTH = 64K
+  ROM (rx) : ORIGIN = 0x00000000, LENGTH = 2048K
   RAM (rw) : ORIGIN = 0x20000000, LENGTH = 64K
 }
 

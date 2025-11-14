@@ -13,7 +13,7 @@
 //RV_COMPLIANCE_HALT
 #define RVMODEL_HALT         \
   li    x1, 1;               \
-  li    t2, 0x10000000;      \
+  li    t2, 0x20000000;      \
   sw    x1, 0(t2);           \
 1: j     1b
 

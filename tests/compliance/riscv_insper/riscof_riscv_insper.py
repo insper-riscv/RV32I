@@ -236,7 +236,6 @@ class riscv_insper(pluginTemplate):
             # simcmd = self.dut_exe + ' --isa={0} +signature={1} +signature-granularity=4 {2}'.format(self.isa, sig_file, elf)
 
             simcmd = (
-                # dash-friendly: strict + trace (no pipefail)
                 "set -eu; set -x; "
 
                 # 1) ELF -> BIN -> HEX (ROM expects default.hex in CWD)
@@ -257,18 +256,17 @@ class riscv_insper(pluginTemplate):
                 'BEGIN_DEC=$$(printf "%d" 0x$${BEGIN_HEX}); '
                 'END_DEC=$$(printf   "%d" 0x$${END_HEX}); '
 
-                # brief visibility
                 'echo "--- SIG INFO ---"; '
                 'echo ELF_BEGIN=0x$${BEGIN_HEX} ELF_END=0x$${END_HEX} '
                     'BEGIN_DEC=$${BEGIN_DEC} END_DEC=$${END_DEC}; '
                 'echo HEX_LINES=$$(wc -l < default.hex); '
 
-                # 4) elaborate & run with BYTE addresses (let TB try to write the file)
-                f"ghdl -e --std=08 --workdir={shlex.quote(str(self.build_dir))} "
+                # 4) elaborate, then run WITH generics on -r
+                f"ghdl -e --std=08 --workdir={shlex.quote(str(self.build_dir))} {self.top} && "
+                f"ghdl -r --std=08 --workdir={shlex.quote(str(self.build_dir))} "
                 f"-gSIG_BEGIN_ADDR=$${{BEGIN_DEC}} -gSIG_END_ADDR=$${{END_DEC}} "
-                f'-gSIG_FILE="{sig_file}" '
+                f'-gSIG_FILE=\"{sig_file}\" '
                 f"{self.top} && "
-                f"ghdl -r --std=08 --workdir={shlex.quote(str(self.build_dir))} {self.top} && "
 
                 # 5) cleanup
                 "rm -f prog.bin"
