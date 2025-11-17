@@ -8,10 +8,11 @@ use std.env.all;
 
 entity rv32i3stage_core_sim_test is
 	generic (
-	  ROM_FILE : string := "default.hex";
+	  ROM_FILE 		 : string := "default.hex";
 	  SIG_BEGIN_ADDR : natural := 16#00000000#;
 	  SIG_END_ADDR   : natural := 16#00000000#;
-	  SIG_FILE       : string := "signature.out"
+	  SIG_FILE       : string := "signature.out";
+	  SIG_INIT_FILE  : string := ""
   	);
 	-- port (
     	-- CLK   : in  std_logic;
@@ -73,6 +74,7 @@ begin
 	begin
 		report "TB SIG_BEGIN_ADDR = " & integer'image(SIG_BEGIN_ADDR) severity note;
 		report "TB SIG_END_ADDR   = " & integer'image(SIG_END_ADDR)   severity note;
+		report "TB SIG_INIT_FILE  = " & SIG_INIT_FILE                 severity note;
 		wait;  -- stop this process forever
 	end process;
 
@@ -121,6 +123,11 @@ begin
 	core_ram_rdata <= ram_rdata;
 
 	RAM : entity work.RAM_simulation
+		generic map (
+			RAM_BASE_ADDR  => 16#20000000#,  -- same as link.ld RAM ORIGIN
+			SIG_BEGIN_ADDR => SIG_BEGIN_ADDR,
+			SIG_INIT_FILE  => SIG_INIT_FILE
+		)
 		port map(
 			addr 		=> ram_addr(31 downto 2), -- word addressable
 			mask 		=> ram_byteena,
@@ -153,6 +160,19 @@ begin
         end if;
     end process;
 
+	monitor_sig_store : process(CLK_IDEXMEM)
+	begin
+	if rising_edge(CLK_IDEXMEM) then
+		-- detect stores from the core into begin_signature
+		if core_ram_wren = '1' and core_ram_en = '1' and
+		core_ram_addr = std_logic_vector(to_unsigned(SIG_BEGIN_ADDR, 32)) then
+		report "STORE to begin_signature: data=" &
+				to_hstring(core_ram_wdata)
+			severity note;
+		end if;
+	end if;
+	end process;
+
 
 	---------------------------------------------------------------------------
 	-- Signature dump FSM (handles synchronous RAM read)
@@ -160,48 +180,74 @@ begin
 	dump_proc: process(CLK_IDEXMEM)
 		file sf : text;
 		variable L          : line;
-		variable addr       : natural := 0;
+		variable addr_next  : natural := 0;
 		variable prev_valid : boolean := false;
-		type state_t is (IDLE, READ, FLUSH, DONE);
+		type state_t is (IDLE, SETUP, READ, FLUSH, DONE);
 		variable st : state_t := IDLE;
 	begin
 		if rising_edge(CLK_IDEXMEM) then
-		case st is
-			when IDLE =>
-			if finished='1' then
-				-- optional: also gate core by ignoring its enables while dumping
-				dump_mode <= '1';
-				file_open(sf, SIG_FILE, write_mode);
-				addr := SIG_BEGIN_ADDR;
-				prev_valid := false;
-				st := READ;
-			end if;
+			case st is
 
-			when READ =>
-			if addr < SIG_END_ADDR then
-				dump_addr <= std_logic_vector(to_unsigned(addr,32));
-				dump_rden <= '1';
-				addr := addr + 4;
+				when IDLE =>
+					if finished = '1' then
+						-- Switch RAM mux to dump_mode and open file
+						dump_mode   <= '1';
+						file_open(sf, SIG_FILE, write_mode);
 
-				if prev_valid then
-				hwrite(L, ram_rdata); writeline(sf, L);
-				end if;
-				prev_valid := true;
-			else
-				dump_rden <= '0';
-				st := FLUSH;
-			end if;
+						addr_next   := SIG_BEGIN_ADDR;
+						dump_rden   <= '0';
+						prev_valid  := false;
+						st          := SETUP;
+					end if;
 
-			when FLUSH =>
-			if prev_valid then
-				hwrite(L, ram_rdata); writeline(sf, L);
-			end if;
-			file_close(sf);
-			st := DONE;
+				when SETUP =>
+					-- First READ: issue address = begin_signature,
+					-- but don't write yet (data will be valid next cycle)
+					if addr_next < SIG_END_ADDR then
+						dump_addr <= std_logic_vector(to_unsigned(addr_next, 32));
+						dump_rden <= '1';
+						addr_next := addr_next + 4;
+						prev_valid := false;
+						st := READ;
+					else
+						dump_rden <= '0';
+						file_close(sf);
+						st := DONE;
+					end if;
 
-			when DONE =>
-			stop;  -- end simulation cleanly
-		end case;
+				when READ =>
+					-- Data for the *previous* address is now in ram_rdata
+					if prev_valid then
+						hwrite(L, ram_rdata);
+						writeline(sf, L);
+					end if;
+
+					if addr_next < SIG_END_ADDR then
+						-- Issue next address
+						dump_addr <= std_logic_vector(to_unsigned(addr_next, 32));
+						dump_rden <= '1';
+						addr_next := addr_next + 4;
+						prev_valid := true;
+					else
+						-- No more addresses to issue; one last word pending
+						dump_rden  <= '0';
+						st         := FLUSH;
+					end if;
+
+				when FLUSH =>
+					-- Write the final pending word
+					if prev_valid then
+						hwrite(L, ram_rdata);
+						writeline(sf, L);
+						prev_valid := false;
+					end if;
+					file_close(sf);
+					st := DONE;
+
+				when DONE =>
+					stop;  -- end simulation cleanly
+
+			end case;
 		end if;
 	end process;
 

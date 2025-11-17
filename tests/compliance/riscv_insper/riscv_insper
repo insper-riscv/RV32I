@@ -39,12 +39,60 @@ with open(binf,"rb") as f, open(hexf,"w") as o:
         if not b: break
         o.write(f"{struct.unpack('<I', b.ljust(4,b'\\0'))[0]:08X}\n")
 
+# Extract only the .signature section as raw binary
+sigbin = tmp/"sig.bin"
+sighex = tmp/"sig.hex"
+subprocess.run([
+    "riscv32-unknown-elf-objcopy",
+    "--only-section=.signature",
+    "-O", "binary",
+    a.elf,
+    str(sigbin)
+], check=True)
+
+# Find the virtual address (VMA) of the .signature section
+readelf_out = subprocess.check_output(
+    ["riscv32-unknown-elf-readelf", "-S", a.elf],
+    text=True
+)
+
+m = re.search(r"\[\s*\d+\]\s+\.signature\s+\S+\s+([0-9a-fA-F]+)", readelf_out)
+if not m:
+    print("Could not find .signature section in ELF", file=sys.stderr)
+    sys.exit(3)
+
+sig_section_addr = int(m.group(1), 16)
+
+# How many bytes from the start of the .signature section to begin_signature?
+offset_bytes = sig_begin - sig_section_addr
+if offset_bytes < 0:
+    print("begin_signature is before .signature section start?!", file=sys.stderr)
+    sys.exit(3)
+
+# Number of 32-bit words we expect in the signature
+word_count = (sig_end - sig_begin) // 4
+
+# Build sighex aligned so that its first word is at begin_signature
+with open(sigbin, "rb") as f, open(sighex, "w") as o:
+    # Skip everything before begin_signature within the section
+    if offset_bytes:
+        f.read(offset_bytes)
+
+    for _ in range(word_count):
+        b = f.read(4)
+        if not b:
+            break
+        o.write(f"{struct.unpack('<I', b.ljust(4, b'\\0'))[0]:08X}\n")
+
+
 # Run the GHDL executable, passing generics (quote string generics!)
 cmd = [
   "ghdl","-r","rv32i3stage_core_sim_test","--std=08",
-  f'-gROM_FILE="{hexf}"',
+  f"-gROM_FILE={hexf}",
   f"-gSIG_BEGIN_ADDR={sig_begin}",
   f"-gSIG_END_ADDR={sig_end}",
-  f'-gSIG_FILE="{a.sig}"'
+  f"-gSIG_FILE={a.sig}",
+  f"-gSIG_INIT_FILE={sighex}",
 ]
+
 subprocess.run(cmd, cwd=bpath, check=True)
