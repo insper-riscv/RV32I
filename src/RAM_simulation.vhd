@@ -6,12 +6,10 @@ use ieee.std_logic_textio.all;
 
 entity RAM_simulation is
   generic (
-    dataWidth      : natural := 32;
-    addrWidth      : natural := 30;
-    memoryAddrWidth: natural := 14;   -- 0 - 16383 palavras de 32 bits (64 KiB)
-    RAM_BASE_ADDR  : natural := 16#20000000#;
-    SIG_BEGIN_ADDR : natural := 16#20000000#;
-    SIG_INIT_FILE  : string  := ""
+      dataWidth      : natural := 32;
+      addrWidth      : natural := 30;
+      memoryAddrWidth: natural := 14;
+      RAM_BASE_ADDR  : natural := 16#20000000#
   );
   port (
     clk      : in  std_logic;
@@ -28,43 +26,7 @@ end entity;
 architecture rtl of RAM_simulation is
   type mem_t is array(0 to 2**memoryAddrWidth - 1) of std_logic_vector(31 downto 0);
 
-  -- Initialize memory from SIG_INIT_FILE, placing words starting at SIG_BEGIN_ADDR
-  impure function init_mem return mem_t is
-    variable m        : mem_t := (others => (others => '0'));
-    file f            : text;
-    variable l        : line;
-    variable word     : std_logic_vector(31 downto 0);
-    variable curr_addr: natural;
-    variable idx      : integer;
-  begin
-    -- Start filling at SIG_BEGIN_ADDR
-    curr_addr := SIG_BEGIN_ADDR;
-
-    if SIG_INIT_FILE /= "" then
-      file_open(f, SIG_INIT_FILE, read_mode);
-      while not endfile(f) loop
-        readline(f, l);
-        -- each line is a 32-bit hex word, like "6F5CA309"
-        hread(l, word);
-
-        -- only store if address is inside this RAM window
-        if curr_addr >= RAM_BASE_ADDR then
-          idx := integer((curr_addr - RAM_BASE_ADDR) / 4);
-          if idx >= 0 and idx <= m'high then
-            m(idx) := word;
-          end if;
-        end if;
-
-        -- next 32-bit word
-        curr_addr := curr_addr + 4;
-      end loop;
-      file_close(f);
-    end if;
-
-    return m;
-  end function;
-
-  signal mem : mem_t := init_mem;  -- initialized from file
+  signal mem : mem_t := (others => (others => '0'));
 
   -- word index (32-bit aligned)
   signal widx : std_logic_vector(memoryAddrWidth-1 downto 0) := (others => '0');
