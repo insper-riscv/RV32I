@@ -55,6 +55,14 @@ architecture behaviour of rv32i3stage_core_sim_test is
 	signal ram_rden    : std_logic;
 	signal ram_byteena : std_logic_vector(3 downto 0);
 
+	    -- Testbench-controlled RAM read bus for dumping the signature
+    signal tb_ram_addr : std_logic_vector(31 downto 0) := (others => '0');
+    signal tb_ram_en   : std_logic := '0';
+    signal tb_ram_rden : std_logic := '0';
+
+    -- Select between core driving RAM or TB driving RAM
+    signal use_tb_bus  : std_logic := '0';
+
 	constant TOHOST_ADDR : std_logic_vector(31 downto 0) := x"20000000";
   	signal finished : std_logic := '0';
 	signal wd_count   : natural := 0;
@@ -117,12 +125,17 @@ begin
 			data	=> rom_data
 	);
 
-    ram_addr    <= core_ram_addr;
+        -- Mux between core bus and TB dump bus
+    ram_addr  <= tb_ram_addr  when use_tb_bus = '1' else core_ram_addr;
+    ram_rden  <= tb_ram_rden  when use_tb_bus = '1' else core_ram_rden;
+    ram_en    <= tb_ram_en    when use_tb_bus = '1' else core_ram_en;
+
+    -- TB never writes RAM, only the core does
     ram_wdata   <= core_ram_wdata;
-    ram_rden    <= core_ram_rden;
     ram_wren    <= core_ram_wren;
-    ram_en      <= core_ram_en;
     ram_byteena <= core_ram_byteena;
+
+    -- Core always sees whatever RAM outputs
     core_ram_rdata <= ram_rdata;
 
     RAM : entity work.RAM_simulation
@@ -171,6 +184,12 @@ begin
 
 				if addr_int >= SIG_BEGIN_ADDR and addr_int < SIG_END_ADDR then
 					idx := (addr_int - SIG_BEGIN_ADDR) / 4;
+
+					report "SIG STORE idx=" & integer'image(idx) &
+						" addr=0x" & to_hstring(core_ram_addr) &
+						" data=0x" & to_hstring(core_ram_wdata)
+						severity note;
+
 					if idx >= 0 and idx < SIG_WORDS then
 						sig_mem(idx)     <= core_ram_wdata;
 						sig_written(idx) <= true;
@@ -187,50 +206,74 @@ begin
 		end if;
 	end process;
 
-	---------------------------------------------------------------------------
-	-- Signature dump FSM (handles synchronous RAM read)
-	---------------------------------------------------------------------------
-	dump_proc: process(CLK_IDEXMEM)
-		file sf : text;
-		variable L  : line;
-		type state_t is (IDLE, DUMP, DONE);
-		variable st : state_t := IDLE;
+	    ---------------------------------------------------------------------------
+    -- Signature dump FSM (reads final contents from RAM)
+    ---------------------------------------------------------------------------
+    dump_proc: process(CLK_IDEXMEM)
+        file sf  : text;
+        variable L : line;
+        type state_t is (IDLE, SETUP_READ, CAPTURE, DONE);
+        variable st : state_t := IDLE;
 
-		variable i  : integer := 0;
-	begin
-		if rising_edge(CLK_IDEXMEM) then
-			case st is
-				when IDLE =>
-					if finished = '1' then
-						file_open(sf, SIG_FILE, write_mode);
-						i  := 0;
-						st := DUMP;
-					end if;
+        variable i         : integer := 0;
+        variable word_addr : natural;
+    begin
+        if rising_edge(CLK_IDEXMEM) then
+            case st is
+                ----------------------------------------------------------------
+                when IDLE =>
+                    if finished = '1' then
+                        -- Take over the RAM bus for TB reads
+                        use_tb_bus <= '1';
+                        tb_ram_en  <= '0';
+                        tb_ram_rden <= '0';
 
-				when DUMP =>
-					if i < SIG_WORDS then
-						-- Clear the line variable before reusing it
-						L := null;
+                        file_open(sf, SIG_FILE, write_mode);
+                        i  := 0;
+                        st := SETUP_READ;
+                    end if;
 
-						if sig_written(i) then
-							-- Convert the 32-bit word to a hex string and write it
-							std.textio.write(L, ieee.std_logic_1164.to_hstring(sig_mem(i)));
-						else
-							-- Unwritten locations are marked as DEADBEEF (Spike convention)
-							std.textio.write(L, string'("DEADBEEF"));
-						end if;
+                ----------------------------------------------------------------
+                when SETUP_READ =>
+                    if i < SIG_WORDS then
+                        -- Compute address of word i in the signature region
+                        word_addr := SIG_BEGIN_ADDR + 4 * i;
 
-						std.textio.writeline(sf, L);
-						i := i + 1;
+                        tb_ram_addr  <= std_logic_vector(to_unsigned(word_addr, 32));
+                        tb_ram_en    <= '1';
+                        tb_ram_rden  <= '1';
+
+                        -- RAM is synchronous: data will be valid next cycle
+                        st := CAPTURE;
+                    else
+                        -- Done dumping all words
+                        file_close(sf);
+                        tb_ram_en    <= '0';
+                        tb_ram_rden  <= '0';
+                        use_tb_bus   <= '0';
+                        st := DONE;
+                    end if;
+
+                ----------------------------------------------------------------
+				when CAPTURE =>
+					L := null;
+
+					if sig_written(i) then
+						std.textio.write(L, ieee.std_logic_1164.to_hstring(sig_mem(i)));
 					else
-						file_close(sf);
-						st := DONE;
+						-- Always DEADBEEF for never-written locations
+						std.textio.write(L, string'("DEADBEEF"));
 					end if;
 
-				when DONE =>
-					stop;
-			end case;
-		end if;
-	end process;
+					std.textio.writeline(sf, L);
+					i := i + 1;
+					st := SETUP_READ;
+
+                ----------------------------------------------------------------
+                when DONE =>
+                    stop;
+            end case;
+        end if;
+    end process;
 
 end architecture;
