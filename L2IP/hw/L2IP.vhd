@@ -39,12 +39,12 @@ architecture behaviour of L2IP is
   signal timer_op : std_logic_vector(2 downto 0);
   signal gpio_read_data, timer_read_data, periphs_data : std_logic_vector(31 downto 0);
 
-  constant PERIPH_GPIO  : std_logic_vector(2 downto 0) := "000";
-  constant PERIPH_LED   : std_logic_vector(2 downto 0) := "001";
-  constant PERIPH_TIMER : std_logic_vector(2 downto 0) := "010";
+  constant PERIPH_GPIO  : std_logic_vector(2 downto 0) := "010"; -- ex.: 0xA...
+  constant PERIPH_LED   : std_logic_vector(2 downto 0) := "001"; -- 0x9...
+  constant PERIPH_TIMER : std_logic_vector(2 downto 0) := "011"; -- se precisar
 
   -- ======= perifericos =======
-  signal enable_led, enable_gpio, enable_timer : std_logic;
+  signal enable_ram, enable_led, enable_gpio, enable_timer : std_logic;
 
 begin
   ------------------------------------------------------------------------
@@ -63,23 +63,23 @@ begin
   -- O sistema só sai do reset quando o PLL estiver travado
   sys_reset_n <= FPGA_RESET_N and pll_locked;
 
-  ------------------------------------------------------------------------
-  -- Decodificação de periféricos
-  ------------------------------------------------------------------------
+   -- Decodificação (substituir o bloco antigo)
   periph_id <= ram_addr(30 downto 28);
   gpio_op   <= ram_addr(5 downto 2);
-  --timer_op <= ram_addr(4 downto 2);
 
+  -- RAM enable: quando bit31 = '1' e periph_id = "000" (0x8xxx_xxxx)
+  enable_ram <= '1' when (ram_addr(31) = '1' and periph_id = "000") else '0';
+
+  -- perifericos: somente quando bit31='1' e periph_id correspondem
   enable_gpio <= '1' when (ram_addr(31) = '1' and periph_id = PERIPH_GPIO) else '0';
   enable_led  <= '1' when (ram_addr(31) = '1' and periph_id = PERIPH_LED)  else '0';
-  --enable_timer <= '1' when (ram_addr(31) = '1' and periph_id = PERIPH_TIMER) else '0';
+  -- enable_timer <= '1' when (ram_addr(31) = '1' and periph_id = PERIPH_TIMER) else '0';
 
   reGPIO <= enable_gpio and ram_rden;
   weGPIO <= enable_gpio and ram_wren;
   weLEDS <= enable_led and ram_wren;
-  --weTIMER <= enable_timer and ram_wren;
-  --reTIMER <= enable_timer and ram_rden;
 
+  -- route read data: peripherals first, else RAM
   periphs_data <= gpio_read_data 
               when (ram_addr(31)='1' and periph_id=PERIPH_GPIO) else
                  timer_read_data
@@ -127,16 +127,16 @@ begin
       q       => rom_data
     );
 
-  RAM : entity work.ram1port
-    port map (
-      address => ram_addr(13 downto 2),
-      byteena => ram_byteena,
-      clock   => pll_clk_idexmem,
-      data    => ram_wdata,
-      rden    => ram_rden and (ram_en and not ram_addr(14)),
-      wren    => ram_wren and (ram_en and not ram_addr(14)),
-      q       => ram_rdata
-    );
+	RAM : entity work.ram1port
+	 port map (
+		address => ram_addr(13 downto 2),
+		byteena => ram_byteena,
+		clock   => pll_clk_idexmem,
+		data    => ram_wdata,
+		rden    => ram_rden and enable_ram,
+		wren    => ram_wren and enable_ram,
+		q       => ram_rdata
+	 );
 
   ------------------------------------------------------------------------
   -- Periféricos
@@ -151,18 +151,18 @@ begin
       destination => LEDR(7 downto 0)
     );
 
---  GPIO : entity work.GPIO
---    port map (
---      clock      => pll_clk_idexmem,
---      clear      => not sys_reset_n,
---      data_in    => ram_wdata,
---      address    => gpio_op,
---      write      => weGPIO,
---      read       => reGPIO,
---      data_out   => gpio_read_data,
---      irq        => open,
---      gpio_pins  => GPIO_P
---    );
+  GPIO : entity work.GPIO
+    port map (
+      clock      => pll_clk_idexmem,
+      clear      => not sys_reset_n,
+      data_in    => ram_wdata,
+      address    => gpio_op,
+      write      => weGPIO,
+      read       => reGPIO,
+      data_out   => gpio_read_data,
+      irq        => open,
+      gpio_pins  => GPIO_P
+    );
 
   ------------------------------------------------------------------------
   -- LED de status do PLL (opcional)
