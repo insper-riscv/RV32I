@@ -4,7 +4,7 @@ JedecChain;
 	DefaultMfr(6E);
 
 	P ActionCode(Cfg)
-		Device PartName(5CEBA4F23) Path("/home/borg/pfe/RV32I/L2IP/hw/output_files/") File("L2IP.sof") MfrSpec(OpMask(1));
+		Device PartName(5CEBA4F23) Path("/home/leonardo/Desktop/faculdade/PFE/testeendereco/RV32I/L2IP/hw/output_files/") File("L2IP.sof") MfrSpec(OpMask(1));
 
 ChainEnd;
 
