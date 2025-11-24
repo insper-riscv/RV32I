@@ -38,8 +38,7 @@ class riscv_insper(pluginTemplate):
         # test-bench produced by a simulator (like verilator, vcs, incisive, etc). In case of an iss or
         # emulator, this variable could point to where the iss binary is located. If 'PATH variable
         # is missing in the config.ini we can hardcode the alternate here.
-        # self.dut_exe = os.path.join(config['PATH'] if 'PATH' in config else "","riscv_insper")
-        self.dut_exe = ""
+        self.dut_exe = os.path.join(config['PATH'] if 'PATH' in config else "","riscv_insper")
 
         # Number of parallel jobs that can be spawned off by RISCOF
         # for various actions performed in later functions, specifically to run the tests in
@@ -146,28 +145,26 @@ class riscv_insper(pluginTemplate):
 
       # Compose ISA for any tool that uses it (keep lower-case for consistency)
       self.isa = 'rv' + self.xlen
-      s = ispec["ISA"]
+      if "I" in ispec["ISA"]:
+          self.isa += 'i'
+      if "M" in ispec["ISA"]:
+          self.isa += 'm'
+      if "F" in ispec["ISA"]:
+          self.isa += 'f'
+      if "D" in ispec["ISA"]:
+          self.isa += 'd'
+      if "C" in ispec["ISA"]:
+          self.isa += 'c'
 
-      if "I" in s: self.isa += 'i'
-      if "E" in s: self.isa += 'e'
-      if "M" in s: self.isa += 'm'
-      if "A" in s: self.isa += 'a'
-      if "F" in s: self.isa += 'f'
-      if "D" in s: self.isa += 'd'
-      if "C" in s: self.isa += 'c'
-      # add Z* that matter for rv32i_m suite & toolchain
-      if ("Zicsr" in s) or ("zicsr" in s):       self.isa += '_zicsr'
-      if ("Zifencei" in s) or ("zifencei" in s): self.isa += '_zifencei'
-
-      self.isa = self.isa.lower()
-
-      # Choose mabi correctly
-      mabi = 'lp64' if self.xlen == '64' else ('ilp32e' if ('E' in s) else 'ilp32')
-      self.compile_cmd = self.compile_cmd + f' -mabi={mabi} '
+      isa_str = ispec["ISA"]
+      if "Zicsr" in isa_str or "ZICSR" in isa_str:
+          self.isa += "_zicsr"
+      if "Zifencei" in isa_str or "ZIFENCEI" in isa_str:
+          self.isa += "_zifencei"
 
       #TODO: The following assumes you are using the riscv-gcc toolchain. If
       #      not please change appropriately
-      # self.compile_cmd = self.compile_cmd+' -mabi='+('lp64 ' if 64 in ispec['supported_xlen'] else 'ilp32 ')
+      self.compile_cmd = self.compile_cmd+' -mabi='+('lp64 ' if 64 in ispec['supported_xlen'] else 'ilp32 ')
 
     def runTests(self, testList):
 
@@ -179,8 +176,7 @@ class riscv_insper(pluginTemplate):
 
       # set the make command that will be used. The num_jobs parameter was set in the __init__
       # function earlier
-      # make.makeCommand = 'make -k -j' + self.num_jobs
-      make.makeCommand = 'make -j' + self.num_jobs
+      make.makeCommand = 'make -k -j' + self.num_jobs
 
       # we will iterate over each entry in the testList. Each entry node will be refered to by the
       # variable testname.
@@ -207,68 +203,44 @@ class riscv_insper(pluginTemplate):
           # for each test there are specific compile macros that need to be enabled. The macros in
           # the testList node only contain the macros/values. For the gcc toolchain we need to
           # prefix with "-D". The following does precisely that.
-          macros_list = testentry.get('macros', [])
-          compile_macros = (' -D' + ' -D'.join(macros_list)) if macros_list else ''   
+          compile_macros= ' -D' + " -D".join(testentry['macros'])
 
           # substitute all variables in the compile command that we created in the initialize
           # function
 
-          # march = testentry['isa'].lower()
-          # if march == 'rv32i':
-          #     march = 'rv32i_zicsr_zifencei'
-          # elif march == 'rv64i':
-          #     march = 'rv64i_zicsr_zifencei'
-
           march = testentry['isa'].lower()
-          if 'zicsr' not in march:    march += '_zicsr'
-          if 'zifencei' not in march: march += '_zifencei'
-          cmd = self.compile_cmd.format(march, self.xlen, test, elf, compile_macros)
+          if march == 'rv32i':
+              march = 'rv32i_zicsr_zifencei'
+          elif march == 'rv64i':
+              march = 'rv64i_zicsr_zifencei'
 
-          # cmd = self.compile_cmd.format(march, self.xlen, test, elf, compile_macros)
+          cmd = self.compile_cmd.format(march, self.xlen, test, elf, compile_macros)
 
 	  # if the user wants to disable running the tests and only compile the tests, then
 	  # the "else" clause is executed below assigning the sim command to simple no action
 	  # echo statement.
           if self.target_run:
-            hexfile = os.path.join(test_dir, "prog.hex")
             sig_file = os.path.join(test_dir, self.name[:-1] + ".signature")
             # set up the simulation command. Template is for spike. Please change.
             # simcmd = self.dut_exe + ' --isa={0} +signature={1} +signature-granularity=4 {2}'.format(self.isa, sig_file, elf)
 
             simcmd = (
-                "set -eu; set -x; "
-
-                # 1) ELF -> BIN -> HEX (ROM expects default.hex in CWD)
+                # "set -eu; set -x; "
                 f"riscv{self.xlen}-unknown-elf-objcopy -O binary {elf} prog.bin && "
                 "hexdump -ve '1/4 \"%08x\\n\"' prog.bin > default.hex && "
-
-                # 2) get signature symbol addresses (hex, no 0x)
                 f"BEGIN_HEX=$$(riscv{self.xlen}-unknown-elf-objdump -t {elf} | "
-                f"awk '$$NF==\"begin_signature\" {{print $$1; exit}}') && "
+                "awk '$$NF==\"begin_signature\" {print $$1; exit}') && "
                 f"END_HEX=$$(riscv{self.xlen}-unknown-elf-objdump -t {elf} | "
-                f"awk '$$NF==\"end_signature\"   {{print $$1; exit}}') && "
-
-                # sanity check symbols exist
+                "awk '$$NF==\"end_signature\"   {print $$1; exit}') && "
                 'test -n "$$BEGIN_HEX" -a -n "$$END_HEX" || '
                 '{ echo "*** ERROR: Missing begin/end_signature" >&2; exit 2; }; '
-
-                # 3) hex -> decimal (BYTE addresses for the VHDL generics)
                 'BEGIN_DEC=$$(printf "%d" 0x$${BEGIN_HEX}); '
                 'END_DEC=$$(printf   "%d" 0x$${END_HEX}); '
-
-                'echo "--- SIG INFO ---"; '
-                'echo ELF_BEGIN=0x$${BEGIN_HEX} ELF_END=0x$${END_HEX} '
-                    'BEGIN_DEC=$${BEGIN_DEC} END_DEC=$${END_DEC}; '
-                'echo HEX_LINES=$$(wc -l < default.hex); '
-
-                # 4) elaborate, then run WITH generics on -r
                 f"ghdl -e --std=08 --workdir={shlex.quote(str(self.build_dir))} {self.top} && "
                 f"ghdl -r --std=08 --workdir={shlex.quote(str(self.build_dir))} "
                 f"-gSIG_BEGIN_ADDR=$${{BEGIN_DEC}} -gSIG_END_ADDR=$${{END_DEC}} "
-                f'-gSIG_FILE=\"{sig_file}\" '
+                f"-gSIG_FILE=\"{sig_file}\" "
                 f"{self.top} && "
-
-                # 5) cleanup
                 "rm -f prog.bin"
             )
 

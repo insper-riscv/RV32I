@@ -3,19 +3,12 @@ hart0:
   ISA: RV32I
   physical_addr_sz: 32
   User_Spec_Version: '2.3'
+  hw_data_misaligned_support: False
   supported_xlen: [32]
+  pmp_granularity: 0
+  custom_exceptions: []
+  custom_interrupts: []
   misa:
     reset-val: 0x40000100
     rv32:
-      accessible: true
-      mxl:
-        implemented: false
-      extensions:
-        implemented: true
-        type:
-          warl:
-            dependency_fields: []
-            legal:
-              - extensions[25:0] bitmask [0x00000100, 0x00000000]
-            wr_illegal:
-              - Unchanged
+      accessible: True
