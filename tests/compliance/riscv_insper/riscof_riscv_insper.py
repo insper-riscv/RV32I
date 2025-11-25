@@ -221,13 +221,19 @@ class riscv_insper(pluginTemplate):
 	  # echo statement.
           if self.target_run:
             sig_file = os.path.join(test_dir, self.name[:-1] + ".signature")
+            sig_quoted = shlex.quote(sig_file)
             # set up the simulation command. Template is for spike. Please change.
             # simcmd = self.dut_exe + ' --isa={0} +signature={1} +signature-granularity=4 {2}'.format(self.isa, sig_file, elf)
 
             simcmd = (
-                # "set -eu; set -x; "
                 f"riscv{self.xlen}-unknown-elf-objcopy -O binary {elf} prog.bin && "
                 "hexdump -ve '1/4 \"%08x\\n\"' prog.bin > default.hex && "
+                f"riscv{self.xlen}-unknown-elf-objcopy "
+                "-O binary "
+                "--only-section=.signature "
+                f"{elf} sig.bin && "
+                "hexdump -ve '1/4 \"%08x\\n\"' sig.bin > sig_init.hex && "
+                "rm -f sig.bin && "
                 f"BEGIN_HEX=$$(riscv{self.xlen}-unknown-elf-objdump -t {elf} | "
                 "awk '$$NF==\"begin_signature\" {print $$1; exit}') && "
                 f"END_HEX=$$(riscv{self.xlen}-unknown-elf-objdump -t {elf} | "
@@ -240,8 +246,11 @@ class riscv_insper(pluginTemplate):
                 f"ghdl -r --std=08 --workdir={shlex.quote(str(self.build_dir))} "
                 f"-gSIG_BEGIN_ADDR=$${{BEGIN_DEC}} -gSIG_END_ADDR=$${{END_DEC}} "
                 f"-gSIG_FILE=\"{sig_file}\" "
+                f"-gSIG_INIT_FILE=\"sig_init.hex\" "
                 f"{self.top} && "
-                "rm -f prog.bin"
+                "rm -f prog.bin sig_init.hex && "
+                f"tr 'A-F' 'a-f' < {sig_quoted} > {sig_quoted}.tmp && "
+                f"mv {sig_quoted}.tmp {sig_quoted}"
             )
 
           else:

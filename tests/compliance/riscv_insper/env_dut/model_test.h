@@ -25,12 +25,10 @@
   .global begin_signature;            \
   begin_signature:
 
-//RV_COMPLIANCE_DATA_END
-#define RVMODEL_DATA_END              \
-  .align 4;                           \
-  .global end_signature;              \
-  end_signature:                      \
-  .popsection
+#define RVMODEL_DATA_END        \
+  .align 4;                     \
+  .globl end_signature;         \
+end_signature:
 
 #define RVMODEL_IO_INIT
 #define RVMODEL_IO_WRITE_STR(_R,_S)

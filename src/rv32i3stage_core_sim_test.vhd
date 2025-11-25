@@ -11,7 +11,8 @@ entity rv32i3stage_core_sim_test is
       ROM_FILE       : string := "default.hex";
       SIG_BEGIN_ADDR : natural := 16#00000000#;
       SIG_END_ADDR   : natural := 16#00000000#;
-      SIG_FILE       : string := "signature.out"
+      SIG_FILE       : string := "signature.out";
+	  SIG_INIT_FILE  : string := "sig_init.hex"
     );
 	-- port (
     	-- CLK   : in  std_logic;
@@ -25,16 +26,16 @@ architecture behaviour of rv32i3stage_core_sim_test is
     constant SIG_WORDS : natural := (SIG_END_ADDR - SIG_BEGIN_ADDR) / 4;
     type sig_array_t   is array (0 to SIG_WORDS-1) of std_logic_vector(31 downto 0);
     signal sig_mem     : sig_array_t   := (others => (others => '0'));
-
+	
 	signal CLK   : std_logic := '0';
-  	signal reset : std_logic := '1';
-
+	signal reset : std_logic := '1';
+	
 	signal CLK_IF, CLK_IDEXMEM : std_logic;
-
+	
 	signal rom_addr : std_logic_vector(31 downto 0);
 	signal rom_rden : std_logic;
 	signal rom_data : std_logic_vector(31 downto 0);
-
+	
 	signal core_ram_addr  : std_logic_vector(31 downto 0);
 	signal core_ram_wdata : std_logic_vector(31 downto 0);
 	signal core_ram_rdata : std_logic_vector(31 downto 0);
@@ -42,7 +43,7 @@ architecture behaviour of rv32i3stage_core_sim_test is
 	signal core_ram_wren  : std_logic;
 	signal core_ram_rden  : std_logic;
 	signal core_ram_byteena : std_logic_vector(3 downto 0);
-
+	
 	signal ram_addr    : std_logic_vector(31 downto 0);
 	signal ram_wdata   : std_logic_vector(31 downto 0);
 	signal ram_rdata   : std_logic_vector(31 downto 0);
@@ -50,16 +51,17 @@ architecture behaviour of rv32i3stage_core_sim_test is
 	signal ram_wren    : std_logic;
 	signal ram_rden    : std_logic;
 	signal ram_byteena : std_logic_vector(3 downto 0);
-
+	
 	constant TOHOST_ADDR : std_logic_vector(31 downto 0) := x"20000000";
-  	signal finished : std_logic := '0';
+	signal finished : std_logic := '0';
 	signal wd_count   : natural := 0;
     constant MAX_CYCLES : natural := 100000;
-
-begin
-	CLK <= not CLK after 5 ns;
-	process
+	
 	begin
+
+	CLK <= not CLK after 5 ns;
+		process
+		begin
 		wait for 100 ns;
 		reset <= '0';
 		wait;
@@ -157,12 +159,38 @@ begin
             end if;
         end if;
     end process;
-
-	monitor_sig_store : process(CLK_IDEXMEM)
+	
+	monitor_sig_store : process
+		file f      : text;
+		variable L  : line;
+		variable w  : std_logic_vector(31 downto 0);
+		variable i  : integer;
 		variable addr_int : integer;
 		variable idx      : integer;
 	begin
-		if rising_edge(CLK_IDEXMEM) then
+		----------------------------------------------------------------
+		-- Fase 1: inicializa sig_mem a partir de SIG_INIT_FILE
+		----------------------------------------------------------------
+		report "Abrindo arquivo de init de signature: " & SIG_INIT_FILE severity note;
+		file_open(f, SIG_INIT_FILE, read_mode);
+
+		i := 0;
+		while not endfile(f) and i < SIG_WORDS loop
+			readline(f, L);
+			hread(L, w);  -- lê hexa -> std_logic_vector
+			sig_mem(i) <= w;
+			i := i + 1;
+		end loop;
+
+		file_close(f);
+		report "Carregados " & integer'image(i) & " words em sig_mem" severity note;
+
+		----------------------------------------------------------------
+		-- Fase 2: loop normal, sobrescrevendo conforme o core escreve
+		----------------------------------------------------------------
+		while true loop
+			wait until rising_edge(CLK_IDEXMEM);
+
 			if core_ram_wren = '1' and core_ram_en = '1' then
 				addr_int := to_integer(unsigned(core_ram_addr));
 				if addr_int >= SIG_BEGIN_ADDR and addr_int < SIG_END_ADDR then
@@ -172,7 +200,7 @@ begin
 					end if;
 				end if;
 			end if;
-		end if;
+		end loop;
 	end process;
 
 	    ---------------------------------------------------------------------------
