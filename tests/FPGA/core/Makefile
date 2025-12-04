@@ -1,21 +1,27 @@
-# Makefile raiz - automatiza: montar .S -> .hex -> .mif -> compilar Quartus -> programar -> dump RAM
-# Ajuste as variáveis abaixo conforme necessário.
-
-# -------- Configurações --------
+# --- variáveis relevantes (atualize conforme seu Makefile existente) ---
 PROJECT_NAME := quartus/core_fpga_test
-ROM_MIF := quartus/ips/ROM1PORT/init.mif
-SOF_FILE := quartus/output_files/core_fpga_test.sof
-
 ASM_DIR := asm_tests
 BUILD_DIR := build
 TOOLS_DIR := tools
+ROM_MIF := quartus/ips/ROM1PORT/init.mif
+SOF_FILE := quartus/output_files/core_fpga_test.sof
+COMPARE_SCRIPT := $(TOOLS_DIR)/compare_mif_with_json.py
 
-# mem dump (saída)
-MEM_DUMP := $(TOOLS_DIR)/ram_dump.mif
-MEM_ID := RAM
+# detecta o primeiro .S em asm_tests (mantém comportamento anterior)
+ASM_FILE := $(shell ls $(ASM_DIR)/*.S 2>/dev/null | head -n 1)
+ifeq ($(ASM_FILE),)
+$(error Nenhum arquivo .S encontrado em $(ASM_DIR). Coloque seu .S lá ou ajuste ASM_DIR.)
+endif
+BNAME := $(basename $(notdir $(ASM_FILE)))
+
+# saída do dump agora em core/output_mifs/<testname>_ram.mif
+OUTDIR := output_mifs
+MEM_DUMP := $(OUTDIR)/$(BNAME)_ram.mif
+
+# Memória editável: index (conforme sua configuração)
 MEM_IDX := 1
-MEM_START := 0
-# número de palavras (32-bit) a ler da RAM - ajuste conforme sua RAM
+
+# número de palavras (32-bit) da RAM (ajuste se necessário)
 RAM_WORDS := 4096
 
 # tempo de espera (segundos) após programar para o teste rodar
@@ -33,7 +39,7 @@ HEX2MIF := $(TOOLS_DIR)/hex2mif.py
 # -------- regras --------
 .PHONY: all asm build_hex update_rom quartus_compile program_board wait dump_ram clean
 
-all: build_and_flash dump_ram
+all: build_and_flash dump_ram compare
 	@echo "Fluxo completo finalizado."
 
 # detecta o primeiro .S em asm_tests
@@ -97,8 +103,23 @@ build_and_flash: program_board wait
 # 6) dump da RAM para a MIF (usa quartus_stp + Tcl gerado dinamicamente)
 # gera tools/dumpMemory.tcl que usa save_content_from_memory_to_file do pacote ::quartus::insystem_memory_edit
 dump_ram: build_and_flash
-	@echo "Usando tools/dumpMemory.tcl para salvar memória -> $(MEM_DUMP) ..."
-	@mkdir -p $(TOOLS_DIR)
+	@echo "Criando diretório de saída para MIFs: $(OUTDIR)"
+	@mkdir -p $(OUTDIR)
+	@echo "Executando quartus_stp para salvar memória em: $(MEM_DUMP)"
 	@quartus_stp -t $(TOOLS_DIR)/dumpMemory.tcl $(MEM_DUMP) $(MEM_IDX)
 	@echo "Dump gravado em: $(MEM_DUMP)"
 
+# 7) comparar o MIF gerado com o gabarito JSON (gabarito em asm_tests/<name>.json)
+compare: dump_ram
+	@echo "Comparando $(MEM_DUMP) com asm_tests/$(BNAME).json ..."
+	@if [ ! -f "$(COMPARE_SCRIPT)" ]; then \
+	    echo "Erro: script de comparação não encontrado: $(COMPARE_SCRIPT)"; exit 1; \
+	fi
+	@if [ ! -f "$(MEM_DUMP)" ]; then \
+	    echo "Erro: MIF de dump não encontrado: $(MEM_DUMP)"; exit 1; \
+	fi
+	@if [ ! -f "asm_tests/$(BNAME).json" ]; then \
+	    echo "Erro: gabarito JSON asm_tests/$(BNAME).json não encontrado"; exit 1; \
+	fi
+	@$(PY) $(COMPARE_SCRIPT) $(MEM_DUMP) asm_tests/$(BNAME).json
+	@echo "Comparação finalizada."
