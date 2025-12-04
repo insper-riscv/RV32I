@@ -1,0 +1,32 @@
+name: FPGA core tests on NUC
+
+on:
+  push:           # dispara em todo push em qualquer branch
+    branches:
+      - main      # ajuste se quiser outra branch (ou remova a seção branches pra ser qualquer uma)
+
+jobs:
+  fpga-core-test:
+    # Se você NÃO adicionou label extra, isso aqui basta:
+    runs-on: self-hosted
+
+    # Se você adicionou algum label tipo "NUC-FPGA" na config.sh, use:
+    # runs-on: [self-hosted, NUC-FPGA]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Pull infra image
+        run: |
+          docker pull ghcr.io/pedropcventura/riscv-dev_tools:dev-amd64-final
+
+      - name: Run make in tests/FPGA/core inside container
+        run: |
+          docker run --rm \
+            --privileged \
+            --device=/dev/bus/usb:/dev/bus/usb \
+            -v "$PWD":/workspace \
+            -w /workspace/tests/FPGA/core \
+            ghcr.io/pedropcventura/riscv-dev_tools:dev-amd64-final \
+            make
