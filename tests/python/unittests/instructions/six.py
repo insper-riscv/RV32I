@@ -8,6 +8,12 @@ async def test_load_store_via_loads_and_regs(dut):
     dut.CLK.value = 0
     await Timer(10, units="ns")
 
+    print("#########")
+    ram_inst = dut.RAM               # handle para a instância RAM
+    cocotb.log.info(f"Children: {dir(ram_inst)[:20]}")
+    print("#########")
+
+
     async def step():
         alu_out = int(dut.core.alu_out_idexmem.value)
         ram_out = int(dut.core.ram_out.value)

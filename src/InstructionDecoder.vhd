@@ -181,6 +181,32 @@ begin
             reRAM           <= '0';
             eRAM            <= '0';
 
+          when "010" => -- SLTI
+            selMuxPc4ALU    <= '0';
+            opExImm         <= OPEXIMM_I;
+            selMuxALUPc4RAM <= "00";
+            weReg           <= '1';
+            opExRAM         <= "000";
+            selMuxRS2Imm    <= '1';
+            selPCRS1        <= '1';
+            opALU           <= OPALU_SLT;
+            weRAM           <= '0';
+            reRAM           <= '0';
+            eRAM            <= '0';
+
+          when "011" => -- SLTIU
+            selMuxPc4ALU    <= '0';
+            opExImm         <= OPEXIMM_I;
+            selMuxALUPc4RAM <= "00";
+            weReg           <= '1';
+            opExRAM         <= "000";
+            selMuxRS2Imm    <= '1';
+            selPCRS1        <= '1';
+            opALU           <= OPALU_SLTU;
+            weRAM           <= '0';
+            reRAM           <= '0';
+            eRAM            <= '0';
+
           when others =>
             null;
         end case;
