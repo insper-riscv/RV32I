@@ -28,5 +28,7 @@ jobs:
             --device=/dev/bus/usb:/dev/bus/usb \
             -v "$PWD":/workspace \
             -w /workspace/tests/FPGA/core \
+            -u "$(id -u):$(id -g)" \
             ghcr.io/pedropcventura/riscv-dev_tools:dev-amd64-final \
             make
+
