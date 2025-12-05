@@ -1,16 +1,17 @@
 name: FPGA core tests on NUC
 
 on:
-  push:           # dispara em todo push em qualquer branch
+  push:
     branches:
-      - main      # ajuste se quiser outra branch (ou remova a seção branches pra ser qualquer uma)
+      - main   # ajuste se quiser
+  pull_request:
+    branches:
+      - main
 
 jobs:
   fpga-core-test:
-    # Se você NÃO adicionou label extra, isso aqui basta:
     runs-on: self-hosted
-
-    # Se você adicionou algum label tipo "NUC-FPGA" na config.sh, use:
+    # se você deu um label tipo NUC-FPGA lá no config.sh, pode usar:
     # runs-on: [self-hosted, NUC-FPGA]
 
     steps:
@@ -21,14 +22,12 @@ jobs:
         run: |
           docker pull ghcr.io/pedropcventura/riscv-dev_tools:dev-amd64-final
 
-      - name: Run make in tests/FPGA/core inside container
+      - name: Reset JTAG and run FPGA core tests
         run: |
           docker run --rm \
             --privileged \
             --device=/dev/bus/usb:/dev/bus/usb \
             -v "$PWD":/workspace \
             -w /workspace/tests/FPGA/core \
-            -u "$(id -u):$(id -g)" \
             ghcr.io/pedropcventura/riscv-dev_tools:dev-amd64-final \
-            make
-
+            bash -lc "killall jtagd || true; jtagconfig; make"
