@@ -1,5 +1,7 @@
 # RISC-V Processor (RV32I) — VHDL + Automated Testing
 
+![Final Diagram](docs/img/Final_Diagram.png)
+
 **Authors:** [Ilana Finger](https://github.com/ilacftemp), [Leonardo Paloschi](), [Lucas Lima](https://github.com/lucasouzamil) e [Pedro Ventura](https://github.com/pedropcventura).
 **Advisor:** [Rafael Corsi](https://github.com/rafaelcorsi).
 
