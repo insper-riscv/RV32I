@@ -67,6 +67,17 @@ architecture behaviour of rv32i3stage_core is
   signal addImmPC_out : std_logic_vector(31 downto 0);
   signal extenderRAM_out : std_logic_vector(31 downto 0);
   
+  -- RV32M
+  signal isMulDiv      : std_logic;
+  signal m_result      : std_logic_vector(31 downto 0);
+  signal m_busy        : std_logic;
+  signal m_done        : std_logic;
+  signal alu_or_m_out : std_logic_vector(31 downto 0);
+  signal stall : std_logic;
+  signal isMulDiv_d : std_logic;
+  signal startMul   : std_logic;
+  signal isMulDiv_WB : std_logic;
+  
   -- Created with ALU
   signal MuxPCRS1_out : std_logic_vector(31 downto 0);
   signal MuxRS2Imm_out : std_logic_vector(31 downto 0);
@@ -79,12 +90,27 @@ architecture behaviour of rv32i3stage_core is
  
 begin
 
+stall <= m_busy;
+
+-- Registrar isMulDiv (para gerar pulso)
+process(CLK_IDEXMEM)
+begin
+  if rising_edge(CLK_IDEXMEM) then
+    if reset = '1' then
+      isMulDiv_d <= '0';
+    elsif stall = '0' then
+      isMulDiv_d <= isMulDiv;
+    end if;
+  end if;
+end process;
+
+startMul <= isMulDiv and not isMulDiv_d;
 PC_IF : entity work.genericRegister
 			generic map ( data_width => 32 )
 			port map (
 				clock => CLK_IDEXMEM,
 				clear => reset,
-				enable => '1',
+				enable => not stall,
 				source => MuxPc4ALU_out,
 				destination => PC_IF_out
 			);
@@ -94,7 +120,7 @@ PC_ID : entity work.genericRegister
 			port map (
 				clock => CLK_IF,
 				clear => reset,
-				enable => '1',
+				enable => not stall,
 				source => PC_IF_out,
 				destination => PC_ID_out
 			);
@@ -116,6 +142,7 @@ InstructionDecoder : entity work.InstructionDecoder
 				selMuxRS2Imm => selMuxRS2Imm,
 				selPCRS1 => selMuxPCRS1,
 				opALU => opALU,
+				isMulDiv => isMulDiv,   -- NOVO
 				weRAM => weRAM,
 				reRAM => reRAM,
 				eRAM => eRAM
@@ -126,7 +153,7 @@ OpExRAM_WB : entity work.genericRegister
 			port map (
 				clock => CLK_IDEXMEM,
 				clear => reset,
-				enable => '1',
+				enable => not stall,
 				source => opExRAM_IFEXMEM,
 				destination => opExRAM_WB_out 
 			);
@@ -136,7 +163,7 @@ rd_WB : entity work.genericRegister
 			port map (
 				clock => CLK_IDEXMEM,
 				clear => reset,
-				enable => '1',
+				enable => not stall,
 				source => ROM_out(11 downto 7),
 				destination =>  rd_WB_out
 			);
@@ -145,17 +172,26 @@ weReg_WB : entity work.FlipFlop
 			port map (
 				clock => CLK_IDEXMEM,
 				clear => reset,
-				enable => '1',
+				enable => not stall,
 				source => weReg_IDEXMEM,
 				destination => weReg_WB_out
 			);
+			
+isMulDiv_reg : entity work.FlipFlop
+  port map (
+    clock => CLK_IDEXMEM,
+    clear => reset,
+    enable => not stall,
+    source => isMulDiv,
+    destination => isMulDiv_WB
+  );
 			
 SelMux_WB : entity work.genericRegister
 			generic map ( data_width => 2 )
 			port map (
 				clock => CLK_IDEXMEM ,
 				clear => reset,
-				enable => '1',
+				enable => not stall,
 				source => selMuxALUPc4RAM_IDEXMEM,
 				destination => selMuxALUPc4RAM_WB_out 
 			);
@@ -187,7 +223,7 @@ PC4_WB : entity work.genericRegister
 			port map (
 				clock => CLK_IDEXMEM,
 				clear => reset,
-				enable => '1',
+				enable => not stall,
 				source => PC4_ID_out,
 				destination => PC4_WB_out
 			);
@@ -197,16 +233,18 @@ ALU_out_WB : entity work.genericRegister
 			port map (
 				clock => CLK_IDEXMEM,
 				clear => reset,
-				enable => '1',
+				enable => not stall,
 				source => ALU_out_IDEXMEM,
 				destination => ALU_out_WB_out
 			);
 			
+alu_or_m_out <= m_result when isMulDiv_WB = '1' else ALU_out_WB_out;
 			
- MuxWB : entity work.genericMux3x1
+			
+MuxWB : entity work.genericMux3x1
     generic map ( dataWidth => 32 )
     port map (
-        inputA_MUX => ALU_out_WB_out,
+        inputA_MUX => alu_or_m_out, -- NOVO
         inputB_MUX => PC4_WB_out,
         inputC_MUX => extenderRAM_out,
         selector_MUX => selMuxALUPc4RAM_WB_out,
@@ -226,7 +264,7 @@ PC4_ID : entity work.genericRegister
 			port map (
 				clock => CLK_IF,
 				clear => reset,
-				enable => '1',
+				enable => not stall,
 				source => PC4_IF,
 				destination => PC4_ID_out
 			);
@@ -247,6 +285,19 @@ ALU : entity work.ALU
 				dataOut => ALU_out_IDEXMEM,
 				branch => branch_flag
 			);
+			
+RV32M_inst : entity work.RV32M
+  port map(
+    clk     => CLK_IDEXMEM,
+    rst     => reset,
+    start => startMul,
+    funct3  => ROM_out(14 downto 12),
+    rs1     => d_rs1,
+    rs2     => d_rs2,
+    result  => m_result,
+    busy    => m_busy,
+    done    => m_done
+  );
 			
 			
 MuxPCRS1 : entity work.genericMux2x1
