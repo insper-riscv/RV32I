@@ -386,6 +386,13 @@ set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 set_global_assignment -name OPTIMIZATION_MODE "AGGRESSIVE PERFORMANCE"
 set_global_assignment -name FINAL_PLACEMENT_OPTIMIZATION ALWAYS
 set_global_assignment -name FITTER_AGGRESSIVE_ROUTABILITY_OPTIMIZATION ALWAYS
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
+set_global_assignment -name VHDL_FILE ../../src/decoderM.vhd
+set_global_assignment -name VHDL_FILE ../../src/multdiv.vhd
+set_global_assignment -name QIP_FILE ../../src/mult.qip
+set_global_assignment -name QIP_FILE ../../src/mhu.qip
+set_global_assignment -name VHDL_FILE ../../src/extendSigned.vhd
+set_global_assignment -name QIP_FILE ../../src/div.qip
 set_global_assignment -name VHDL_FILE ../../src/PLL/pll.vhd
 set_global_assignment -name VERILOG_FILE ../../src/PLL/pll_0002.v
 set_global_assignment -name VHDL_FILE ../../src/GPIO/TRISTATE_BUFFER_1BIT.vhd
@@ -429,4 +436,3 @@ set_global_assignment -name VHDL_FILE ../../src/TIMER/GENERIC_MUX_2X1.vhd
 set_global_assignment -name VHDL_FILE ../../src/TIMER/GENERIC_REGISTER.vhd
 set_global_assignment -name VHDL_FILE ../../src/TIMER/TIMER.vhd
 set_global_assignment -name VHDL_FILE ../../src/TIMER/TIMER_OPERATION_DECODER.vhd
-set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
