@@ -28,9 +28,9 @@ RAM_WORDS := 4096
 WAIT_SECS := 5
 
 # ferramentas RISC-V (assumidas; se tiver toolchain diferente, ajuste)
-AS := riscv32-unknown-elf-as
-LD := riscv32-unknown-elf-ld
-OBJCOPY := riscv32-unknown-elf-objcopy
+AS := riscv64-unknown-elf-as
+LD := riscv64-unknown-elf-ld
+OBJCOPY := riscv64-unknown-elf-objcopy
 HEXDUMP := hexdump
 
 PY := python3
@@ -59,7 +59,7 @@ asm: $(HEX_FILE)
 $(BUILD_DIR)/%.hex: $(ASM_DIR)/%.S | $(BUILD_DIR)
 	@echo "Compilando $< ..."
 	@if command -v $(AS) >/dev/null 2>&1; then \
-		$(AS) -march=rv32i -mabi=ilp32 -o $(BUILD_DIR)/$*.o $< ; \
+		$(AS) -march=rv32im -mabi=ilp32 -o $(BUILD_DIR)/$*.o $< ; \
 		$(LD) -Ttext=0x0 -o $(ELF_FILE) $(BUILD_DIR)/$*.o ; \
 		$(OBJCOPY) -O binary $(ELF_FILE) $(BIN_FILE) ; \
 		$(HEXDUMP) -v -e '1/4 "%08X\n"' $(BIN_FILE) > $(HEX_FILE) ; \
