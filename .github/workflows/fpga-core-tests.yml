@@ -30,4 +30,6 @@ jobs:
             -v "$PWD":/workspace \
             -w /workspace/tests/FPGA/core \
             ghcr.io/pedropcventura/riscv-dev_tools:dev-amd64-final \
-            bash -lc "killall jtagd || true; jtagconfig; make"
+            bash -lc "killall jtagd || true; \
+          apt-get install -y -q gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf 2>/dev/null || true; \
+          jtagconfig; make"
