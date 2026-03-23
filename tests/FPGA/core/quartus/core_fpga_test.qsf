@@ -324,3 +324,5 @@ set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_
 set_global_assignment -name VHDL_FILE ../../../../src/multdiv.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/mult.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/div.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/decoderM.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/mhu.vhd
