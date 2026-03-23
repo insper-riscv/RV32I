@@ -63,8 +63,8 @@ begin
         
   DIV: entity work.div
       port map(
-        denom => valorB,
-        numer => valorA,
+        denom => valorA,
+        numer => valorB,
         quotient => resultDiv,
         remain => restoDiv
         );
