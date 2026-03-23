@@ -3,7 +3,7 @@ name: FPGA core tests on NUC
 on:
   push:
     branches:
-      - main   # ajuste se quiser
+      - main
   pull_request:
     branches:
       - main
@@ -11,8 +11,6 @@ on:
 jobs:
   fpga-core-test:
     runs-on: self-hosted
-    # se você deu um label tipo NUC-FPGA lá no config.sh, pode usar:
-    # runs-on: [self-hosted, NUC-FPGA]
 
     steps:
       - name: Checkout repo
@@ -31,5 +29,5 @@ jobs:
             -w /workspace/tests/FPGA/core \
             ghcr.io/pedropcventura/riscv-dev_tools:dev-amd64-final \
             bash -lc "killall jtagd || true; \
-          apt-get install -y -q gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf 2>/dev/null || true; \
-          jtagconfig; make"
+                      apt-get install -y -q gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf 2>/dev/null || true; \
+                      jtagconfig; make"
