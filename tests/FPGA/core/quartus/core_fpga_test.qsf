@@ -326,3 +326,6 @@ set_global_assignment -name VHDL_FILE ../../../../src/mult.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/div.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/decoderM.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/mhu.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/edgeDetector.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/extendSigned.vhd
+
