@@ -29,3 +29,8 @@ jobs:
             -w /workspace/tests/FPGA/core \
             ghcr.io/pedropcventura/riscv-dev_tools:dev-amd64-final \
             bash -lc "killall jtagd || true; jtagconfig; make AS=riscv32-unknown-elf-as LD=riscv32-unknown-elf-ld OBJCOPY=riscv32-unknown-elf-objcopy PATH=/opt/riscv32i/bin:\$PATH"
+
+      - name: Fix permissions after docker
+        if: always()
+        run: |
+          sudo chown -R $USER:$USER $PWD || true
