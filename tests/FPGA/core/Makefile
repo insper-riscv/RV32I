@@ -25,7 +25,7 @@ MEM_IDX := 1
 RAM_WORDS := 4096
 
 # tempo de espera (segundos) após programar para o teste rodar
-WAIT_SECS := 5
+WAIT_SECS := 30
 
 # ferramentas RISC-V (assumidas; se tiver toolchain diferente, ajuste)
 AS := riscv64-unknown-elf-as
