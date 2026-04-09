@@ -3,7 +3,7 @@ name: FPGA core tests on NUC
 on:
   push:
     branches:
-      - main
+      - main   # ajuste se quiser
   pull_request:
     branches:
       - main
@@ -11,6 +11,8 @@ on:
 jobs:
   fpga-core-test:
     runs-on: self-hosted
+    # se você deu um label tipo NUC-FPGA lá no config.sh, pode usar:
+    # runs-on: [self-hosted, NUC-FPGA]
 
     steps:
       - name: Checkout repo
@@ -28,9 +30,4 @@ jobs:
             -v "$PWD":/workspace \
             -w /workspace/tests/FPGA/core \
             ghcr.io/pedropcventura/riscv-dev_tools:dev-amd64-final \
-            bash -lc "killall jtagd || true; jtagconfig; make AS=riscv32-unknown-elf-as LD=riscv32-unknown-elf-ld OBJCOPY=riscv32-unknown-elf-objcopy PATH=/opt/riscv32i/bin:\$PATH"
-
-      - name: Fix permissions after docker
-        if: always()
-        run: |
-          sudo chown -R $USER:$USER $PWD || true
+            bash -lc "killall jtagd || true; jtagconfig; make"
