@@ -412,6 +412,7 @@ set_global_assignment -name SDC_FILE ../../src/clk.sdc
 set_global_assignment -name VHDL_FILE ../../src/FlipFlop.vhd
 set_global_assignment -name VHDL_FILE ../../src/StoreManager.vhd
 set_global_assignment -name VHDL_FILE ../../src/rv32i_ctrl_consts.vhd
+set_global_assignment -name VHDL_FILE ../../src/rv32im_pipeline_types.vhd
 set_global_assignment -name VHDL_FILE ../../src/RegFile.vhd
 set_global_assignment -name VHDL_FILE ../../src/RAM.vhd
 set_global_assignment -name VHDL_FILE ../../src/InstructionDecoder.vhd

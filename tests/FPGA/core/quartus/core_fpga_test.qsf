@@ -65,6 +65,7 @@ set_global_assignment -name VHDL_FILE ../../../../src/InstructionDecoder.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/RegFile.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/rv32i3stage_core.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/rv32i_ctrl_consts.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/rv32im_pipeline_types.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/StoreManager.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/genericRegister.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/genericMux3x1.vhd
