@@ -11,8 +11,12 @@ Objetivo: permitir implementacao em paralelo (M1 e M2) com interface fechada, se
 
 ## 1. Premissas adotadas
 
-- Baseado no core atual em `src/rv32i3stage_core.vhd` e nos modulos:
-  - `src/InstructionDecoder.vhd`
+- Baseado no core de pipeline em `src/rv32im_pipeline_core.vhd` e nos modulos:
+  - `src/control_unit.vhd`
+  - `src/bubble_mux.vhd`
+  - `src/pc_fetch.vhd`
+  - `src/reg_IF_ID.vhd`
+  - `src/reg_ID_EX.vhd`
   - `src/ExtenderImm.vhd`
   - `src/ExtenderRAM.vhd`
   - `src/StoreManager.vhd`
@@ -34,7 +38,7 @@ Para reduzir atrito na implementacao, usar duas visoes equivalentes:
 Regra pratica:
 
 - Dentro dos registradores de pipeline: priorizar nome estrutural (`idex_*`, etc.).
-- No top-level de integracao (`rv32im_pipeline5_top`): pode expor alias no estilo diagrama para debug e roteamento visual.
+- No top-level de integracao (`rv32im_pipeline_core`): pode expor alias no estilo diagrama para debug e roteamento visual.
 
 ## 1.2 Tabela de equivalencia (Contrato x Diagrama)
 
@@ -74,7 +78,7 @@ subtype wbsel_t is std_logic_vector(1 downto 0);
 subtype mask4_t is std_logic_vector(3 downto 0);
 ```
 
-Mapeamento para compatibilidade com decoder atual:
+Mapeamento para compatibilidade com a control unit:
 
 - `opalu_t` = `opALU`
 - `opeximm_t` = `opExImm`
@@ -254,17 +258,44 @@ Sinais que cruzam MEM -> WB:
   - `*_ctrl_ram_re <= '0'`
   - `*_ctrl_ram_en <= '0'`
 
-## 8. Nomes dos 5 toplevels pedidos
+## 8. Nomes implementados no repositorio
 
-Sugestao de entidades/top-level:
+Nomes efetivamente usados ate agora:
 
-- `rv32im_pipe_reg_if_id_top`
-- `rv32im_pipe_reg_id_ex_top`
-- `rv32im_pipe_reg_ex_mem_top`
-- `rv32im_pipe_reg_mem_wb_top`
-- `rv32im_pipeline5_top`
+- `pc_fetch`
+- `reg_IF_ID`
+- `reg_ID_EX`
+- `control_unit`
+- `bubble_mux`
+- `rv32im_pipeline_core`
 
-## 9. Checklist rapido para comecar M1/M2 em paralelo
+Observacao: os nomes sugeridos com prefixo `rv32im_pipe_reg_*_top` continuam validos como alias conceitual, mas o codigo implementado usa os nomes acima.
+
+## 9. Estado de integracao atual (abril/2026)
+
+- `rv32im_pipeline_core` ja e o core de pipeline ligado no wrapper de FPGA (`L2IP.vhd`).
+- `control_unit` substitui `InstructionDecoder` no caminho de pipeline.
+- `bubble_mux` ja esta entre `control_unit` e `reg_ID_EX`.
+- `reg_IF_ID` e `reg_ID_EX` estao instanciados no core.
+- `reg_EX_MEM` e `reg_MEM_WB` ainda nao foram criados/instanciados.
+
+### 9.1 Interface implementada de reg_ID_EX
+
+Controle:
+
+- `clk`, `reset`, `en`, `flush`, `in_valid`, `idex_valid`
+
+Dados ID -> EX:
+
+- `in_pc`, `in_pc4`, `in_instr`, `in_rs1_idx`, `in_rs2_idx`, `in_rd_idx`, `in_rs1_val`, `in_rs2_val`, `in_imm`
+- saem como `idex_pc`, `idex_pc4`, `idex_instr`, `idex_rs1_idx`, `idex_rs2_idx`, `idex_rd_idx`, `idex_rs1_val`, `idex_rs2_val`, `idex_imm`
+
+Controle ID -> EX:
+
+- `in_selMuxPc4ALU`, `in_opExImm`, `in_selMuxALUPc4RAM`, `in_weReg`, `in_opExRAM`, `in_selMuxRS2Imm`, `in_selPCRS1`, `in_opALU`, `in_isMulDiv`, `in_startMul`, `in_weRAM`, `in_reRAM`, `in_eRAM`, `in_opCode`, `in_funct3`
+- saem como `idex_selMuxPc4ALU`, `idex_opExImm`, `idex_selMuxALUPc4RAM`, `idex_weReg`, `idex_opExRAM`, `idex_selMuxRS2Imm`, `idex_selPCRS1`, `idex_opALU`, `idex_isMulDiv`, `idex_startMul`, `idex_weRAM`, `idex_reRAM`, `idex_eRAM`, `idex_opCode`, `idex_funct3`
+
+## 10. Checklist rapido para comecar M1/M2 em paralelo
 
 - M1 entrega `ifid_*` e `idex_*` completos (especialmente secao 4).
 - M2 assume contrato fixo de `idex_*` e implementa EX/MEM/WB sem ler decoder direto.

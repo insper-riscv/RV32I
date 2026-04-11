@@ -89,12 +89,9 @@ begin
   ------------------------------------------------------------------------
   -- Núcleo principal (RV32I)
   ------------------------------------------------------------------------
-  CORE : entity work.rv32i3stage_core	
+  CORE : entity work.rv32im_pipeline_core
     port map (
-      -- clock e reset
-      CLK_IF       => pll_clk_if,
-      CLK_IDEXMEM  => pll_clk_idexmem,
-      CLK_WB       => pll_clk_wb,
+      clk          => pll_clk_idexmem,
       reset        => not sys_reset_n,
 
       ----------------------------------------------------------------------
