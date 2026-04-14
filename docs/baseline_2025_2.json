@@ -1,0 +1,91 @@
+{
+  "generated_at": "2026-04-14T19:44:59",
+  "project": "RV32IM — Capstone Insper/CTI 2026.1",
+  "kpis": {
+    "kpi1_clock_mhz": {
+      "source": "/tmp/rv32i_base/RV32IM-99c07c2732c6e25de1bfcce002561f39a59e88bd/src/PLL/pll_0002.v",
+      "clock_name": "PLL output0 (CPU clock)",
+      "fmax_mhz": 17.0,
+      "note": "Frequencia configurada no PLL (pll_0002.v)"
+    },
+    "kpi1_resources": {
+      "source": "/tmp/rv32i_base/RV32IM-99c07c2732c6e25de1bfcce002561f39a59e88bd/tests/FPGA/core/quartus/output_files/core_fpga_test.fit.rpt",
+      "error": "Arquivo não encontrado: /tmp/rv32i_base/RV32IM-99c07c2732c6e25de1bfcce002561f39a59e88bd/tests/FPGA/core/quartus/output_files/core_fpga_test.fit.rpt"
+    },
+    "kpi2_test_coverage": {
+      "source": "/tmp/rv32i_base/RV32IM-99c07c2732c6e25de1bfcce002561f39a59e88bd/tests/python/tests.json",
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "total": 15,
+      "coverage_pct": 100.0,
+      "note": "15 suites em tests.json (GHDL, sem results.xml)"
+    },
+    "kpi3_instructions": {
+      "rv32i_covered": [
+        "ADD",
+        "ADDI",
+        "AND",
+        "ANDI",
+        "AUIPC",
+        "BEQ",
+        "BGE",
+        "BGEU",
+        "BLT",
+        "BLTU",
+        "BNE",
+        "JAL",
+        "JALR",
+        "LB",
+        "LBU",
+        "LH",
+        "LHU",
+        "LUI",
+        "LW",
+        "OR",
+        "ORI",
+        "SB",
+        "SH",
+        "SLL",
+        "SLLI",
+        "SLT",
+        "SLTI",
+        "SLTIU",
+        "SLTU",
+        "SRA",
+        "SRAI",
+        "SRL",
+        "SRLI",
+        "SUB",
+        "SW",
+        "XOR",
+        "XORI"
+      ],
+      "rv32i_total": 37,
+      "rv32i_pct": 100.0,
+      "rv32m_covered": [],
+      "rv32m_total": 8,
+      "rv32m_pct": 0.0,
+      "total_covered": 37,
+      "total_supported": 45,
+      "ratio": "37 / 45"
+    },
+    "kpi4_speedup": {
+      "benchmark": "/tmp/rv32i_base/RV32IM-99c07c2732c6e25de1bfcce002561f39a59e88bd/tests/FPGA/core/asm_tests/full.S",
+      "instr_total": 212,
+      "instr_rv32i": 212,
+      "instr_rv32m": 0,
+      "baseline": {
+        "model": "multi-cycle 3 estágios (2025.2)",
+        "cpi": 3.0,
+        "note": "lpm_divide combinacional (USING_PIPELINE=0), busy='0'",
+        "cycles": 636,
+        "freq_mhz": 1.0,
+        "time_us": 636.0
+      },
+      "speedup": {
+        "note": "Passe --pipeline após implementar o pipeline de 5 estágios"
+      }
+    }
+  }
+}
