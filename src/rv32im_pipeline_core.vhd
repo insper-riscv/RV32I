@@ -1,6 +1,24 @@
+-- =============================================================================
+-- rv32im_pipeline_core.vhd
+-- Top-level do pipeline RV32IM 5 estagios
+-- M1: IF + ID + Control Unit + Bubble Mux + HDU + reg_IF_ID + reg_ID_EX
+-- M2 (pendente): EX + MEM + WB + reg_EX_MEM + reg_MEM_WB + Forwarding Unit
+--
+-- Bubble Mux: componente simples entre CU e reg_ID_EX.
+--   Filtra apenas os 5 sinais destrutivos (weReg, weRAM, reRAM, eRAM,
+--   startMul). Todos os outros sinais da CU vao DIRETAMENTE ao reg_ID_EX.
+--
+-- Sinais que M2 deve preencher:
+--   ex_branch_taken, ex_jalr_taken   -> controle de flush e pc_src
+--   ex_branch_target, ex_jalr_target -> alvo do proximo PC
+--   muldiv_busy                      -> stall estrutural do multdiv
+--   wb_we, wb_rd, wb_data            -> write-back para o RegFile
+-- =============================================================================
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.rv32i_ctrl_consts.all;
 use work.rv32im_pipeline_types.all;
 
 entity rv32im_pipeline_core is
@@ -8,16 +26,10 @@ entity rv32im_pipeline_core is
     clk   : in  std_logic;
     reset : in  std_logic;
 
-    ----------------------------------------------------------------------
-    -- Interface com a ROM (somente leitura)
-    ----------------------------------------------------------------------
     rom_addr : out std_logic_vector(31 downto 0);
     rom_rden : out std_logic;
     rom_data : in  std_logic_vector(31 downto 0);
 
-    ----------------------------------------------------------------------
-    -- Interface com a RAM (leitura e escrita)
-    ----------------------------------------------------------------------
     ram_addr    : out std_logic_vector(31 downto 0);
     ram_wdata   : out std_logic_vector(31 downto 0);
     ram_rdata   : in  std_logic_vector(31 downto 0);
@@ -30,34 +42,60 @@ end entity rv32im_pipeline_core;
 
 architecture rtl of rv32im_pipeline_core is
 
-  -- IF controls (hazard unit vai dirigir esses sinais no Passo 2+)
-  signal if_pc_write_en : std_logic := '1';
-  signal ifid_write_en  : std_logic := '1';
-  signal id_bubble_sel  : std_logic := '0';
+  -- =========================================================================
+  -- Sinais de controle de hazard (gerados pela HDU)
+  -- =========================================================================
+  signal if_pc_write_en : std_logic;
+  signal ifid_write_en  : std_logic;
+  signal id_bubble_sel  : std_logic;
 
-  -- Redirecionamento de PC (branch/jalr em EX)
-  signal pc_src         : std_logic_vector(1 downto 0) := "00";
-  signal ex_branch_taken: std_logic := '0';
-  signal branch_target  : word_t := (others => '0');
-  signal jalr_target    : word_t := (others => '0');
+  -- =========================================================================
+  -- Sinais de controle de branch/JALR (preenchidos por M2 no estagio EX)
+  -- =========================================================================
+  signal ex_branch_taken  : std_logic := '0';
+  signal ex_jalr_taken    : std_logic := '0';
+  signal ex_branch_target : word_t    := (others => '0');
+  signal ex_jalr_target   : word_t    := (others => '0');
 
-  -- IF/ID datapath
-  signal if_pc          : word_t;
-  signal if_pc4         : word_t;
-  signal ifid_valid     : std_logic;
-  signal ifid_pc        : word_t;
-  signal ifid_pc4       : word_t;
-  signal ifid_instr     : word_t;
+  signal pc_src       : std_logic_vector(1 downto 0);
+  signal flush_if_id  : std_logic;
+  signal flush_id_ex  : std_logic;
 
-  -- ID data path para entrada do reg_ID_EX
-  signal id_rs1_idx      : reg_t;
-  signal id_rs2_idx      : reg_t;
-  signal id_rd_idx       : reg_t;
-  signal id_rs1_val      : word_t;
-  signal id_rs2_val      : word_t;
-  signal id_imm          : word_t;
+  -- =========================================================================
+  -- MulDiv stall (busy='0' com LPM combinacional; M2 conecta se necessario)
+  -- =========================================================================
+  signal muldiv_busy : std_logic := '0';
 
-  -- Control Unit outputs
+  -- =========================================================================
+  -- Estagio IF
+  -- =========================================================================
+  signal if_pc  : word_t;
+  signal if_pc4 : word_t;
+
+  -- =========================================================================
+  -- Registrador IF/ID saidas
+  -- =========================================================================
+  signal ifid_valid : std_logic;
+  signal ifid_pc    : word_t;
+  signal ifid_pc4   : word_t;
+  signal ifid_instr : word_t;
+
+  signal ifid_rs1 : reg_t;
+  signal ifid_rs2 : reg_t;
+
+  -- =========================================================================
+  -- Estagio ID: campos decodificados
+  -- =========================================================================
+  signal id_rs1_idx : reg_t;
+  signal id_rs2_idx : reg_t;
+  signal id_rd_idx  : reg_t;
+  signal id_rs1_val : word_t;
+  signal id_rs2_val : word_t;
+  signal id_imm     : word_t;
+
+  -- =========================================================================
+  -- Control Unit saidas
+  -- =========================================================================
   signal cu_selMuxPc4ALU    : std_logic;
   signal cu_opExImm         : opeximm_t;
   signal cu_selMuxALUPc4RAM : wbsel_t;
@@ -73,60 +111,73 @@ architecture rtl of rv32im_pipeline_core is
   signal cu_opCode          : std_logic_vector(6 downto 0);
   signal cu_funct3          : std_logic_vector(2 downto 0);
 
-  -- startMul edge detect no ID (deve passar pelo bubble_mux)
-  signal isMulDiv_d         : std_logic := '0';
-  signal startMul_raw       : std_logic;
+  -- Edge detect de isMulDiv para startMul (pulso de 1 ciclo)
+  signal isMulDiv_d   : std_logic := '0';
+  signal startMul_raw : std_logic;
 
-  -- Bubble mux outputs (sinais prontos para entrada do reg_ID_EX)
-  signal idex_selMuxPc4ALU    : std_logic;
-  signal idex_opExImm         : opeximm_t;
-  signal idex_selMuxALUPc4RAM : wbsel_t;
-  signal idex_weReg           : std_logic;
-  signal idex_opExRAM         : opexram_t;
-  signal idex_selMuxRS2Imm    : std_logic;
-  signal idex_selPCRS1        : std_logic;
-  signal idex_opALU           : opalu_t;
-  signal idex_isMulDiv        : std_logic;
-  signal idex_weRAM           : std_logic;
-  signal idex_reRAM           : std_logic;
-  signal idex_eRAM            : std_logic;
-  signal idex_startMul        : std_logic;
-  signal idex_opCode          : std_logic_vector(6 downto 0);
-  signal idex_funct3          : std_logic_vector(2 downto 0);
+  -- =========================================================================
+  -- Bubble Mux saidas (apenas os 5 sinais destrutivos filtrados)
+  -- Os outros sinais da CU vao direto da cu_* para in_* do reg_ID_EX.
+  -- =========================================================================
+  signal bm_weReg    : std_logic;
+  signal bm_weRAM    : std_logic;
+  signal bm_reRAM    : std_logic;
+  signal bm_eRAM     : std_logic;
+  signal bm_startMul : std_logic;
+  signal bm_valid    : std_logic;
+  signal bm_isMulDiv : std_logic;
 
-  -- Saidas registradas do ID/EX (entrada do estagio EX)
-  signal ex_valid             : std_logic;
-  signal ex_pc                : word_t;
-  signal ex_pc4               : word_t;
-  signal ex_instr             : word_t;
-  signal ex_rs1_idx           : reg_t;
-  signal ex_rs2_idx           : reg_t;
-  signal ex_rd_idx            : reg_t;
-  signal ex_rs1_val           : word_t;
-  signal ex_rs2_val           : word_t;
-  signal ex_imm               : word_t;
-  signal ex_selMuxPc4ALU      : std_logic;
-  signal ex_opExImm           : opeximm_t;
-  signal ex_selMuxALUPc4RAM   : wbsel_t;
-  signal ex_weReg             : std_logic;
-  signal ex_opExRAM           : opexram_t;
-  signal ex_selMuxRS2Imm      : std_logic;
-  signal ex_selPCRS1          : std_logic;
-  signal ex_opALU             : opalu_t;
-  signal ex_isMulDiv          : std_logic;
-  signal ex_startMul          : std_logic;
-  signal ex_weRAM             : std_logic;
-  signal ex_reRAM             : std_logic;
-  signal ex_eRAM              : std_logic;
-  signal ex_opCode            : std_logic_vector(6 downto 0);
-  signal ex_funct3            : std_logic_vector(2 downto 0);
+  -- =========================================================================
+  -- Saidas do reg_ID_EX (entrada do estagio EX / M2)
+  -- =========================================================================
+  signal ex_valid           : std_logic;
+  signal ex_pc              : word_t;
+  signal ex_pc4             : word_t;
+  signal ex_instr           : word_t;
+  signal ex_rs1_idx         : reg_t;
+  signal ex_rs2_idx         : reg_t;
+  signal ex_rd_idx          : reg_t;
+  signal ex_rs1_val         : word_t;
+  signal ex_rs2_val         : word_t;
+  signal ex_imm             : word_t;
+  signal ex_selMuxPc4ALU    : std_logic;
+  signal ex_opExImm         : opeximm_t;
+  signal ex_selMuxALUPc4RAM : wbsel_t;
+  signal ex_weReg           : std_logic;
+  signal ex_opExRAM         : opexram_t;
+  signal ex_selMuxRS2Imm    : std_logic;
+  signal ex_selPCRS1        : std_logic;
+  signal ex_opALU           : opalu_t;
+  signal ex_isMulDiv        : std_logic;
+  signal ex_startMul        : std_logic;
+  signal ex_weRAM           : std_logic;
+  signal ex_reRAM           : std_logic;
+  signal ex_eRAM            : std_logic;
+  signal ex_opCode          : std_logic_vector(6 downto 0);
+  signal ex_funct3          : std_logic_vector(2 downto 0);
+
+  -- =========================================================================
+  -- Write-back: M2 preenche quando MEM/WB estiver pronto
+  -- =========================================================================
+  signal wb_we   : std_logic := '0';
+  signal wb_rd   : reg_t    := (others => '0');
+  signal wb_data : word_t   := (others => '0');
 
 begin
 
-  ----------------------------------------------------------------------
-  -- Edge detect de isMulDiv para gerar startMul de 1 ciclo.
-  -- Esse start passa pelo bubble_mux para nao iniciar mul/div em bolha.
-  ----------------------------------------------------------------------
+  -- =========================================================================
+  -- Controle de PC e flush
+  -- =========================================================================
+  pc_src <= "10" when ex_jalr_taken   = '1' else
+            "01" when ex_branch_taken = '1' else
+            "00";
+
+  flush_if_id <= ex_branch_taken or ex_jalr_taken;
+  flush_id_ex <= ex_branch_taken or ex_jalr_taken;
+
+  -- =========================================================================
+  -- Edge detect de isMulDiv para startMul
+  -- =========================================================================
   process(clk)
   begin
     if rising_edge(clk) then
@@ -140,59 +191,41 @@ begin
 
   startMul_raw <= cu_isMulDiv and (not isMulDiv_d);
 
-  -- Campos da instrucao em ID e extensao de imediato.
+  -- =========================================================================
+  -- Campos da instrucao em ID
+  -- =========================================================================
+  ifid_rs1   <= ifid_instr(19 downto 15);
+  ifid_rs2   <= ifid_instr(24 downto 20);
   id_rs1_idx <= ifid_instr(19 downto 15);
   id_rs2_idx <= ifid_instr(24 downto 20);
   id_rd_idx  <= ifid_instr(11 downto 7);
 
-  u_extender_imm : entity work.ExtenderImm
-    port map (
-      Inst31downto7 => ifid_instr(31 downto 7),
-      opExImm       => std_logic_vector(cu_opExImm),
-      signalOut     => id_imm
-    );
-
-  -- RegFile em modo leitura durante esta etapa incremental.
-  -- Escrita de WB sera conectada quando MEM/WB estiver pronto.
-  u_regfile : entity work.RegFile
-    port map (
-      clk     => clk,
-      clear   => reset,
-      we      => '0',
-      rs1     => id_rs1_idx,
-      rs2     => id_rs2_idx,
-      rd      => (others => '0'),
-      data_in => (others => '0'),
-      d_rs1   => id_rs1_val,
-      d_rs2   => id_rs2_val
-    );
-
-  ----------------------------------------------------------------------
-  -- IF stage
-  ----------------------------------------------------------------------
+  -- =========================================================================
+  -- IF: pc_fetch
+  -- =========================================================================
   u_pc_fetch : entity work.pc_fetch
     port map (
       clk            => clk,
       reset          => reset,
       if_pc_write_en => if_pc_write_en,
       pc_src         => pc_src,
-      branch_target  => branch_target,
-      jalr_target    => jalr_target,
+      branch_target  => ex_branch_target,
+      jalr_target    => ex_jalr_target,
       pc_out         => if_pc,
       pc4_out        => if_pc4,
       rom_addr       => rom_addr,
       rom_rden       => rom_rden
     );
 
-  ----------------------------------------------------------------------
-  -- IF/ID register (1 de 4 registradores de pipeline)
-  ----------------------------------------------------------------------
+  -- =========================================================================
+  -- Registrador IF/ID
+  -- =========================================================================
   u_reg_if_id : entity work.reg_IF_ID
     port map (
       clk           => clk,
       reset         => reset,
       ifid_write_en => ifid_write_en,
-      flush         => ex_branch_taken,
+      flush         => flush_if_id,
       in_pc         => if_pc,
       in_pc4        => if_pc4,
       in_instr      => rom_data,
@@ -202,9 +235,9 @@ begin
       ifid_instr    => ifid_instr
     );
 
-  ----------------------------------------------------------------------
-  -- ID stage combinacional: Control Unit (substitui InstructionDecoder)
-  ----------------------------------------------------------------------
+  -- =========================================================================
+  -- ID: Control Unit
+  -- =========================================================================
   u_control_unit : entity work.control_unit
     port map (
       instruction     => ifid_instr,
@@ -224,78 +257,123 @@ begin
       funct3_out      => cu_funct3
     );
 
-  ----------------------------------------------------------------------
-  -- Bubble mux entre Control Unit e reg_ID_EX
-  ----------------------------------------------------------------------
-  u_bubble_mux : entity work.bubble_mux
+  -- =========================================================================
+  -- ID: ExtenderImm
+  -- =========================================================================
+  u_extender_imm : entity work.ExtenderImm
     port map (
-      sel_bubble         => id_bubble_sel,
-      weReg_i            => cu_weReg,
-      weRAM_i            => cu_weRAM,
-      reRAM_i            => cu_reRAM,
-      eRAM_i             => cu_eRAM,
-      isMulDiv_i         => cu_isMulDiv,
-      startMul_i         => startMul_raw,
-      selMuxPc4ALU_i     => cu_selMuxPc4ALU,
-      opExImm_i          => cu_opExImm,
-      selMuxALUPc4RAM_i  => cu_selMuxALUPc4RAM,
-      opExRAM_i          => cu_opExRAM,
-      selMuxRS2Imm_i     => cu_selMuxRS2Imm,
-      selPCRS1_i         => cu_selPCRS1,
-      opALU_i            => cu_opALU,
-      opCode_i           => cu_opCode,
-      funct3_i           => cu_funct3,
-      weReg_o            => idex_weReg,
-      weRAM_o            => idex_weRAM,
-      reRAM_o            => idex_reRAM,
-      eRAM_o             => idex_eRAM,
-      isMulDiv_o         => idex_isMulDiv,
-      startMul_o         => idex_startMul,
-      selMuxPc4ALU_o     => idex_selMuxPc4ALU,
-      opExImm_o          => idex_opExImm,
-      selMuxALUPc4RAM_o  => idex_selMuxALUPc4RAM,
-      opExRAM_o          => idex_opExRAM,
-      selMuxRS2Imm_o     => idex_selMuxRS2Imm,
-      selPCRS1_o         => idex_selPCRS1,
-      opALU_o            => idex_opALU,
-      opCode_o           => idex_opCode,
-      funct3_o           => idex_funct3
+      Inst31downto7 => ifid_instr(31 downto 7),
+      opExImm       => std_logic_vector(cu_opExImm),
+      signalOut     => id_imm
     );
 
-  ----------------------------------------------------------------------
-  -- ID/EX register (2 de 4 registradores de pipeline)
-  ----------------------------------------------------------------------
+  -- =========================================================================
+  -- ID: RegFile (leitura agora; escrita WB conectada por M2)
+  -- =========================================================================
+  u_regfile : entity work.RegFile
+    port map (
+      clk     => clk,
+      clear   => reset,
+      we      => wb_we,
+      rs1     => id_rs1_idx,
+      rs2     => id_rs2_idx,
+      rd      => wb_rd,
+      data_in => wb_data,
+      d_rs1   => id_rs1_val,
+      d_rs2   => id_rs2_val
+    );
+
+  -- =========================================================================
+  -- Hazard Detection Unit
+  -- =========================================================================
+  u_hdu : entity work.hazard_detection_unit
+    port map (
+      ifid_rs1       => ifid_rs1,
+      ifid_rs2       => ifid_rs2,
+      idex_rd        => ex_rd_idx,
+      idex_reRAM     => ex_reRAM,
+      muldiv_busy    => muldiv_busy,
+      if_pc_write_en => if_pc_write_en,
+      ifid_write_en  => ifid_write_en,
+      id_bubble_sel  => id_bubble_sel
+    );
+
+-- =========================================================================
+  -- Bubble Mux
+  -- Filtra os 7 sinais criticos (validade, multi-ciclo e efeitos colaterais).
+  -- O restante (cu_selMuxPc4ALU, cu_opALU, etc.) vai direto ao reg_ID_EX.
+  -- =========================================================================
+  u_bubble_mux : entity work.bubble_mux
+    port map (
+      sel_bubble => id_bubble_sel,
+      valid_i    => ifid_valid,
+      isMulDiv_i => cu_isMulDiv,
+      weReg_i    => cu_weReg,
+      weRAM_i    => cu_weRAM,
+      reRAM_i    => cu_reRAM,
+      eRAM_i     => cu_eRAM,
+      startMul_i => startMul_raw,
+      
+      valid_o    => bm_valid,
+      isMulDiv_o => bm_isMulDiv,
+      weReg_o    => bm_weReg,
+      weRAM_o    => bm_weRAM,
+      reRAM_o    => bm_reRAM,
+      eRAM_o     => bm_eRAM,
+      startMul_o => bm_startMul
+    );
+
+  -- =========================================================================
+  -- Registrador ID/EX
+  --
+  -- en = not muldiv_busy:
+  --   No load-use stall, o ID/EX AVANCA e recebe o NOP do bubble_mux.
+  --   Quem congela e apenas PC e IF/ID (via if_pc_write_en e ifid_write_en).
+  --   O ID/EX so congela durante muldiv_busy (multi-ciclo).
+  --
+  -- Sinais destrutivos: vem do bubble_mux (bm_*)
+  -- Demais sinais de controle: vem direto da Control Unit (cu_*)
+  -- =========================================================================
   u_reg_id_ex : entity work.reg_ID_EX
     port map (
-      clk                 => clk,
-      reset               => reset,
-      en                  => ifid_write_en,
-      flush               => ex_branch_taken,
-      in_valid            => ifid_valid,
-      in_pc               => ifid_pc,
-      in_pc4              => ifid_pc4,
-      in_instr            => ifid_instr,
-      in_rs1_idx          => id_rs1_idx,
-      in_rs2_idx          => id_rs2_idx,
-      in_rd_idx           => id_rd_idx,
-      in_rs1_val          => id_rs1_val,
-      in_rs2_val          => id_rs2_val,
-      in_imm              => id_imm,
-      in_selMuxPc4ALU     => idex_selMuxPc4ALU,
-      in_opExImm          => idex_opExImm,
-      in_selMuxALUPc4RAM  => idex_selMuxALUPc4RAM,
-      in_weReg            => idex_weReg,
-      in_opExRAM          => idex_opExRAM,
-      in_selMuxRS2Imm     => idex_selMuxRS2Imm,
-      in_selPCRS1         => idex_selPCRS1,
-      in_opALU            => idex_opALU,
-      in_isMulDiv         => idex_isMulDiv,
-      in_startMul         => idex_startMul,
-      in_weRAM            => idex_weRAM,
-      in_reRAM            => idex_reRAM,
-      in_eRAM             => idex_eRAM,
-      in_opCode           => idex_opCode,
-      in_funct3           => idex_funct3,
+      clk    => clk,
+      reset  => reset,
+      en     => not muldiv_busy,
+      flush  => flush_id_ex,
+
+      in_valid   => ifid_valid,
+      in_pc      => ifid_pc,
+      in_pc4     => ifid_pc4,
+      in_instr   => ifid_instr,
+      in_rs1_idx => id_rs1_idx,
+      in_rs2_idx => id_rs2_idx,
+      in_rd_idx  => id_rd_idx,
+      in_rs1_val => id_rs1_val,
+      in_rs2_val => id_rs2_val,
+      in_imm     => id_imm,
+
+      -- Sinais destrutivos filtrados pelo bubble_mux
+		in_valid           => bm_valid,     -- Vem protegido pelo Mux
+      in_isMulDiv        => bm_isMulDiv,  -- Vem protegido pelo Mux
+      in_weReg           => bm_weReg,
+      in_weRAM           => bm_weRAM,
+      in_reRAM           => bm_reRAM,
+      in_eRAM            => bm_eRAM,
+      in_startMul        => bm_startMul,
+
+      -- Sinais de controle direto da Control Unit (nao passam pelo bubble_mux)
+      in_selMuxPc4ALU    => cu_selMuxPc4ALU,
+      in_opExImm         => cu_opExImm,
+      in_selMuxALUPc4RAM => cu_selMuxALUPc4RAM,
+      in_opExRAM         => cu_opExRAM,
+      in_selMuxRS2Imm    => cu_selMuxRS2Imm,
+      in_selPCRS1        => cu_selPCRS1,
+      in_opALU           => cu_opALU,
+      in_isMulDiv        => cu_isMulDiv,
+      in_opCode          => cu_opCode,
+      in_funct3          => cu_funct3,
+
+      -- Saidas para o estagio EX (M2)
       idex_valid          => ex_valid,
       idex_pc             => ex_pc,
       idex_pc4            => ex_pc4,
@@ -323,33 +401,16 @@ begin
       idex_funct3         => ex_funct3
     );
 
-  ----------------------------------------------------------------------
-  -- TODO integração Passo 2+:
-  -- 1. Instanciar reg_EX_MEM.
-  -- 2. Instanciar reg_MEM_WB.
-  -- 4. Fechar datapath EX/MEM/WB reaproveitando ALU/StoreManager/ExtenderRAM.
-  --
-  -- Referência de nomes de entidades implementadas:
-  --   reg_IF_ID
-  --   reg_ID_EX
-  --   reg_EX_MEM (pendente)
-  --   reg_MEM_WB (pendente)
-  ----------------------------------------------------------------------
+  -- =========================================================================
+  -- TODO (M2): reg_EX_MEM, reg_MEM_WB, ALU, StoreManager, ExtenderRAM,
+  --   multdiv, forwarding_unit, fechar loop do RegFile.
+  -- =========================================================================
 
-  -- Defaults temporários até EX/MEM/WB serem conectados.
   ram_addr    <= (others => '0');
   ram_wdata   <= (others => '0');
   ram_en      <= '0';
   ram_wren    <= '0';
   ram_rden    <= '0';
   ram_byteena <= (others => '0');
-
-  -- Evita warning de sinal não usado durante integração incremental.
-  -- Quartus normalmente remove lógica morta na síntese.
-  -- pragma translate_off
-  assert not (ifid_valid = 'X' or ifid_pc(0) = 'X' or ifid_pc4(0) = 'X' or ram_rdata(0) = 'X')
-    report "Placeholder assert for incremental integration"
-    severity note;
-  -- pragma translate_on
 
 end architecture rtl;
