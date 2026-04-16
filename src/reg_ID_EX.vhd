@@ -25,7 +25,6 @@ entity reg_ID_EX is
 
     -- Controle vindo da Control Unit + Bubble Mux
     in_selMuxPc4ALU    : in  std_logic;
-    in_opExImm         : in  opeximm_t;
     in_selMuxALUPc4RAM : in  wbsel_t;
     in_weReg           : in  std_logic;
     in_opExRAM         : in  opexram_t;
@@ -54,7 +53,6 @@ entity reg_ID_EX is
     idex_imm     : out word_t;
 
     idex_selMuxPc4ALU    : out std_logic;
-    idex_opExImm         : out opeximm_t;
     idex_selMuxALUPc4RAM : out wbsel_t;
     idex_weReg           : out std_logic;
     idex_opExRAM         : out opexram_t;
@@ -85,7 +83,6 @@ architecture rtl of reg_ID_EX is
   signal r_imm     : word_t := (others => '0');
 
   signal r_selMuxPc4ALU    : std_logic := '0';
-  signal r_opExImm         : opeximm_t := (others => '0');
   signal r_selMuxALUPc4RAM : wbsel_t   := (others => '0');
   signal r_weReg           : std_logic := '0';
   signal r_opExRAM         : opexram_t := (others => '0');
@@ -118,7 +115,6 @@ begin
         r_imm     <= (others => '0');
 
         r_selMuxPc4ALU    <= '0';
-        r_opExImm         <= (others => '0');
         r_selMuxALUPc4RAM <= (others => '0');
         r_weReg           <= '0';
         r_opExRAM         <= (others => '0');
@@ -148,7 +144,6 @@ begin
         r_imm     <= (others => '0');
 
         r_selMuxPc4ALU    <= '0';
-        r_opExImm         <= (others => '0');
         r_selMuxALUPc4RAM <= (others => '0');
         r_weReg           <= '0';
         r_opExRAM         <= (others => '0');
@@ -177,7 +172,6 @@ begin
         r_imm     <= in_imm;
 
         r_selMuxPc4ALU    <= in_selMuxPc4ALU;
-        r_opExImm         <= in_opExImm;
         r_selMuxALUPc4RAM <= in_selMuxALUPc4RAM;
         r_weReg           <= in_weReg;
         r_opExRAM         <= in_opExRAM;
@@ -209,7 +203,6 @@ begin
   idex_imm     <= r_imm;
 
   idex_selMuxPc4ALU    <= r_selMuxPc4ALU;
-  idex_opExImm         <= r_opExImm;
   idex_selMuxALUPc4RAM <= r_selMuxALUPc4RAM;
   idex_weReg           <= r_weReg;
   idex_opExRAM         <= r_opExRAM;
