@@ -129,6 +129,7 @@ architecture rtl of rv32im_pipeline_core is
   -- Control Unit: saidas
   -- =========================================================================
   signal cu_selMuxPc4ALU    : std_logic;
+  signal cu_opExImm         : opeximm_t;
   signal cu_selMuxALUPc4RAM : wbsel_t;
   signal cu_weReg           : std_logic;
   signal cu_opExRAM         : opexram_t;
@@ -161,8 +162,6 @@ architecture rtl of rv32im_pipeline_core is
   signal bm_weRAM           : std_logic;
   signal bm_reRAM           : std_logic;
   signal bm_eRAM            : std_logic;
-  signal bm_opCode          : std_logic_vector(6 downto 0);
-  signal bm_funct3          : std_logic_vector(2 downto 0);
 
   -- =========================================================================
   -- Saidas do reg_ID_EX (disponibilizadas para o estagio EX / M2)
@@ -290,6 +289,7 @@ begin
     port map (
       instruction     => ifid_instr,
       selMuxPc4ALU    => cu_selMuxPc4ALU,
+      opExImm         => cu_opExImm,
       selMuxALUPc4RAM => cu_selMuxALUPc4RAM,
       weReg           => cu_weReg,
       opExRAM         => cu_opExRAM,
@@ -310,6 +310,7 @@ begin
   u_extender_imm : entity work.ExtenderImm
     port map (
       Inst31downto7 => ifid_instr(31 downto 7),
+      opExImm       => std_logic_vector(cu_opExImm),
       signalOut     => id_imm
     );
 
@@ -371,8 +372,6 @@ begin
       selMuxRS2Imm_i    => cu_selMuxRS2Imm,
       selPCRS1_i        => cu_selPCRS1,
       opALU_i           => cu_opALU,
-      opCode_i          => cu_opCode,
-      funct3_i          => cu_funct3,
       -- Saidas para o reg_ID_EX
       weReg_o           => bm_weReg,
       weRAM_o           => bm_weRAM,
@@ -386,8 +385,6 @@ begin
       selMuxRS2Imm_o    => bm_selMuxRS2Imm,
       selPCRS1_o        => bm_selPCRS1,
       opALU_o           => bm_opALU,
-      opCode_o          => bm_opCode,
-      funct3_o          => bm_funct3
     );
 
   -- =========================================================================
@@ -443,8 +440,8 @@ begin
       in_weRAM           => bm_weRAM,
       in_reRAM           => bm_reRAM,
       in_eRAM            => bm_eRAM,
-      in_opCode          => bm_opCode,
-      in_funct3          => bm_funct3,
+      in_opCode          => cu_opCode,
+      in_funct3          => cu_funct3,
 
       -- Saidas para o estagio EX (consumidas por M2)
       idex_valid          => ex_valid,
