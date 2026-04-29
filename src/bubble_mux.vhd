@@ -3,9 +3,8 @@
 -- Bubble MUX do pipeline RV32IM 5 estagios
 --
 -- Fica entre a Control Unit e o registrador ID/EX.
--- Quando sel_bubble = '1', zera os 5 sinais que causam efeito colateral.
--- Os demais sinais da Control Unit vao DIRETAMENTE para o reg_ID_EX,
--- sem passar por aqui.
+-- Quando sel_bubble = '1', zera apenas os sinais que podem causar efeito
+-- colateral ou criar hazards falsos nos estagios seguintes.
 --
 -- Sinais controlados:
 --   weReg    -- escrita no banco de registradores
@@ -15,7 +14,11 @@
 --   startMul -- pulso de inicio do multdiv
 --
 -- Quando sel_bubble = '0': saidas = entradas (passagem normal)
--- Quando sel_bubble = '1': saidas = "00000"  (NOP: nenhum efeito colateral)
+-- Quando sel_bubble = '1': saidas = "00000" (NOP sem efeito colateral)
+--
+-- Os demais controles seguem diretamente da Control Unit para o reg_ID_EX.
+-- A bolha tambem marca in_valid='0' no reg_ID_EX; por isso sinais como opALU,
+-- seletores de mux, opExRAM e isMulDiv nao precisam passar por este mux.
 -- =============================================================================
 
 library ieee;

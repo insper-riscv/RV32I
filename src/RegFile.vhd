@@ -52,82 +52,90 @@ begin
       );
   end generate;
 
-  process(rs1, registers)
+  process(rs1, registers, we, rd, data_in)
   begin
-    case to_integer(unsigned(rs1)) is
-      when 0  => decode_source_1 <= (others => '0');
-      when 1  => decode_source_1 <= registers(1);
-      when 2  => decode_source_1 <= registers(2);
-      when 3  => decode_source_1 <= registers(3);
-      when 4  => decode_source_1 <= registers(4);
-      when 5  => decode_source_1 <= registers(5);
-      when 6  => decode_source_1 <= registers(6);
-      when 7  => decode_source_1 <= registers(7);
-      when 8  => decode_source_1 <= registers(8);
-      when 9  => decode_source_1 <= registers(9);
-      when 10 => decode_source_1 <= registers(10);
-      when 11 => decode_source_1 <= registers(11);
-      when 12 => decode_source_1 <= registers(12);
-      when 13 => decode_source_1 <= registers(13);
-      when 14 => decode_source_1 <= registers(14);
-      when 15 => decode_source_1 <= registers(15);
-      when 16 => decode_source_1 <= registers(16);
-      when 17 => decode_source_1 <= registers(17);
-      when 18 => decode_source_1 <= registers(18);
-      when 19 => decode_source_1 <= registers(19);
-      when 20 => decode_source_1 <= registers(20);
-      when 21 => decode_source_1 <= registers(21);
-      when 22 => decode_source_1 <= registers(22);
-      when 23 => decode_source_1 <= registers(23);
-      when 24 => decode_source_1 <= registers(24);
-      when 25 => decode_source_1 <= registers(25);
-      when 26 => decode_source_1 <= registers(26);
-      when 27 => decode_source_1 <= registers(27);
-      when 28 => decode_source_1 <= registers(28);
-      when 29 => decode_source_1 <= registers(29);
-      when 30 => decode_source_1 <= registers(30);
-      when 31 => decode_source_1 <= registers(31);
-      when others => decode_source_1 <= (others => '0');
-    end case;
+    if we = '1' and rd /= "00000" and rd = rs1 then
+      decode_source_1 <= data_in;
+    else
+      case to_integer(unsigned(rs1)) is
+        when 0  => decode_source_1 <= (others => '0');
+        when 1  => decode_source_1 <= registers(1);
+        when 2  => decode_source_1 <= registers(2);
+        when 3  => decode_source_1 <= registers(3);
+        when 4  => decode_source_1 <= registers(4);
+        when 5  => decode_source_1 <= registers(5);
+        when 6  => decode_source_1 <= registers(6);
+        when 7  => decode_source_1 <= registers(7);
+        when 8  => decode_source_1 <= registers(8);
+        when 9  => decode_source_1 <= registers(9);
+        when 10 => decode_source_1 <= registers(10);
+        when 11 => decode_source_1 <= registers(11);
+        when 12 => decode_source_1 <= registers(12);
+        when 13 => decode_source_1 <= registers(13);
+        when 14 => decode_source_1 <= registers(14);
+        when 15 => decode_source_1 <= registers(15);
+        when 16 => decode_source_1 <= registers(16);
+        when 17 => decode_source_1 <= registers(17);
+        when 18 => decode_source_1 <= registers(18);
+        when 19 => decode_source_1 <= registers(19);
+        when 20 => decode_source_1 <= registers(20);
+        when 21 => decode_source_1 <= registers(21);
+        when 22 => decode_source_1 <= registers(22);
+        when 23 => decode_source_1 <= registers(23);
+        when 24 => decode_source_1 <= registers(24);
+        when 25 => decode_source_1 <= registers(25);
+        when 26 => decode_source_1 <= registers(26);
+        when 27 => decode_source_1 <= registers(27);
+        when 28 => decode_source_1 <= registers(28);
+        when 29 => decode_source_1 <= registers(29);
+        when 30 => decode_source_1 <= registers(30);
+        when 31 => decode_source_1 <= registers(31);
+        when others => decode_source_1 <= (others => '0');
+      end case;
+    end if;
   end process;
 
-  process(rs2, registers)
+  process(rs2, registers, we, rd, data_in)
   begin
-    case to_integer(unsigned(rs2)) is
-      when 0  => decode_source_2 <= (others => '0');
-      when 1  => decode_source_2 <= registers(1);
-      when 2  => decode_source_2 <= registers(2);
-      when 3  => decode_source_2 <= registers(3);
-      when 4  => decode_source_2 <= registers(4);
-      when 5  => decode_source_2 <= registers(5);
-      when 6  => decode_source_2 <= registers(6);
-      when 7  => decode_source_2 <= registers(7);
-      when 8  => decode_source_2 <= registers(8);
-      when 9  => decode_source_2 <= registers(9);
-      when 10 => decode_source_2 <= registers(10);
-      when 11 => decode_source_2 <= registers(11);
-      when 12 => decode_source_2 <= registers(12);
-      when 13 => decode_source_2 <= registers(13);
-      when 14 => decode_source_2 <= registers(14);
-      when 15 => decode_source_2 <= registers(15);
-      when 16 => decode_source_2 <= registers(16);
-      when 17 => decode_source_2 <= registers(17);
-      when 18 => decode_source_2 <= registers(18);
-      when 19 => decode_source_2 <= registers(19);
-      when 20 => decode_source_2 <= registers(20);
-      when 21 => decode_source_2 <= registers(21);
-      when 22 => decode_source_2 <= registers(22);
-      when 23 => decode_source_2 <= registers(23);
-      when 24 => decode_source_2 <= registers(24);
-      when 25 => decode_source_2 <= registers(25);
-      when 26 => decode_source_2 <= registers(26);
-      when 27 => decode_source_2 <= registers(27);
-      when 28 => decode_source_2 <= registers(28);
-      when 29 => decode_source_2 <= registers(29);
-      when 30 => decode_source_2 <= registers(30);
-      when 31 => decode_source_2 <= registers(31);
-      when others => decode_source_2 <= (others => '0');
-    end case;
+    if we = '1' and rd /= "00000" and rd = rs2 then
+      decode_source_2 <= data_in;
+    else
+      case to_integer(unsigned(rs2)) is
+        when 0  => decode_source_2 <= (others => '0');
+        when 1  => decode_source_2 <= registers(1);
+        when 2  => decode_source_2 <= registers(2);
+        when 3  => decode_source_2 <= registers(3);
+        when 4  => decode_source_2 <= registers(4);
+        when 5  => decode_source_2 <= registers(5);
+        when 6  => decode_source_2 <= registers(6);
+        when 7  => decode_source_2 <= registers(7);
+        when 8  => decode_source_2 <= registers(8);
+        when 9  => decode_source_2 <= registers(9);
+        when 10 => decode_source_2 <= registers(10);
+        when 11 => decode_source_2 <= registers(11);
+        when 12 => decode_source_2 <= registers(12);
+        when 13 => decode_source_2 <= registers(13);
+        when 14 => decode_source_2 <= registers(14);
+        when 15 => decode_source_2 <= registers(15);
+        when 16 => decode_source_2 <= registers(16);
+        when 17 => decode_source_2 <= registers(17);
+        when 18 => decode_source_2 <= registers(18);
+        when 19 => decode_source_2 <= registers(19);
+        when 20 => decode_source_2 <= registers(20);
+        when 21 => decode_source_2 <= registers(21);
+        when 22 => decode_source_2 <= registers(22);
+        when 23 => decode_source_2 <= registers(23);
+        when 24 => decode_source_2 <= registers(24);
+        when 25 => decode_source_2 <= registers(25);
+        when 26 => decode_source_2 <= registers(26);
+        when 27 => decode_source_2 <= registers(27);
+        when 28 => decode_source_2 <= registers(28);
+        when 29 => decode_source_2 <= registers(29);
+        when 30 => decode_source_2 <= registers(30);
+        when 31 => decode_source_2 <= registers(31);
+        when others => decode_source_2 <= (others => '0');
+      end case;
+    end if;
   end process;
 
   d_rs1 <= decode_source_1;

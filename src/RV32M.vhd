@@ -9,8 +9,6 @@ entity RV32M is
   port (
     clk      : in  std_logic;
     rst      : in  std_logic;
-    rst      : in  std_logic;
-    rst      : in  std_logic;
     start    : in  std_logic;                      -- Pode manter conectado ao Core, mas não será usado na lógica combinacional
     funct3   : in  std_logic_vector(2 downto 0);
     rs1      : in  std_logic_vector(31 downto 0);

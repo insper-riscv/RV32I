@@ -310,4 +310,5 @@ set_global_assignment -name VHDL_FILE multdiv.vhd
 set_global_assignment -name QIP_FILE mult.qip
 set_global_assignment -name QIP_FILE mhu.qip
 set_global_assignment -name QIP_FILE div.qip
+set_global_assignment -name QIP_FILE divu.qip
 set_global_assignment -name VHDL_FILE decoderM.vhd

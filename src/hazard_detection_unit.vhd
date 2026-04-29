@@ -11,10 +11,11 @@
 --    Como o dado so fica disponivel apos MEM, forwarding sozinho nao resolve.
 --
 --    Condicao de deteccao (Patterson & Hennessy, Computer Organization and
---    Design RISC-V Edition, 2nd ed., Section 4.8):
+--    Design RISC-V Edition, 2nd ed., Section 4.8), refinada para RV32I:
 --      idex_reRAM = '1'   (instrucao em EX e um load)
 --      idex_rd  /= "00000"  (destino valido, nao x0)
---      (idex_rd = ifid_rs1) OR (idex_rd = ifid_rs2)
+--      (idex_rd = ifid_rs1 E instrucao em ID usa rs1) OU
+--      (idex_rd = ifid_rs2 E instrucao em ID usa rs2)
 --
 --    Acao:
 --      if_pc_write_en  <= '0'  -> congela PC
@@ -35,6 +36,7 @@
 --   Lidos de IF/ID (instrucao no estagio ID):
 --     ifid_rs1  -- instruction(19:15) -- rs1 da instrucao em ID
 --     ifid_rs2  -- instruction(24:20) -- rs2 da instrucao em ID
+--     ifid_opcode -- instruction(6:0), usado para saber se rs1/rs2 sao fontes
 --   Lidos de ID/EX saida (instrucao no estagio EX):
 --     idex_rd   -- rd da instrucao que esta em EX
 --     idex_reRAM -- '1' se a instrucao em EX e um load
@@ -57,9 +59,11 @@ entity hazard_detection_unit is
     -- -------------------------------------------------------------------------
     -- Entradas de IF/ID (instrucao atualmente no estagio ID)
     -- -------------------------------------------------------------------------
-    -- rs1 e rs2 da instrucao que esta sendo decodificada (IF/ID saida)
+    -- rs1, rs2 e opcode da instrucao que esta sendo decodificada (IF/ID saida)
+    ifid_valid : in std_logic;
     ifid_rs1  : in reg_t;   -- ifid_instr(19 downto 15)
     ifid_rs2  : in reg_t;   -- ifid_instr(24 downto 20)
+    ifid_opcode : in std_logic_vector(6 downto 0); -- ifid_instr(6 downto 0)
 
     -- -------------------------------------------------------------------------
     -- Entradas de ID/EX saida (instrucao atualmente no estagio EX)
@@ -99,19 +103,43 @@ architecture rtl of hazard_detection_unit is
 
   signal load_use_hazard : std_logic;
   signal stall           : std_logic;
+  signal ifid_uses_rs1   : std_logic;
+  signal ifid_uses_rs2   : std_logic;
 
 begin
+
+  -- -------------------------------------------------------------------------
+  -- Decode minimo de registradores fonte da instrucao em ID.
+  -- Evita stall falso quando ifid_rs2 contem bits de imediato (I-type/load).
+  -- -------------------------------------------------------------------------
+  ifid_uses_rs1 <=
+    '1' when (ifid_valid = '1' and
+              (ifid_opcode = "0110011" or  -- R-type / M
+               ifid_opcode = "0010011" or  -- I-type ALU
+               ifid_opcode = "0000011" or  -- load
+               ifid_opcode = "0100011" or  -- store
+               ifid_opcode = "1100011" or  -- branch
+               ifid_opcode = "1100111"))   -- JALR
+    else '0';
+
+  ifid_uses_rs2 <=
+    '1' when (ifid_valid = '1' and
+              (ifid_opcode = "0110011" or  -- R-type / M
+               ifid_opcode = "0100011" or  -- store
+               ifid_opcode = "1100011"))   -- branch
+    else '0';
 
   -- -------------------------------------------------------------------------
   -- Deteccao de load-use hazard
   -- Condicao: instrucao em EX e um load (idex_reRAM = '1')
   --           E o rd do load nao e x0 (nao pode causar hazard)
-  --           E o rd do load coincide com rs1 ou rs2 da instrucao em ID
+  --           E o rd coincide com uma fonte real da instrucao em ID
   -- -------------------------------------------------------------------------
   load_use_hazard <=
     '1' when (idex_reRAM = '1'                  and
               idex_rd /= "00000"                 and
-              (idex_rd = ifid_rs1 or idex_rd = ifid_rs2))
+              ((ifid_uses_rs1 = '1' and idex_rd = ifid_rs1) or
+               (ifid_uses_rs2 = '1' and idex_rd = ifid_rs2)))
     else '0';
 
   -- -------------------------------------------------------------------------
