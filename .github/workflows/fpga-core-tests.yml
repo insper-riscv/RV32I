@@ -4,9 +4,12 @@ on:
   push:
     branches:
       - main
+      - test-pipeline
+
   pull_request:
     branches:
       - main
+      - test-pipeline
 
 jobs:
   fpga-core-test:
