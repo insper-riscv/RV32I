@@ -41,7 +41,7 @@ set_global_assignment -name DEVICE 5CEBA4F23C7
 set_global_assignment -name TOP_LEVEL_ENTITY core_fpga_test
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 18.1.0
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "15:37:02  DECEMBER 04, 2025"
-set_global_assignment -name LAST_QUARTUS_VERSION "23.1std.0 Lite Edition"
+set_global_assignment -name LAST_QUARTUS_VERSION "25.1std.0 Lite Edition"
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
@@ -64,6 +64,14 @@ set_global_assignment -name VHDL_FILE ../../../../src/ALU.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/InstructionDecoder.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/RegFile.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/rv32i3stage_core.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/pc_fetch.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/bubble_mux.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/control_unit.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/forwarding_unit.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/hazard_detection_unit.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/reg_IF_ID.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/reg_EX_MEM.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/reg_MEM_WB.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/rv32im_pipeline_core.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/reg_ID_EX.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/rv32i_ctrl_consts.vhd
@@ -326,6 +334,8 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[9]
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 set_global_assignment -name VHDL_FILE ../../../../src/multdiv.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/mult.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/booth_multiplier_rv32.vhd
+set_global_assignment -name VHDL_FILE ../../../../src/non_restoring_divider_rv32.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/div.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/decoderM.vhd
 set_global_assignment -name VHDL_FILE ../../../../src/mhu.vhd

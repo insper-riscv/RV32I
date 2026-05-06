@@ -29,40 +29,41 @@ architecture behaviour of core_fpga_test is
 	signal pll_clk_wb     : std_logic;
 	signal pll_locked     : std_logic;
 
+	signal core_reset     : std_logic;
+
 begin
 
 	pll_inst : entity work.pll
     port map (
       refclk   => CLOCK_50,
-      rst      => '0', -- reset ativo alto no PLL
+      rst      => '0',
       outclk_0 => pll_clk_if,
       outclk_1 => pll_clk_idexmem,
       outclk_2 => pll_clk_wb,
       locked   => pll_locked
     );
 
+	-- Mantém o core em reset enquanto o PLL não está locked.
+	-- Importante para inicializar o Booth multiplier e o NR divider em S_IDLE
+	-- (sem isso, podem iniciar num estado inválido com busy=1 permanente).
+	core_reset <= not pll_locked;
+
 	CORE : entity work.rv32im_pipeline_core
 		port map (
 			clk          => pll_clk_idexmem,
-			reset 		=> '0',
+			reset 		=> core_reset,
 
-			----------------------------------------------------------------------
-			-- Interface com a ROM (somente leitura)
-			----------------------------------------------------------------------
-			rom_addr => rom_addr,	-- endereço de instrução
-			rom_rden => rom_rden,	-- enable de leitura
-			rom_data => rom_data,	-- dados lidos da ROM
+			rom_addr => rom_addr,
+			rom_rden => rom_rden,
+			rom_data => rom_data,
 
-			----------------------------------------------------------------------
-			-- Interface com a RAM (leitura e escrita)
-			----------------------------------------------------------------------
-			ram_addr    => ram_addr, 	-- endereço de palavra
-			ram_wdata   => ram_wdata, 	-- dados a escrever (saida do store manager)
-			ram_rdata   => ram_rdata, 	-- dados lidos
-			ram_en      => ram_en, 		-- enable ram	
-			ram_wren    => ram_wren,    -- write enable
-			ram_rden    => ram_rden,    -- read enable
-			ram_byteena => ram_byteena 	-- máscara de bytes
+			ram_addr    => ram_addr,
+			ram_wdata   => ram_wdata,
+			ram_rdata   => ram_rdata,
+			ram_en      => ram_en,
+			ram_wren    => ram_wren,
+			ram_rden    => ram_rden,
+			ram_byteena => ram_byteena
 	);
 
 	ROM : entity work.rom1port
@@ -83,12 +84,11 @@ begin
 		wren    => ram_wren and ram_en,
 		q       => ram_rdata
 	 );
-	 
+
 	 blink : entity work.Blinky
 	 port map (
 		clk => CLOCK_50,
 		led => LEDR(0)
 	 );
-
 
 end architecture;

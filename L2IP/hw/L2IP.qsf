@@ -279,13 +279,13 @@ set_global_assignment -name VHDL_FILE ../../src/bubble_mux.vhd
 set_global_assignment -name VHDL_FILE ../../src/reg_IF_ID.vhd
 set_global_assignment -name VHDL_FILE ../../src/pc_fetch.vhd
 set_global_assignment -name VHDL_FILE ../../src/mult.vhd
-set_global_assignment -name QIP_FILE ../../src/mult.qip
-set_global_assignment -name SOURCE_FILE ../../src/mult.cmp
+set_global_assignment -name VHDL_FILE ../../src/booth_multiplier_rv32.vhd
+set_global_assignment -name VHDL_FILE ../../src/non_restoring_divider_rv32.vhd
+set_global_assignment -name VHDL_FILE ../../src/div.vhd
+set_global_assignment -name VHDL_FILE ../../src/divu.vhd
 set_global_assignment -name VHDL_FILE ../../src/decoderM.vhd
 set_global_assignment -name VHDL_FILE ../../src/multdiv.vhd
-set_global_assignment -name QIP_FILE ../../src/mhu.qip
 set_global_assignment -name VHDL_FILE ../../src/extendSigned.vhd
-set_global_assignment -name QIP_FILE ../../src/div.qip
 set_global_assignment -name VHDL_FILE ../../src/PLL/pll.vhd
 set_global_assignment -name VERILOG_FILE ../../src/PLL/pll_0002.v
 set_global_assignment -name VHDL_FILE ../../src/GPIO/TRISTATE_BUFFER_1BIT.vhd
@@ -308,7 +308,6 @@ set_global_assignment -name VHDL_FILE ../../src/StoreManager.vhd
 set_global_assignment -name VHDL_FILE ../../src/rv32i_ctrl_consts.vhd
 set_global_assignment -name VHDL_FILE ../../src/rv32im_pipeline_types.vhd
 set_global_assignment -name VHDL_FILE ../../src/RegFile.vhd
-set_global_assignment -name VHDL_FILE ../../src/RAM.vhd
 set_global_assignment -name VHDL_FILE ../../src/InstructionDecoder.vhd
 set_global_assignment -name VHDL_FILE ../../src/genericRegister.vhd
 set_global_assignment -name VHDL_FILE ../../src/genericMux3x1.vhd
@@ -332,7 +331,6 @@ set_global_assignment -name VHDL_FILE ../../src/TIMER/GENERIC_MUX_2X1.vhd
 set_global_assignment -name VHDL_FILE ../../src/TIMER/GENERIC_REGISTER.vhd
 set_global_assignment -name VHDL_FILE ../../src/TIMER/TIMER.vhd
 set_global_assignment -name VHDL_FILE ../../src/TIMER/TIMER_OPERATION_DECODER.vhd
-set_global_assignment -name QIP_FILE ../../src/divu.qip
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
