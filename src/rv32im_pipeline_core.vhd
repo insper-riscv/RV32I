@@ -43,16 +43,37 @@ entity rv32im_pipeline_core is
     clk   : in  std_logic;
     reset : in  std_logic;
 
-    -- Interface com a ROM (porta A: busca de instrucao)
-    rom_addr : out std_logic_vector(31 downto 0);
-    rom_rden : out std_logic;
-    rom_data : in  std_logic_vector(31 downto 0);
+    -- Interface de busca de instrucao (estagio IF) -- barramento UNICO
+    -- compartilhado por BOOT_ROM e FLASH (ambas sempre respondem ao
+    -- mesmo endereco if_pc todo ciclo; is_boot_rom_if/is_boot_rom_d
+    -- abaixo decidem qual dado confiar). 3 memorias fisicas agora:
+    -- BOOT_ROM (fixa, gravada uma unica vez, nunca reescrita via JTAG
+    -- por teste) + FLASH (o "firmware", reescrita por teste) + RAM
+    -- (dados de verdade, unico consumidor do estagio MEM). Ver
+    -- link.ld/config.yaml memory.boot_rom_words/rom_words/ram_words.
+    if_addr       : out std_logic_vector(31 downto 0);
+    if_rden       : out std_logic;
+    boot_rom_data : in  std_logic_vector(31 downto 0);
+    flash_data    : in  std_logic_vector(31 downto 0);
 
-    -- Interface com a ROM (porta B: leitura de dado pelo estagio MEM --
-    -- Harvard modificado, ver is_rom_data/is_rom_data_wb abaixo)
-    rom_addr2 : out std_logic_vector(31 downto 0);
-    rom_rden2 : out std_logic;
-    rom_data2 : in  std_logic_vector(31 downto 0);
+    -- Interface de leitura de dado pelo estagio MEM, so' para FLASH
+    -- (BOOT_ROM nunca tem .data proprio -- ver boot_rom.S -- entao
+    -- nunca precisa ser lido como dado). Necessaria especificamente
+    -- para o copy-loop de _boot_continue (boot_rom.S) conseguir ler
+    -- .data da FLASH (a fonte, LMA) e escrever na RAM (o destino,
+    -- VMA) -- confirmado em hardware real que sem isso o `lw` do
+    -- copy-loop simplesmente nao alcancava FLASH (so' RAM), entao
+    -- .data nunca era copiado (bss/computo funcionavam normalmente,
+    -- so' .data inicializado ficava zerado). Fiel ao que uma SoC de
+    -- verdade faz (a CPU le a Flash como dado pra copiar pra RAM no
+    -- boot, via o mesmo controlador memory-mapped que atende busca de
+    -- instrucao) -- a segunda instancia fisica do lado de hardware
+    -- real (ver core_fpga_test.vhd FLASH_MEM) e' um artefato do
+    -- Quartus Lite (DUAL_PORT + ENABLE_RUNTIME_MOD nao compilam
+    -- juntos), nao algo que uma SoC real precisaria.
+    flash_addr2 : out std_logic_vector(31 downto 0);
+    flash_rden2 : out std_logic;
+    flash_data2 : in  std_logic_vector(31 downto 0);
 
     -- Interface com a RAM
     ram_addr    : out std_logic_vector(31 downto 0);
@@ -105,6 +126,29 @@ architecture rtl of rv32im_pipeline_core is
   -- =========================================================================
   signal if_pc  : word_t;
   signal if_pc4 : word_t;
+
+  -- BOOT_ROM x FLASH: decodificacao de endereco de busca, puramente
+  -- combinacional (ver comentario junto do mux, mais abaixo, para o
+  -- porque de NAO ter um registrador aqui -- um registrador extra
+  -- causou um bug real de alinhamento de clock, so' visivel em
+  -- hardware real, nao no GHDL).
+  --
+  -- 2K (512 words) -- folga confortavel para o bootloader fixo
+  -- (boot_rom.S: trampolim + copy-loop + bss-zero + rv32_wait_restart),
+  -- sem TLS/outras miudezas que o crt0.S antigo carregava mas nada
+  -- usa. Precisa bater com boot_rom.ld (BOOT_ROM_SIZE) e config.yaml
+  -- memory.boot_rom_words (=512).
+  constant BOOT_ROM_SIZE_BYTES : unsigned(31 downto 0) := to_unsigned(16#00000800#, 32);
+  signal is_boot_rom_if : std_logic;
+  signal if_instr_mux   : std_logic_vector(31 downto 0);
+
+  -- FLASH x RAM: decodificacao de endereco de dado (estagio MEM/WB) --
+  -- ver comentario junto do mux, na secao do estagio MEM. RAM_BASE_BYTES
+  -- precisa bater com config.yaml memory.ram_base.
+  constant RAM_BASE_BYTES : unsigned(31 downto 0) := to_unsigned(16#00008000#, 32);
+  signal is_flash_data    : std_logic;  -- decodificado no estagio MEM (exmem_alu_out)
+  signal is_flash_data_wb : std_logic;  -- mesmo decode, 1 ciclo depois, para o mux de WB
+  signal mem_read_data    : std_logic_vector(31 downto 0);  -- FLASH(porta 2) ou RAM, o que o WB consome
 
   -- =========================================================================
   -- Registrador IF/ID
@@ -240,15 +284,6 @@ architecture rtl of rv32im_pipeline_core is
   signal memwb_selMuxALUPc4RAM : wbsel_t;
 
   -- =========================================================================
-  -- Harvard modificado: decodificacao ROM/RAM por endereco (bit 16 --
-  -- ROM ocupa 0x00000000-0x0000FFFF, RAM 0x00010000-0x0001FFFF, ver
-  -- link.ld/config.yaml memory.ram_base). '1' = endereco cai na ROM.
-  -- =========================================================================
-  signal is_rom_data    : std_logic;  -- decodificado no estagio MEM (exmem_alu_out)
-  signal is_rom_data_wb : std_logic;  -- mesmo decode, 1 ciclo depois, para o mux de WB
-  signal mem_read_data  : std_logic_vector(31 downto 0);  -- RAM ou ROM (porta B), o que o WB consome
-
-  -- =========================================================================
   -- Estagio WB: saida do ExtenderRAM (dado de load extendido)
   -- =========================================================================
   signal wb_ram_extended : word_t;
@@ -325,9 +360,40 @@ begin
       jalr_target    => ex_jalr_target,
       pc_out         => if_pc,
       pc4_out        => if_pc4,
-      rom_addr       => rom_addr,
-      rom_rden       => rom_rden
+      rom_addr       => if_addr,
+      rom_rden       => if_rden
     );
+
+  -- BOOT_ROM x FLASH: decode + mux (ver comentario junto do sinal, acima).
+  --
+  -- BUG REAL, CONFIRMADO EM HARDWARE (nao aparecia no GHDL): a versao
+  -- anterior deste trecho REGISTRAVA is_boot_rom_if (is_boot_rom_d,
+  -- amostrado em `clk` = pll_clk_idexmem) antes de usar no mux. Isso
+  -- introduz UM CICLO A MAIS de atraso do que o necessario, porque
+  -- reg_IF_ID tambem captura in_pc <= if_pc DIRETO (sem registrador
+  -- extra) -- para o endereco (in_pc) e a instrucao (in_instr) ficarem
+  -- alinhados no MESMO ciclo de captura, o select do mux tem que usar
+  -- o MESMO if_pc "atual" (pre-borda), nao uma copia atrasada.
+  --
+  -- No hardware real, pll_clk_if e pll_clk_idexmem sao saidas
+  -- ESTAGADAS da MESMA PLL (ver src/PLL/pll_0002.v: outclk_0 fase 0,
+  -- outclk_1 fase 6667ps -- 1/3 de um periodo de 20ns), nao um clock
+  -- unico como o clk_gen_3way do GHDL modelava (sem essa defasagem
+  -- real) -- e' exatamente essa defasagem real que expos o
+  -- off-by-one: com o registrador extra, o mux acabava selecionando
+  -- com o endereco de DOIS ciclos atras em vez de um, entao a
+  -- instrucao que reg_IF_ID capturava nunca correspondia ao PC real
+  -- (o core nunca saia do boot corretamente -- mailbox nunca era
+  -- escrita, confirmado via `riscv-tools run` na placa).
+  --
+  -- Combinacional resolve: is_boot_rom_if (decodificado do if_pc
+  -- "atual", pre-borda) e' exatamente o mesmo sinal que reg_IF_ID usa
+  -- para in_pc nesse mesmo instante -- sem registrador extra, sem
+  -- reset explicito precisando tratar o vetor de reset (if_pc=0 no
+  -- reset ja decodifica '1' sozinho, ja que 0 < BOOT_ROM_SIZE_BYTES).
+  is_boot_rom_if <= '1' when unsigned(if_pc) < BOOT_ROM_SIZE_BYTES else '0';
+
+  if_instr_mux <= boot_rom_data when is_boot_rom_if = '1' else flash_data;
 
   -- =========================================================================
   -- Registrador IF/ID
@@ -340,7 +406,7 @@ begin
       flush         => flush_if_id,
       in_pc         => if_pc,
       in_pc4        => if_pc4,
-      in_instr      => rom_data,
+      in_instr      => if_instr_mux,
       ifid_valid    => ifid_valid,
       ifid_pc       => ifid_pc,
       ifid_pc4      => ifid_pc4,
@@ -631,33 +697,39 @@ begin
     );
 
   -- =========================================================================
-  -- MEM stage: interface com a RAM e com a porta B da ROM (Harvard
-  -- modificado)
+  -- MEM stage: interface com a RAM e com a segunda porta da FLASH
   --
-  -- Endereco decide o destino: is_rom_data='1' manda a leitura para a
-  -- porta B da ROM (rom_addr2/rom_rden2) em vez da RAM. Escrita nunca
-  -- alcanca a ROM -- fisicamente nao existe wren na porta B (ver
-  -- rom2port.vhd) -- entao ram_wren so e' relevante quando o endereco
-  -- e' mesmo de RAM; gate-alo por "not is_rom_data" so' evita gastar
-  -- um ciclo de RAM (en/rden) num endereco que nao e' dela.
+  -- BOOT_ROM continua fetch-only (nunca tem .data proprio). FLASH
+  -- agora tem uma segunda porta de leitura so' para o estagio MEM --
+  -- necessaria para _boot_continue (boot_rom.S) conseguir copiar
+  -- .data de FLASH pra RAM no boot (confirmado em hardware real:
+  -- sem isso, o `lw` do copy-loop nao alcancava FLASH, so' RAM, e
+  -- .data nunca era copiado -- ver flash_addr2 no topo do arquivo).
+  -- Escrita nunca alcanca FLASH -- fisicamente nao existe wren na
+  -- porta 2 (ver core_fpga_test.vhd FLASH_MEM) -- entao ram_wren so'
+  -- e' relevante quando o endereco e' mesmo de RAM.
   --
-  -- A RAM_simulation/RAM1PORT e a ROM (ambas as portas) tem leitura
-  -- SINCRONA: quando *_rden='1' no ciclo N, o dado aparece na saida no
-  -- ciclo N+1. No ciclo N+1 a instrucao ja estara em WB, e o
+  -- Comparacao (nao 1 bit unico, ja que FLASH e RAM tem tamanhos
+  -- diferentes): endereco < RAM_BASE_BYTES cai em FLASH, senao RAM.
+  -- Ver config.yaml memory.ram_base -- precisa bater.
+  --
+  -- A RAM_simulation/RAM1PORT/FLASH (ambas as portas) tem leitura
+  -- SINCRONA: quando *_rden='1' no ciclo N, o dado aparece na saida
+  -- no ciclo N+1. No ciclo N+1 a instrucao ja estara em WB, e o
   -- ExtenderRAM (posicionado em WB) processara mem_read_data.
   --
   -- Endereco e dado de escrita vem diretamente do reg_EX_MEM.
   -- =========================================================================
-  is_rom_data <= not exmem_alu_out(16);
+  is_flash_data <= '1' when unsigned(exmem_alu_out) < RAM_BASE_BYTES else '0';
 
-  rom_addr2 <= exmem_alu_out;
-  rom_rden2 <= exmem_reRAM and exmem_valid and is_rom_data;
+  flash_addr2 <= exmem_alu_out;
+  flash_rden2 <= exmem_reRAM and exmem_valid and is_flash_data;
 
   ram_addr    <= exmem_alu_out;
   ram_wdata   <= exmem_store_data;
-  ram_en      <= exmem_eRAM  and exmem_valid and (not is_rom_data);
-  ram_wren    <= exmem_weRAM and exmem_valid and (not is_rom_data);
-  ram_rden    <= exmem_reRAM and exmem_valid and (not is_rom_data);
+  ram_en      <= exmem_eRAM  and exmem_valid and (not is_flash_data);
+  ram_wren    <= exmem_weRAM and exmem_valid and (not is_flash_data);
+  ram_rden    <= exmem_reRAM and exmem_valid and (not is_flash_data);
   ram_byteena <= exmem_byteena;
 
   -- =========================================================================
@@ -690,17 +762,17 @@ begin
     );
 
   -- =========================================================================
-  -- WB stage: mux ROM(porta B)/RAM + ExtenderRAM
+  -- WB stage: mux FLASH(porta 2)/RAM + ExtenderRAM
   --
   -- memwb_alu_out e' o mesmo endereco que gerou o acesso em MEM, um
-  -- ciclo atras -- reusa-lo aqui poupa registrar is_rom_data a parte,
-  -- ja que o proprio reg_MEM_WB ja carrega alu_out adiante.
+  -- ciclo atras -- reusa-lo aqui poupa registrar is_flash_data a
+  -- parte, ja que o proprio reg_MEM_WB ja carrega alu_out adiante.
   --
   -- Extende o dado lido de acordo com o tipo do load (LB/LH/LW/LBU/LHU)
   -- e o byte offset (alu_out[1:0]).
   -- =========================================================================
-  is_rom_data_wb <= not memwb_alu_out(16);
-  mem_read_data  <= rom_data2 when is_rom_data_wb = '1' else ram_rdata;
+  is_flash_data_wb <= '1' when unsigned(memwb_alu_out) < RAM_BASE_BYTES else '0';
+  mem_read_data    <= flash_data2 when is_flash_data_wb = '1' else ram_rdata;
 
   u_extender_ram : entity work.ExtenderRAM
     port map (

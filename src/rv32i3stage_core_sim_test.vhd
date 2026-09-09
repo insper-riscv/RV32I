@@ -5,36 +5,49 @@ use work.rv32i_ctrl_consts.all;
 
 entity rv32i3stage_core_sim_test is
 	generic (
+	  -- BOOT_ROM_FILE is built ONCE per test run (see
+	  -- riscv_tools.boot_rom.build_boot_rom), not per test like
+	  -- ROM_FILE (FLASH's own image) is -- see config.yaml's
+	  -- sim.parameters. Both default to "default.hex" for existing
+	  -- callers (e.g. tests/python/tests.json) that don't set them.
+	  BOOT_ROM_FILE : string := "default.hex";
 	  ROM_FILE : string := "default.hex";
 	  -- Word-address width of ROM_simulation/RAM_simulation's internal
-	  -- memory array (depth = 2**width words) — both default to 9 (512
-	  -- words) inside ROM_simulation/RAM_simulation themselves, too
-	  -- small for a program/mailbox address sized for the real
-	  -- ROM1PORT/RAM1PORT hardware (8192/4096 words). Exposed here so a
+	  -- memory array (depth = 2**width words) — all three default to
+	  -- 9 (512 words) inside ROM_simulation/RAM_simulation themselves,
+	  -- too small for a program/mailbox address sized for the real
+	  -- BOOT_ROM/FLASH/RAM1PORT hardware. Exposed here so a
 	  -- full-pipeline testbench can size these to match whatever
-	  -- memory map its own C tests were compiled against, without
-	  -- editing this file. Left at the same 9/9 default so existing
+	  -- memory map its own tests were compiled against, without
+	  -- editing this file. Left at the same 9/9/9 default so existing
 	  -- callers (e.g. tests/python/tests.json's instruction-level
 	  -- tests) are unaffected.
+	  boot_rom_addr_width : natural := 9;
 	  rom_addr_width : natural := 9;
 	  ram_addr_width : natural := 9
   	);
 	port (
     	CLK  : in  std_logic;
-		reset : in std_logic := '0'   
+		reset : in std_logic := '0'
   	);
 end entity;
 
 architecture behaviour of rv32i3stage_core_sim_test is
 
-	signal rom_addr : std_logic_vector(31 downto 0);
-	signal rom_rden : std_logic;
-	signal rom_data : std_logic_vector(31 downto 0);
+	-- IF stage: barramento UNICO compartilhado por BOOT_ROM e FLASH
+	-- (ver rv32im_pipeline_core.vhd is_boot_rom_if/is_boot_rom_d) --
+	-- ambas as ROM_simulation instancias abaixo recebem o MESMO
+	-- if_addr/if_rden, cada uma devolvendo seu proprio dado.
+	signal if_addr : std_logic_vector(31 downto 0);
+	signal if_rden : std_logic;
+	signal boot_rom_data : std_logic_vector(31 downto 0);
+	signal flash_data : std_logic_vector(31 downto 0);
 
-	-- Harvard modificado: porta B da ROM, leitura pelo estagio MEM
-	signal rom_addr2 : std_logic_vector(31 downto 0);
-	signal rom_rden2 : std_logic;
-	signal rom_data2 : std_logic_vector(31 downto 0);
+	-- Estagio MEM: segunda porta da FLASH, so' para o copy-loop de
+	-- .data em boot_rom.S (ver rv32im_pipeline_core.vhd flash_addr2).
+	signal flash_addr2 : std_logic_vector(31 downto 0);
+	signal flash_rden2 : std_logic;
+	signal flash_data2 : std_logic_vector(31 downto 0);
 
 	signal ram_addr : std_logic_vector(31 downto 0);
 	signal ram_wdata : std_logic_vector(31 downto 0);
@@ -72,15 +85,18 @@ begin
 			reset 		=> reset,
 
 			----------------------------------------------------------------------
-			-- Interface com a ROM (somente leitura)
+			-- Interface de busca de instrucao -- barramento unico
+			-- compartilhado por BOOT_ROM e FLASH (ver
+			-- rv32im_pipeline_core.vhd)
 			----------------------------------------------------------------------
-			rom_addr => rom_addr,	-- endereço de instrução
-			rom_rden => rom_rden,	-- enable de leitura
-			rom_data => rom_data,	-- dados lidos da ROM
+			if_addr       => if_addr,
+			if_rden       => if_rden,
+			boot_rom_data => boot_rom_data,
+			flash_data    => flash_data,
 
-			rom_addr2 => rom_addr2,	-- Harvard modificado: leitura de dado (estagio MEM)
-			rom_rden2 => rom_rden2,
-			rom_data2 => rom_data2,
+			flash_addr2 => flash_addr2,
+			flash_rden2 => flash_rden2,
+			flash_data2 => flash_data2,
 
 			----------------------------------------------------------------------
 			-- Interface com a RAM (leitura e escrita)
@@ -88,24 +104,39 @@ begin
 			ram_addr    => ram_addr, 	-- endereço de palavra
 			ram_wdata   => ram_wdata, 	-- dados a escrever (saida do store manager)
 			ram_rdata   => ram_rdata, 	-- dados lidos
-			ram_en      => ram_en, 		-- enable ram	
+			ram_en      => ram_en, 		-- enable ram
 			ram_wren    => ram_wren,    -- write enable
 			ram_rden    => ram_rden,    -- read enable
 			ram_byteena => ram_byteena 	-- máscara de bytes
 	);
 
-	ROM : entity work.ROM_simulation
+	-- BOOT_ROM e FLASH: duas instancias separadas da MESMA entidade
+	-- ROM_simulation, cada uma com seu proprio arquivo/largura.
+	-- BOOT_ROM: so' porta 1 (nunca tem .data proprio, addr2/clk2/re2
+	-- ficam nos valores default). FLASH: porta 2 tambem usada, pelo
+	-- estagio MEM (ver rv32im_pipeline_core.vhd flash_addr2 -- o
+	-- copy-loop de .data em boot_rom.S le FLASH como dado).
+	BOOT_ROM : entity work.ROM_simulation
+		generic map (ROM_FILE => BOOT_ROM_FILE, memoryAddrWidth => boot_rom_addr_width)
+		port map (
+			addr 	=> if_addr(31 downto 2),
+			clk 	=> pll_clk_if,
+			re 		=> if_rden,
+			data	=> boot_rom_data
+	);
+
+	FLASH : entity work.ROM_simulation
 		generic map (ROM_FILE => ROM_FILE, memoryAddrWidth => rom_addr_width)
 		port map (
-			addr 	=> rom_addr(31 downto 2),--word addressable
+			addr 	=> if_addr(31 downto 2),
 			clk 	=> pll_clk_if,
-			re 		=> rom_rden,
-			data	=> rom_data,
+			re 		=> if_rden,
+			data	=> flash_data,
 
-			addr2 	=> rom_addr2(31 downto 2),
+			addr2 	=> flash_addr2(31 downto 2),
 			clk2 	=> pll_clk_idexmem,
-			re2 	=> rom_rden2,
-			data2	=> rom_data2
+			re2 	=> flash_rden2,
+			data2	=> flash_data2
 	);
 
 	RAM : entity work.RAM_simulation
